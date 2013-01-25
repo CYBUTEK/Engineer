@@ -17,11 +17,6 @@ namespace Engineer
 {
     class Simulator
     {
-        public List<Part> parts;
-        public double gravity;
-        public double atmosphere;
-        public Stage[] stages;
-
         List<PartSim> partSims;
         int currentStage = 0;
         bool firstSimulation = true;
@@ -38,11 +33,6 @@ namespace Engineer
 
                 return false;
             }
-        }
-
-        public void RunSimulation()
-        {
-            stages = RunSimulation(parts, gravity, atmosphere);
         }
 
         public Stage[] RunSimulation(List<Part> parts, double gravity, double atmosphere = 0)
