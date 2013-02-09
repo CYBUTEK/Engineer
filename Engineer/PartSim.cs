@@ -235,7 +235,7 @@ namespace Engineer
                 part = this.part;
             }
 
-            if (IsDecoupler(part))
+            if (IsDecoupler(part) || IsDockingNode(part))
             {
                 if (part.inverseStage > stage)
                 {
@@ -293,6 +293,16 @@ namespace Engineer
             }
 
             return part.Modules.OfType<ModuleDockingNode>().Count() > 0;
+        }
+
+        public bool IsStrutFuelLine(Part part = null)
+        {
+            if (part == null)
+            {
+                part = this.part;
+            }
+
+            return (part is StrutConnector || part is FuelLine) ? true : false;
         }
 
         private void SetResourceDrainRateAllVessel(int type, double amount, List<PartSim> partSims)
@@ -424,7 +434,16 @@ namespace Engineer
 
         public double GetStartMass(int currentStage)
         {
-            double mass = part.mass + part.GetResourceMass();
+            double mass = 0d;
+
+            if (part.physicalSignificance == Part.PhysicalSignificance.NONE)
+            {
+                mass = part.GetResourceMass();
+            }
+            else
+            {
+                mass = part.mass + part.GetResourceMass();
+            }
 
             if (part.Modules.OfType<ModuleJettison>().Count() > 0)
             {
@@ -443,7 +462,14 @@ namespace Engineer
 
         public double GetMass(int currentStage)
         {
-            double mass = part.mass;
+            //double mass = part.mass;
+
+            double mass = 0d;
+
+            if (part.physicalSignificance == Part.PhysicalSignificance.FULL)
+            {
+                mass = part.mass;
+            }
 
             foreach (int type in resources.Types)
             {

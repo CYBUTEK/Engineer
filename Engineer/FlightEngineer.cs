@@ -30,6 +30,8 @@ namespace Engineer
 
         Simulator simulator = new Simulator();
         Stage[] stages = new Stage[0];
+        double stageDeltaV = 0d;
+        int numberOfStages = 0;
 
         Stopwatch simTimer = new Stopwatch();
         double simDelay = 0d;
@@ -276,6 +278,7 @@ namespace Engineer
             if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", heading);
             if (settings.Get<bool>("Surface: Atmospheric Pressure", true)) GUILayout.Label("Atmospheric Pressure", heading);
             if (settings.Get<bool>("Surface: Atmospheric Density", true)) GUILayout.Label("Atmospheric Density", heading);
+            if (settings.Get<bool>("Surface: Atmospheric Drag", true)) GUILayout.Label("Atmospheric Drag", heading);
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();
@@ -288,8 +291,21 @@ namespace Engineer
             if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(this.vessel.geeForce.ToString("0.000") + " / " + maxGForce.ToString("0.000"), data);
             if (settings.Get<bool>("Surface: Atmospheric Pressure")) GUILayout.Label((this.part.dynamicPressureAtm * 100).ToString("0.000") + "kPa", data);
             if (settings.Get<bool>("Surface: Atmospheric Density")) GUILayout.Label(this.vessel.atmDensity.ToString("0.000000"), data);
+            if (settings.Get<bool>("Surface: Atmospheric Drag")) GUILayout.Label(((0.5 * this.vessel.atmDensity * Math.Pow(this.vessel.srf_velocity.magnitude, 2) * GetDrag() * this.vessel.GetTotalMass()) / 1000).ToString("0.000") + "kN", data);
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
+        }
+
+        private double GetDrag()
+        {
+            double drag = 0d;
+
+            foreach (Part part in this.vessel.parts)
+            {
+                drag += part.maximum_drag;
+            }
+
+            return drag;
         }
 
         private void DrawVessel()
@@ -311,7 +327,26 @@ namespace Engineer
             GUILayout.BeginVertical();
             settings.Set("*SPACER_VESSEL", "");
             settings.Set("*HEADING_VESSEL", "VESSEL DISPLAY");
-            if (settings.Get<bool>("Vessel: DeltaV (Stage)", true)) GUILayout.Label("DeltaV (Stage)", heading);
+
+            int stageCount = stages.Length;
+            if (settings.Get<bool>("Vessel: Show All DeltaV Stages", true))
+            {
+                for (int i = stageCount - 1; i >= 0; i--)
+                {
+                    GUILayout.Label("DeltaV (S" + i + ")", heading);
+                    stageDeltaV = stages[i].deltaV;
+                }
+
+                if (stageCount != numberOfStages)
+                {
+                    numberOfStages = stageCount;
+                    settings.Changed = true;
+                }
+            }
+            else
+            {
+                if (settings.Get<bool>("Vessel: DeltaV (Stage)", true)) GUILayout.Label("DeltaV (Stage)", heading);
+            }
             if (settings.Get<bool>("Vessel: DeltaV (Total)", true)) GUILayout.Label("DeltaV (Total)", heading);
             if (settings.Get<bool>("Vessel: Specific Impulse", true)) GUILayout.Label("Specific Impulse", heading);
             if (settings.Get<bool>("Vessel: Mass", true)) GUILayout.Label("Mass", heading);
@@ -323,7 +358,17 @@ namespace Engineer
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();
-            if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(stages[Staging.lastStage].deltaV.ToString("0") + "m/s (" + stages[Staging.lastStage].time.ToString("0") + "s)", data);
+            if (settings.Get<bool>("Vessel: Show All DeltaV Stages"))
+            {
+                for (int i = stageCount - 1; i >= 0; i--)
+                {
+                    GUILayout.Label(stages[i].deltaV.ToString("0") + "m/s (" + stages[i].time.ToString("0") + "s)", data);
+                }
+            }
+            else
+            {
+                if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(stages[Staging.lastStage].deltaV.ToString("0") + "m/s (" + stages[Staging.lastStage].time.ToString("0") + "s)", data);
+            }
             if (settings.Get<bool>("Vessel: DeltaV (Total)")) GUILayout.Label(stages[Staging.lastStage].totalDeltaV.ToString("0") + "m/s (" + stages[Staging.lastStage].totalTime.ToString("0") + "s)", data);
             if (settings.Get<bool>("Vessel: Specific Impulse")) GUILayout.Label(stages[Staging.lastStage].isp.ToString("0.000") + "s", data);
             if (settings.Get<bool>("Vessel: Mass")) GUILayout.Label(stages[Staging.lastStage].mass.ToString("0.000") + " / " + stages[Staging.lastStage].totalMass.ToString("0.000"), data);
