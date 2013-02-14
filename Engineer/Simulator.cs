@@ -182,7 +182,7 @@ namespace Engineer
                 }
                 else
                 {
-                    stage.time = 9999;
+                    stage.time = 0;
                 }
                 stages[currentStage] = stage;
 
@@ -206,7 +206,7 @@ namespace Engineer
 
                 if (stages[i].totalTime > 9999)
                 {
-                    stages[i].totalTime = 9999;
+                    stages[i].totalTime = 0;
                 }
             }
 

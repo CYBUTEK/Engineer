@@ -193,12 +193,9 @@ namespace Engineer
 
             foreach (AttachNode attachNode in this.part.attachNodes)
             {
-                if (attachNode.attachedPart != null
-                    && attachNode.nodeType == AttachNode.NodeType.Stack
-                    && (attachNode.attachedPart.fuelCrossFeed
-                        || attachNode.attachedPart is FuelTank)
-                    && !(this.part.NoCrossFeedNodeKey.Length > 0
-                        && attachNode.id.Contains(this.part.NoCrossFeedNodeKey)))
+                if (attachNode.attachedPart != null && attachNode.nodeType == AttachNode.NodeType.Stack &&
+                    (attachNode.attachedPart.fuelCrossFeed || attachNode.attachedPart is FuelTank) &&
+                    !(this.part.NoCrossFeedNodeKey.Length > 0 && attachNode.id.Contains(this.part.NoCrossFeedNodeKey)))
                 {
                     sourceParts.Add((PartSim)partSimLookup[attachNode.attachedPart]);
                 }
@@ -214,7 +211,7 @@ namespace Engineer
             //    sourceParts.Add(partSimLookup[this.part.parent]);
             //}
 
-            if (this.part.parent != null && this.part.parent.fuelCrossFeed == true && !IsDecoupler(this.part.parent) && !IsDockingNode(this.part.parent))
+            if (this.part.parent != null && this.part.parent.fuelCrossFeed == true && !IsDecoupler(this.part.parent))
             {
                 sourceParts.Add((PartSim)partSimLookup[this.part.parent]);
             }
@@ -235,7 +232,7 @@ namespace Engineer
                 part = this.part;
             }
 
-            if (IsDecoupler(part) || IsDockingNode(part))
+            if (IsDecoupler(part))
             {
                 if (part.inverseStage > stage)
                 {
@@ -436,6 +433,11 @@ namespace Engineer
         {
             double mass = 0d;
 
+            if (part.Modules.Contains("LaunchClamp"))
+            {
+                return 0d;
+            }
+
             if (part.physicalSignificance == Part.PhysicalSignificance.NONE)
             {
                 mass = part.GetResourceMass();
@@ -445,26 +447,17 @@ namespace Engineer
                 mass = part.mass + part.GetResourceMass();
             }
 
-            if (part.Modules.OfType<ModuleJettison>().Count() > 0)
-            {
-                if (part.vessel == null)
-                {
-                    ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
-                    if (part.findAttachNode(jettison.bottomNodeName).attachedPart == null)
-                    {
-                        mass -= jettison.jettisonedObjectMass;
-                    }
-                }
-            }
-
             return mass;
         }
 
         public double GetMass(int currentStage)
         {
-            //double mass = part.mass;
-
             double mass = 0d;
+
+            if (part.Modules.Contains("LaunchClamp"))
+            {
+                return 0d;
+            }
 
             if (part.physicalSignificance == Part.PhysicalSignificance.FULL)
             {
@@ -476,6 +469,11 @@ namespace Engineer
                 mass += resources.GetResourceMass(type);
             }
 
+            return mass;
+        }
+
+        public double EngineFairingFix(int currentStage)
+        {
             //
             // This is the code which SHOULD be used...  But there is a bug in KSP where the jettisoned
             // fairing mass is not subtracted from the engine when staged.
@@ -487,7 +485,7 @@ namespace Engineer
             //        ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
             //        if (part.findAttachNode(jettison.bottomNodeName).attachedPart == null || InverseStage == currentStage)
             //        {
-            //            mass -= jettison.jettisonedObjectMass;
+            //            return -jettison.jettisonedObjectMass;
             //        }
             //    }
             //    else
@@ -495,24 +493,37 @@ namespace Engineer
             //        ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
             //        if (part.findAttachNode(jettison.bottomNodeName).attachedPart != null && InverseStage == currentStage)
             //        {
-            //            mass -= jettison.jettisonedObjectMass;
+            //            return -jettison.jettisonedObjectMass;
             //        }
             //    }
             //}
 
-            if (part.Modules.OfType<ModuleJettison>().Count() > 0)
-            {
-                if (part.vessel == null)
-                {
-                    ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
-                    if (part.findAttachNode(jettison.bottomNodeName).attachedPart == null)
-                    {
-                        mass -= jettison.jettisonedObjectMass;
-                    }
-                }
-            }
+            //if (part.Modules.OfType<ModuleJettison>().Count() > 0)
+            //{
+            //    if (part.vessel == null)
+            //    {
+            //        ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
+            //        if (part.findAttachNode(jettison.bottomNodeName).attachedPart != null)
+            //        {
+            //            return jettison.jettisonedObjectMass;
+            //        }
+            //    }
+            //    else
+            //    {
+            //        ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
+            //        if (part.findAttachNode(jettison.bottomNodeName).attachedPart != null)
+            //        {
+            //            if (jettison.jettisonedObjectMass > 0)
+            //            {
+            //                part.mass += jettison.jettisonedObjectMass;
+            //                jettison.jettisonedObjectMass = 0;
+            //            }
+            //            UnityEngine.MonoBehaviour.print(part.mass);
+            //        }
+            //    }
+            //}
 
-            return mass;
+            return 0f;
         }
 
         public ResourceContainer Resources

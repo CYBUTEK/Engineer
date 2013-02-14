@@ -17,7 +17,6 @@ namespace Engineer
         bool showUpdate = true;
         string settingsFile = "flight_engineer.cfg";
 
-        public enum SIUnitType { Speed, Distance };
         Rendezvous rendezvous = new Rendezvous();
 
         public Rect windowPosition = new Rect(UnityEngine.Screen.width - 275, 0, 0, 0);
@@ -32,6 +31,7 @@ namespace Engineer
         Stage[] stages = new Stage[0];
         double stageDeltaV = 0d;
         int numberOfStages = 0;
+        int numberOfStagesUseful = 0;
 
         Stopwatch simTimer = new Stopwatch();
         double simDelay = 0d;
@@ -237,25 +237,25 @@ namespace Engineer
             GUILayout.BeginVertical();
             if (settings.Get<bool>("Orbital: Show Grouped Ap/Pe Readouts"))
             {
-                if (settings.Get<bool>("Orbital: Apoapsis Height")) GUILayout.Label(FormatSI(this.vessel.orbit.ApA, SIUnitType.Distance), data);
-                if (settings.Get<bool>("Orbital: Time to Apoapsis")) GUILayout.Label(this.vessel.orbit.timeToAp.ToString("0.000") + "s", data);
-                if (settings.Get<bool>("Orbital: Periapsis Height")) GUILayout.Label(FormatSI(this.vessel.orbit.PeA, SIUnitType.Distance), data);
-                if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(this.vessel.orbit.timeToPe.ToString("0.000") + "s", data);
+                if (settings.Get<bool>("Orbital: Apoapsis Height")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.ApA, Tools.SIUnitType.Distance), data);
+                if (settings.Get<bool>("Orbital: Time to Apoapsis")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.timeToAp), data);
+                if (settings.Get<bool>("Orbital: Periapsis Height")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.PeA, Tools.SIUnitType.Distance), data);
+                if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.timeToPe), data);
             }
             else
             {
-                if (settings.Get<bool>("Orbital: Apoapsis Height")) GUILayout.Label(FormatSI(this.vessel.orbit.ApA, SIUnitType.Distance), data);
-                if (settings.Get<bool>("Orbital: Periapsis Height")) GUILayout.Label(FormatSI(this.vessel.orbit.PeA, SIUnitType.Distance), data);
-                if (settings.Get<bool>("Orbital: Time to Apoapsis")) GUILayout.Label(this.vessel.orbit.timeToAp.ToString("0.000") + "s", data);
-                if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(this.vessel.orbit.timeToPe.ToString("0.000") + "s", data);
+                if (settings.Get<bool>("Orbital: Apoapsis Height")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.ApA, Tools.SIUnitType.Distance), data);
+                if (settings.Get<bool>("Orbital: Periapsis Height")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.PeA, Tools.SIUnitType.Distance), data);
+                if (settings.Get<bool>("Orbital: Time to Apoapsis")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.timeToAp), data);
+                if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.timeToPe), data);
             }
-            if (settings.Get<bool>("Orbital: Inclination")) GUILayout.Label(this.vessel.orbit.inclination.ToString("0.000000") + "°", data);
-            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(this.vessel.orbit.eccentricity.ToString("0.000000"), data);
-            if (settings.Get<bool>("Orbital: Period")) GUILayout.Label(this.vessel.orbit.period.ToString("0.000") + "s", data);
-            if (settings.Get<bool>("Orbital: Longitude of AN")) GUILayout.Label(this.vessel.orbit.LAN.ToString("0.000000") + "°", data);
-            if (settings.Get<bool>("Orbital: Longitude of Pe")) GUILayout.Label((this.vessel.orbit.LAN + this.vessel.orbit.argumentOfPeriapsis).ToString("0.000000") + "°", data);
-            if (settings.Get<bool>("Orbital: Semi-major Axis")) GUILayout.Label(FormatSI(this.vessel.orbit.semiMajorAxis, SIUnitType.Distance), data);
-            if (settings.Get<bool>("Orbital: Semi-minor Axis")) GUILayout.Label(FormatSI(this.vessel.orbit.semiMinorAxis, SIUnitType.Distance), data);
+            if (settings.Get<bool>("Orbital: Inclination")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.inclination, "°", 6), data);
+            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.eccentricity, "°", 6), data);
+            if (settings.Get<bool>("Orbital: Period")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.period), data);
+            if (settings.Get<bool>("Orbital: Longitude of AN")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.LAN, "°", 6), data);
+            if (settings.Get<bool>("Orbital: Longitude of Pe")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.LAN + this.vessel.orbit.argumentOfPeriapsis, "°", 6), data);
+            if (settings.Get<bool>("Orbital: Semi-major Axis")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.semiMajorAxis, Tools.SIUnitType.Distance), data);
+            if (settings.Get<bool>("Orbital: Semi-minor Axis")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.semiMinorAxis, Tools.SIUnitType.Distance), data);
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
         }
@@ -276,22 +276,58 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Longitude", true)) GUILayout.Label("Longitude", heading);
             if (settings.Get<bool>("Surface: Latitude", true)) GUILayout.Label("Latitude", heading);
             if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", heading);
-            if (settings.Get<bool>("Surface: Atmospheric Pressure", true)) GUILayout.Label("Atmospheric Pressure", heading);
-            if (settings.Get<bool>("Surface: Atmospheric Density", true)) GUILayout.Label("Atmospheric Density", heading);
+
+            if (settings.Get<bool>("Surface: Terminal Velocity", true)) GUILayout.Label("Terminal Velocity", heading);
+            if (settings.Get<bool>("Surface: Atmospheric Efficiency", true)) GUILayout.Label("Atmospheric Efficiency", heading);
             if (settings.Get<bool>("Surface: Atmospheric Drag", true)) GUILayout.Label("Atmospheric Drag", heading);
+            if (settings.Get<bool>("Surface: Atmospheric Density", true)) GUILayout.Label("Atmospheric Density", heading);
+            if (settings.Get<bool>("Surface: Atmospheric Pressure", true)) GUILayout.Label("Atmospheric Pressure", heading);
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();
-            if (settings.Get<bool>("Surface: Altitude (Sea Level)")) GUILayout.Label(FormatSI(this.vessel.mainBody.GetAltitude(this.vessel.CoM), SIUnitType.Distance), data);
-            if (settings.Get<bool>("Surface: Altitude (Terrain)")) GUILayout.Label(FormatSI(this.vessel.mainBody.GetAltitude(this.vessel.CoM) - this.vessel.terrainAltitude, SIUnitType.Distance), data);
-            if (settings.Get<bool>("Surface: Vertical Speed")) GUILayout.Label(FormatSI(this.vessel.verticalSpeed, SIUnitType.Speed), data);
-            if (settings.Get<bool>("Surface: Horizontal Speed")) GUILayout.Label(FormatSI(this.vessel.horizontalSrfSpeed, SIUnitType.Speed), data);
-            if (settings.Get<bool>("Surface: Longitude")) GUILayout.Label(this.vessel.longitude.ToString("0.000000") + "°", data);
-            if (settings.Get<bool>("Surface: Latitude")) GUILayout.Label(this.vessel.latitude.ToString("0.000000") + "°", data);
-            if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(this.vessel.geeForce.ToString("0.000") + " / " + maxGForce.ToString("0.000"), data);
-            if (settings.Get<bool>("Surface: Atmospheric Pressure")) GUILayout.Label((this.part.dynamicPressureAtm * 100).ToString("0.000") + "kPa", data);
-            if (settings.Get<bool>("Surface: Atmospheric Density")) GUILayout.Label(this.vessel.atmDensity.ToString("0.000000"), data);
-            if (settings.Get<bool>("Surface: Atmospheric Drag")) GUILayout.Label(((0.5 * this.vessel.atmDensity * Math.Pow(this.vessel.srf_velocity.magnitude, 2) * GetDrag() * this.vessel.GetTotalMass()) / 1000).ToString("0.000") + "kN", data);
+            if (settings.Get<bool>("Surface: Altitude (Sea Level)")) GUILayout.Label(Tools.FormatSI(this.vessel.mainBody.GetAltitude(this.vessel.CoM), Tools.SIUnitType.Distance), data);
+            if (settings.Get<bool>("Surface: Altitude (Terrain)")) GUILayout.Label(Tools.FormatSI(this.vessel.mainBody.GetAltitude(this.vessel.CoM) - this.vessel.terrainAltitude, Tools.SIUnitType.Distance), data);
+            if (settings.Get<bool>("Surface: Vertical Speed")) GUILayout.Label(Tools.FormatSI(this.vessel.verticalSpeed, Tools.SIUnitType.Speed), data);
+            if (settings.Get<bool>("Surface: Horizontal Speed")) GUILayout.Label(Tools.FormatSI(this.vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), data);
+            if (settings.Get<bool>("Surface: Longitude")) GUILayout.Label(Tools.FormatNumber(this.vessel.longitude, "°", 6), data);
+            if (settings.Get<bool>("Surface: Latitude")) GUILayout.Label(Tools.FormatNumber(this.vessel.latitude, "°", 6), data);
+            if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(this.vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), data);
+
+            double totalMass = 0d;
+            double massDrag = 0d;
+            foreach (Part part in this.vessel.parts)
+            {
+                if (part.physicalSignificance != Part.PhysicalSignificance.NONE)
+                {
+                    double partMass = part.mass + part.GetResourceMass();
+                    totalMass += partMass;
+                    massDrag += partMass * part.maximum_drag;
+                }
+            }
+
+            double gravity = FlightGlobals.getGeeForceAtPosition(this.vessel.CoM).magnitude;
+            double atmosphere = this.vessel.atmDensity;
+
+            double terminalVelocity = 0d;
+            if (atmosphere > 0)
+            {
+                terminalVelocity = Math.Sqrt((2 * totalMass * gravity) / (atmosphere * massDrag * FlightGlobals.DragMultiplier));
+            }
+
+            double atmosphericEfficiency = 0d;
+            if (terminalVelocity > 0)
+            {
+                atmosphericEfficiency = FlightGlobals.ship_srfSpeed / terminalVelocity;
+            }
+
+            double dragForce = 0.5 * atmosphere * Math.Pow(FlightGlobals.ship_srfSpeed, 2) * massDrag * FlightGlobals.DragMultiplier;
+
+            if (settings.Get<bool>("Surface: Terminal Velocity")) GUILayout.Label(Tools.FormatSI(terminalVelocity, Tools.SIUnitType.Speed), data);
+            if (settings.Get<bool>("Surface: Atmospheric Efficiency")) GUILayout.Label(Tools.FormatNumber(atmosphericEfficiency * 100, "%", 2), data);
+            if (settings.Get<bool>("Surface: Atmospheric Drag")) GUILayout.Label(Tools.FormatSI(dragForce, Tools.SIUnitType.Force), data);
+            if (settings.Get<bool>("Surface: Atmospheric Pressure")) GUILayout.Label(Tools.FormatSI(this.part.dynamicPressureAtm * 100, Tools.SIUnitType.Pressure), data);
+            if (settings.Get<bool>("Surface: Atmospheric Density")) GUILayout.Label(Tools.FormatSI(this.vessel.atmDensity, Tools.SIUnitType.Density), data);
+
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
         }
@@ -313,7 +349,7 @@ namespace Engineer
             if (((TimeWarp.WarpMode == TimeWarp.Modes.LOW) || (TimeWarp.CurrentRate <= TimeWarp.MaxPhysicsRate)) && (simDelay == 0 || simTimer.ElapsedMilliseconds > simDelay))
             {
                 Stopwatch stopwatch = Stopwatch.StartNew();
-                stages = simulator.RunSimulation(this.vessel.parts, this.vessel.mainBody.gravParameter / Math.Pow(this.vessel.orbit.radius, 2));
+                stages = simulator.RunSimulation(this.vessel.parts, FlightGlobals.getGeeForceAtPosition(this.vessel.rigidbody.position).magnitude);
                 stopwatch.Stop();
                 simDelay = 10 * stopwatch.ElapsedMilliseconds;
                 simTimer.Reset();
@@ -329,17 +365,23 @@ namespace Engineer
             settings.Set("*HEADING_VESSEL", "VESSEL DISPLAY");
 
             int stageCount = stages.Length;
+            int stageCountUseful = 0;
             if (settings.Get<bool>("Vessel: Show All DeltaV Stages", true))
             {
                 for (int i = stageCount - 1; i >= 0; i--)
                 {
-                    GUILayout.Label("DeltaV (S" + i + ")", heading);
                     stageDeltaV = stages[i].deltaV;
+                    if (stageDeltaV > 0)
+                    {
+                        if (settings.Get<bool>("Vessel: DeltaV (Stage)", true)) GUILayout.Label("DeltaV (S" + i + ")", heading);
+                        stageCountUseful++;
+                    }
                 }
 
-                if (stageCount != numberOfStages)
+                if (stageCount != numberOfStages || stageCountUseful != numberOfStagesUseful)
                 {
                     numberOfStages = stageCount;
+                    numberOfStagesUseful = stageCountUseful;
                     settings.Changed = true;
                 }
             }
@@ -362,21 +404,25 @@ namespace Engineer
             {
                 for (int i = stageCount - 1; i >= 0; i--)
                 {
-                    GUILayout.Label(stages[i].deltaV.ToString("0") + "m/s (" + stages[i].time.ToString("0") + "s)", data);
+                    stageDeltaV = stages[i].deltaV;
+                    if (stageDeltaV > 0)
+                    {
+                        if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(Tools.FormatNumber(stages[i].deltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[i].time) + ")", data);
+                    }
                 }
             }
             else
             {
-                if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(stages[Staging.lastStage].deltaV.ToString("0") + "m/s (" + stages[Staging.lastStage].time.ToString("0") + "s)", data);
+                if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].deltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[Staging.lastStage].time)  + ")", data);
             }
-            if (settings.Get<bool>("Vessel: DeltaV (Total)")) GUILayout.Label(stages[Staging.lastStage].totalDeltaV.ToString("0") + "m/s (" + stages[Staging.lastStage].totalTime.ToString("0") + "s)", data);
-            if (settings.Get<bool>("Vessel: Specific Impulse")) GUILayout.Label(stages[Staging.lastStage].isp.ToString("0.000") + "s", data);
-            if (settings.Get<bool>("Vessel: Mass")) GUILayout.Label(stages[Staging.lastStage].mass.ToString("0.000") + " / " + stages[Staging.lastStage].totalMass.ToString("0.000"), data);
-            if (settings.Get<bool>("Vessel: Thrust (Maximum)")) GUILayout.Label(stages[Staging.lastStage].thrust.ToString("0.000") + "kN", data);
-            if (settings.Get<bool>("Vessel: Thrust (Throttle)")) GUILayout.Label(stages[Staging.lastStage].actualThrust.ToString("0.000") + "kN", data);
-            if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)")) GUILayout.Label(stages[Staging.lastStage].actualThrustToWeight.ToString("0.000"), data);
-            if (settings.Get<bool>("Vessel: Thrust to Weight (Current)")) GUILayout.Label(stages[Staging.lastStage].thrustToWeight.ToString("0.000"), data);
-            if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)", true)) GUILayout.Label((stages[Staging.lastStage].thrust / (stages[Staging.lastStage].totalMass * (this.vessel.mainBody.gravParameter / Math.Pow(this.vessel.mainBody.Radius, 2)))).ToString("0.000"), data);
+            if (settings.Get<bool>("Vessel: DeltaV (Total)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].totalDeltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[Staging.lastStage].totalTime) + ")", data);
+            if (settings.Get<bool>("Vessel: Specific Impulse")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].isp, "s", 3), data);
+            if (settings.Get<bool>("Vessel: Mass")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].mass, 3) + " / " + Tools.FormatNumber(stages[Staging.lastStage].totalMass, "Mg", 3), data);
+            if (settings.Get<bool>("Vessel: Thrust (Maximum)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].thrust, Tools.SIUnitType.Force), data);
+            if (settings.Get<bool>("Vessel: Thrust (Throttle)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].actualThrust, Tools.SIUnitType.Force), data);
+            if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].actualThrustToWeight, 3), data);
+            if (settings.Get<bool>("Vessel: Thrust to Weight (Current)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].thrustToWeight, 3), data);
+            if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)", true)) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].thrust / (stages[Staging.lastStage].totalMass * (this.vessel.mainBody.gravParameter / Math.Pow(this.vessel.mainBody.Radius, 2))), 3), data);
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
         }
@@ -386,40 +432,89 @@ namespace Engineer
             rendezvous.Draw();
         }
 
-        public string FormatSI(double number, SIUnitType type)
-        {
-            // Assign memory for storing the notations.
-            string[] notation = { "" };
+        //public enum SIUnitType { Speed, Distance, Pressure, Density, Force, Mass };
 
-            // Select the SIUnitType used and populate the notation array.
-            switch (type)
-            {
-                case SIUnitType.Distance:
-                    notation = new string[] { "m", "km", "Mm", "Gm", "Tm", "Pm", "Em", "Ym", "Zm" };
-                    break;
-                case SIUnitType.Speed:
-                    notation = new string[] { "mm/s", "m/s", "km/s", "Mm/s", "Gm/s", "Tm/s", "Pm/s", "Em/s", "Ym/s", "Zm/s" };
-                    number *= 1000;
-                    break;
-            }
+        //public string For5matSI(double number, Tools.SIUnitType type)
+        //{
+        //    // Assign memory for storing the notations.
+        //    string[] notation = { "" };
 
-            int notationIndex = 0;  // Index that is used to select the notation to display.
+        //    // Select the Tools.SIUnitType used and populate the notation array.
+        //    switch (type)
+        //    {
+        //        case Tools.SIUnitType.Distance:
+        //            notation = new string[] { "mm", "m", "km", "Mm", "Gm", "Tm", "Pm", "Em", "Zm", "Ym" };
+        //            number *= 1000;
+        //            break;
+        //        case Tools.SIUnitType.Speed:
+        //            notation = new string[] { "mm/s", "m/s", "km/s", "Mm/s", "Gm/s", "Tm/s", "Pm/s", "Em/s", "Zm/s", "Ym/s" };
+        //            number *= 1000;
+        //            break;
+        //        case Tools.SIUnitType.Pressure:
+        //            notation = new string[] { "Pa", "kPa", "MPa", "GPa", "TPa", "PPa", "EPa", "ZPa", "YPa" };
+        //            number *= 1000;
+        //            break;
+        //        case Tools.SIUnitType.Density:
+        //            notation = new string[] { "mg/m³", "g/m³", "kg/m³", "Mg/m³", "Gg/m³", "Tg/m³", "Pg/m³", "Eg/m³", "Zg/m³", "Yg/m³" };
+        //            number *= 1000000;
+        //            break;
+        //        case Tools.SIUnitType.Force:
+        //            notation = new string[] { "N", "kN", "MN", "GN", "TN", "PT", "EN", "ZN", "YN" };
+        //            number *= 1000;
+        //            break;
+        //        case Tools.SIUnitType.Mass:
+        //            notation = new string[] { "g", "kg", "Mg", "Gg", "Tg", "Pg", "Eg", "Zg", "Yg" };
+        //            number *= 1000;
+        //            break;
+        //    }
 
-            // Loop through the notations until the smallest usable one is found.
-            for (notationIndex = 0; notationIndex < notation.Length; notationIndex++)
-            {
-                if (number > 1000 || number < -1000) { number /= 1000; } else { break; }
-            }
+        //    int notationIndex = 0;  // Index that is used to select the notation to display.
 
-            // Return a spacing string if number is 0;
-            if (number == 0)
-            {
-                return "-----";
-            }
+        //    // Loop through the notations until the smallest usable one is found.
+        //    for (notationIndex = 0; notationIndex < notation.Length; notationIndex++)
+        //    {
+        //        if (number > 1000 || number < -1000) { number /= 1000; } else { break; }
+        //    }
 
-            // Return a string of the concatinated number and selected notation.
-            return number.ToString("0.000") + notation[notationIndex];
-        }
+        //    // Return a spacing string if number is 0;
+        //    if (number == 0)
+        //    {
+        //        return "-----";
+        //    }
+
+        //    // Return a string of the concatinated number and selected notation.
+        //    return number.ToString("0.000") + notation[notationIndex];
+        //}
+
+        //public string Tools.FormatTime(double seconds)
+        //{
+        //    double s = seconds;
+        //    int m = 0;
+        //    int h = 0;
+
+        //    while (s >= 60)
+        //    {
+        //        m++;
+        //        s -= 60;
+        //    }
+
+        //    while (m >= 60)
+        //    {
+        //        h++;
+        //        m -= 60;
+        //    }
+
+        //    if (h > 0)
+        //    {
+        //        return h + ":" + m.ToString("00") + ":" + s.ToString("00.0") + "s";
+        //    }
+
+        //    if (m > 0)
+        //    {
+        //        return m + ":" + s.ToString("00.0") + "s";
+        //    }
+        //    return s.ToString("0.0") + "s";
+        //}
 
         private void CheckWindowMargin()
         {

@@ -50,6 +50,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BuildEngineer.cs" />
+    <Compile Include="ModuleJettisonFix.cs" />
+    <Compile Include="Tools.cs" />
     <Compile Include="Version.cs" />
     <Compile Include="CelestialBodies.cs" />
     <Compile Include="FlightEngineer.cs" />

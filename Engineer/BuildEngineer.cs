@@ -21,11 +21,13 @@ namespace Engineer
         int windowID = new System.Random().Next();
         int windowMargin = 25;
         string windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
+        string windowTitleCompact = "Kerbal Engineer Redux - Compact"; 
         bool isEditorLocked = false;
         CelestialBodies referenceBodies = new CelestialBodies();
         CelestialBodies.Body referenceBody;
         Stage[] stages;
         int stageCount;
+        int stageCountAll;
         Stopwatch simTimer = new Stopwatch();
         double simDelay = 0d;
 
@@ -149,7 +151,17 @@ namespace Engineer
 
             if (!settings.IsDrawing)
             {
-                windowPosition = GUILayout.Window(windowID, windowPosition, Window, windowTitle);
+                string title = "";
+
+                if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
+                {
+                    title = windowTitle;
+                }
+                else
+                {
+                    title = windowTitleCompact;
+                }
+                windowPosition = GUILayout.Window(windowID, windowPosition, Window, title);
             }
             else
             {
@@ -161,11 +173,19 @@ namespace Engineer
 
         private void Window(int windowID)
         {
-            GUILayout.BeginHorizontal(GUILayout.Width(700));
-            settings.Set("_SAVEONCHANGE_SHOW_MAIN", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_MAIN", true), "Main Display", GUI.skin.button));
-            settings.Set("_SAVEONCHANGE_SHOW_REFERENCES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_REFERENCES", true), "Reference Bodies", GUI.skin.button));
-            settings.Set("_SAVEONCHANGE_USE_ATMOSPHERE", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_USE_ATMOSPHERE", false), "Atmospheric Stats", GUI.skin.button));
-            settings.Set("_SAVEONCHANGE_SHOW_ALL_STAGES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_ALL_STAGES", false), "Show All Stages", GUI.skin.button));
+            if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
+            {
+                GUILayout.BeginHorizontal(GUILayout.Width(700));
+                settings.Set("_SAVEONCHANGE_SHOW_MAIN", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_MAIN", true), "Main Display", GUI.skin.button));
+                settings.Set("_SAVEONCHANGE_SHOW_REFERENCES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_REFERENCES", true), "Reference Bodies", GUI.skin.button));
+                settings.Set("_SAVEONCHANGE_USE_ATMOSPHERE", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_USE_ATMOSPHERE", false), "Atmospheric Stats", GUI.skin.button));
+                settings.Set("_SAVEONCHANGE_SHOW_ALL_STAGES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_ALL_STAGES", false), "Show All Stages", GUI.skin.button));
+            }
+            else
+            {
+                GUILayout.BeginHorizontal(GUILayout.Width(215));
+            }
+            settings.Set("_SAVEONCHANGE_COMPACT", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_COMPACT", false), "Compact", GUI.skin.button));
             GUILayout.EndHorizontal();
 
             if (((TimeWarp.WarpMode == TimeWarp.Modes.LOW) || (TimeWarp.CurrentRate <= TimeWarp.MaxPhysicsRate)) && (simDelay == 0 || simTimer.ElapsedMilliseconds > simDelay))
@@ -185,9 +205,21 @@ namespace Engineer
                 simTimer.Start();
             }
 
-            if (stages.Length != stageCount || settings.Changed)
+            int stageArrayLength = stages.Length;
+            int stageCountUseful = 0;
+            for (int i = 0; i < stageArrayLength; i++)
             {
-                stageCount = stages.Length;
+                if (stages[i].deltaV > 0)
+                {
+                    stageCountUseful++;
+                }
+            }
+
+            if (stageCountUseful != stageCount || stageArrayLength != stageCountAll || settings.Changed)
+            {
+                stageCount = stageCountUseful;
+                stageCountAll = stageArrayLength;
+                windowPosition.width = 0;
                 windowPosition.height = 0;
             }
 
@@ -196,14 +228,23 @@ namespace Engineer
                 DrawStandard();
             }
 
-            if (settings.Get<bool>("_SAVEONCHANGE_SHOW_REFERENCES"))
+            if (settings.Get<bool>("_SAVEONCHANGE_SHOW_REFERENCES") && !settings.Get<bool>("_SAVEONCHANGE_COMPACT"))
             {
                 DrawThrust();
             }
 
             if (version.Newer && showUpdate)
             {
-                GUILayout.Label("UPDATE AVAILABLE:  Your version is now obsolete, please update to " + version.Remote + " for the best gameplay experience!");
+
+                if (!settings.Get<bool>("_SAVEONCHANGE_COMPACT"))
+                {
+                    GUILayout.Label("UPDATE AVAILABLE:  Your version is now obsolete, please update to " + version.Remote + " for the best gameplay experience!");
+                }
+                else
+                {
+                    GUILayout.Label("UPDATE AVAILABLE:  " + version.Remote + "!");
+                }
+
                 if ((Event.current.type == EventType.repaint) && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition) && Input.GetMouseButtonDown(0))
                 {
                     showUpdate = false;
@@ -219,13 +260,21 @@ namespace Engineer
             GUILayout.BeginHorizontal(GUI.skin.textArea);
 
             DrawStage(stages);
-            DrawCost(stages);
-            DrawMass(stages);
-            DrawIsp(stages);
-            DrawThrust(stages);
-            DrawDeltaV(stages);
-            DrawTWR(stages);
-            DrawTime(stages);
+            if (!settings.Get<bool>("_SAVEONCHANGE_COMPACT"))
+            {
+                DrawCost(stages);
+                DrawMass(stages);
+                DrawIsp(stages);
+                DrawThrust(stages);
+                DrawDeltaV(stages);
+                DrawTWR(stages);
+                DrawTime(stages);
+            }
+            else
+            {
+                DrawDeltaV(stages);
+                DrawTWR(stages);
+            }
 
             GUILayout.EndHorizontal();
         }
@@ -252,17 +301,11 @@ namespace Engineer
 
             for (int i = 0; i < stages.Length; i++)
             {
-                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES"))
+                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES") && stages[i].deltaV == 0)
                 {
-                    if (stages[i].deltaV > 0)
-                    {
-                        GUILayout.Label("S " + i, heading);
-                    }
+                    continue;
                 }
-                else
-                {
-                    GUILayout.Label("S " + i, heading);
-                }
+                GUILayout.Label("S " + i, heading);
             }
 
             GUILayout.EndVertical();
@@ -270,22 +313,16 @@ namespace Engineer
 
         private void DrawCost(Stage[] stages)
         {
-            GUILayout.BeginVertical(GUILayout.Width(140));
+            GUILayout.BeginVertical(GUILayout.Width(120));
             GUILayout.Label("COST", heading);
 
             for (int i = 0; i < stages.Length; i++)
             {
-                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES"))
+                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES") && stages[i].deltaV == 0)
                 {
-                    if (stages[i].deltaV > 0)
-                    {
-                        GUILayout.Label(stages[i].cost.ToString() + " / " + stages[i].totalCost.ToString());
-                    }
+                    continue;
                 }
-                else
-                {
-                    GUILayout.Label(stages[i].cost.ToString() + " / " + stages[i].totalCost.ToString());
-                }
+                GUILayout.Label(Tools.FormatNumber(stages[i].cost) + " / " + Tools.FormatNumber(stages[i].totalCost));
             }
 
             GUILayout.EndVertical();
@@ -293,22 +330,16 @@ namespace Engineer
 
         private void DrawMass(Stage[] stages)
         {
-            GUILayout.BeginVertical(GUILayout.Width(140));
+            GUILayout.BeginVertical(GUILayout.Width(150));
             GUILayout.Label("MASS", heading);
 
             for (int i = 0; i < stages.Length; i++)
             {
-                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES"))
+                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES") && stages[i].deltaV == 0)
                 {
-                    if (stages[i].deltaV > 0)
-                    {
-                        GUILayout.Label(stages[i].mass.ToString("0.000") + " / " + stages[i].totalMass.ToString("0.000"));
-                    }
+                    continue;
                 }
-                else
-                {
-                    GUILayout.Label(stages[i].mass.ToString("0.000") + " / " + stages[i].totalMass.ToString("0.000"));
-                }
+                GUILayout.Label(Tools.FormatNumber(stages[i].mass, 3) + " / " + Tools.FormatNumber(stages[i].totalMass, "Mg", 3));
             }
 
             GUILayout.EndVertical();
@@ -319,19 +350,13 @@ namespace Engineer
             GUILayout.BeginVertical(GUILayout.Width(50));
             GUILayout.Label("ISP", heading);
 
-            for(int i = 0; i < stages.Length; i++)
+            for (int i = 0; i < stages.Length; i++)
             {
-                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES"))
+                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES") && stages[i].deltaV == 0)
                 {
-                    if (stages[i].deltaV > 0)
-                    {
-                        GUILayout.Label(stages[i].isp.ToString("0"));
-                    }
+                    continue;
                 }
-                else
-                {
-                    GUILayout.Label(stages[i].isp.ToString("0"));
-                }
+                GUILayout.Label(Tools.FormatNumber(stages[i].isp, "s", 0));
             }
 
             GUILayout.EndVertical();
@@ -344,17 +369,11 @@ namespace Engineer
 
             for (int i = 0; i < stages.Length; i++)
             {
-                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES"))
+                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES") && stages[i].deltaV == 0)
                 {
-                    if (stages[i].deltaV > 0)
-                    {
-                        GUILayout.Label(stages[i].thrust.ToString("0.00"));
-                    }
+                    continue;
                 }
-                else
-                {
-                    GUILayout.Label(stages[i].thrust.ToString("0.00"));
-                }
+                GUILayout.Label(Tools.FormatSI(stages[i].thrust, Tools.SIUnitType.Force));
             }
 
             GUILayout.EndVertical();
@@ -367,17 +386,11 @@ namespace Engineer
 
             for (int i = 0; i < stages.Length; i++)
             {
-                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES"))
+                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES") && stages[i].deltaV == 0)
                 {
-                    if (stages[i].deltaV > 0)
-                    {
-                        GUILayout.Label(stages[i].deltaV.ToString("0") + " / " + stages[i].inverseTotalDeltaV.ToString("0") + "m/s");
-                    }
+                    continue;
                 }
-                else
-                {
-                    GUILayout.Label(stages[i].deltaV.ToString("0") + " / " + stages[i].inverseTotalDeltaV.ToString("0") + "m/s");
-                }
+                GUILayout.Label(Tools.FormatNumber(stages[i].deltaV, 0) + " / " + Tools.FormatNumber(stages[i].inverseTotalDeltaV, "m/s", 0));
             }
 
             GUILayout.EndVertical();
@@ -390,17 +403,12 @@ namespace Engineer
 
             for (int i = 0; i < stages.Length; i++)
             {
-                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES"))
+                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES") && stages[i].deltaV == 0)
                 {
-                    if (stages[i].deltaV > 0)
-                    {
-                        GUILayout.Label(stages[i].thrustToWeight.ToString("0.00"));
-                    }
+                    continue;
                 }
-                else
-                {
-                    GUILayout.Label(stages[i].thrustToWeight.ToString("0.00"));
-                }
+               
+                GUILayout.Label(Tools.FormatNumber(stages[i].thrustToWeight, 2));
             }
 
             GUILayout.EndVertical();
@@ -408,22 +416,16 @@ namespace Engineer
 
         private void DrawTime(Stage[] stages)
         {
-            GUILayout.BeginVertical(GUILayout.Width(50));
+            GUILayout.BeginVertical(GUILayout.Width(60));
             GUILayout.Label("TIME", heading);
 
             for (int i = 0; i < stages.Length; i++)
             {
-                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES"))
+                if (!settings.Get<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES") && stages[i].deltaV == 0)
                 {
-                    if (stages[i].deltaV > 0)
-                    {
-                        GUILayout.Label(stages[i].time.ToString("0") + "s");
-                    }
+                    continue;
                 }
-                else
-                {
-                    GUILayout.Label(stages[i].time.ToString("0") + "s");
-                }
+                GUILayout.Label(Tools.FormatTime(stages[i].time));
             }
 
             GUILayout.EndVertical();
