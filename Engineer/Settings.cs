@@ -13,7 +13,6 @@ namespace Engineer
     class Settings
     {
         Dictionary<string, string> settings = new Dictionary<string, string>();
-        GUIStyle heading;
         Vessel vessel = null;
         string filename = "";
         bool changed = false;
@@ -203,6 +202,7 @@ namespace Engineer
         Rect windowPosition = new Rect((UnityEngine.Screen.width / 2) - 300, (UnityEngine.Screen.height / 2) - 250, 600, 500);
         int windowID = new System.Random().Next();
         Vector2 scrollPosition = Vector2.zero;
+        GUIStyle heading, data;
         bool isDrawing = false;
         bool hasLoaded = false;
 
@@ -220,6 +220,10 @@ namespace Engineer
             GUI.skin = HighLogic.Skin;
             heading = new GUIStyle(GUI.skin.label);
             heading.normal.textColor = Color.white;
+            heading.fontStyle = FontStyle.Normal;
+            data = new GUIStyle(GUI.skin.label);
+            data.fontStyle = FontStyle.Normal;
+            data.fixedWidth = 400;
             windowPosition = GUILayout.Window(windowID, windowPosition, Window, "Kerbal Engineer Redux - Settings Configurator");
         }
 
@@ -235,7 +239,7 @@ namespace Engineer
                 if (!setting.Key.StartsWith("_") && !setting.Key.StartsWith("*"))
                 {
                     GUILayout.BeginVertical();
-                    GUILayout.Label(setting.Key, GUILayout.Width(400));
+                    GUILayout.Label(setting.Key, data);
                     GUILayout.EndVertical();
                     GUILayout.BeginVertical();
                     Set(setting.Key, GUILayout.Toggle(Get<bool>(setting.Key), "ENABLED", GUI.skin.button));

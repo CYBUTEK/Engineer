@@ -16,7 +16,7 @@ namespace Engineer
         Settings settings = new Settings();
         bool showUpdate = true;
         string settingsFile = "build_engineer.cfg";
-        GUIStyle heading;
+        GUIStyle heading, data;
         Rect windowPosition = new Rect(300, 70, 0, 0);
         int windowID = new System.Random().Next();
         int windowMargin = 25;
@@ -148,6 +148,10 @@ namespace Engineer
             GUI.skin = HighLogic.Skin;
             heading = new GUIStyle(GUI.skin.label);
             heading.normal.textColor = Color.white;
+            heading.fontStyle = FontStyle.Normal;
+
+            data = new GUIStyle(GUI.skin.label);
+            data.fontStyle = FontStyle.Normal;
 
             if (!settings.IsDrawing)
             {
@@ -322,7 +326,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatNumber(stages[i].cost) + " / " + Tools.FormatNumber(stages[i].totalCost));
+                GUILayout.Label(Tools.FormatNumber(stages[i].cost) + " / " + Tools.FormatNumber(stages[i].totalCost), data);
             }
 
             GUILayout.EndVertical();
@@ -339,7 +343,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatNumber(stages[i].mass, 3) + " / " + Tools.FormatNumber(stages[i].totalMass, "Mg", 3));
+                GUILayout.Label(Tools.FormatNumber(stages[i].mass, 3) + " / " + Tools.FormatNumber(stages[i].totalMass, "Mg", 3), data);
             }
 
             GUILayout.EndVertical();
@@ -356,7 +360,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatNumber(stages[i].isp, "s", 0));
+                GUILayout.Label(Tools.FormatNumber(stages[i].isp, "s", 0), data);
             }
 
             GUILayout.EndVertical();
@@ -373,7 +377,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatSI(stages[i].thrust, Tools.SIUnitType.Force));
+                GUILayout.Label(Tools.FormatSI(stages[i].thrust, Tools.SIUnitType.Force), data);
             }
 
             GUILayout.EndVertical();
@@ -390,7 +394,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatNumber(stages[i].deltaV, 0) + " / " + Tools.FormatNumber(stages[i].inverseTotalDeltaV, "m/s", 0));
+                GUILayout.Label(Tools.FormatNumber(stages[i].deltaV, 0) + " / " + Tools.FormatNumber(stages[i].inverseTotalDeltaV, "m/s", 0), data);
             }
 
             GUILayout.EndVertical();
@@ -407,8 +411,8 @@ namespace Engineer
                 {
                     continue;
                 }
-               
-                GUILayout.Label(Tools.FormatNumber(stages[i].thrustToWeight, 2));
+
+                GUILayout.Label(Tools.FormatNumber(stages[i].thrustToWeight, 2), data);
             }
 
             GUILayout.EndVertical();
@@ -425,7 +429,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatTime(stages[i].time));
+                GUILayout.Label(Tools.FormatTime(stages[i].time), data);
             }
 
             GUILayout.EndVertical();

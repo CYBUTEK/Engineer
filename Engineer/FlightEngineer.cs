@@ -130,8 +130,9 @@ namespace Engineer
                             winStyle.fixedWidth = 275;
                             heading = new GUIStyle(GUI.skin.label);
                             heading.normal.textColor = Color.white;
-                            heading.fontStyle = FontStyle.Bold;
+                            heading.fontStyle = FontStyle.Normal;
                             data = new GUIStyle(GUI.skin.label);
+                            data.fontStyle = FontStyle.Normal;
                             data.alignment = TextAnchor.UpperRight;
                             data.stretchWidth = true;
 
