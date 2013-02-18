@@ -10,7 +10,7 @@ namespace Engineer
 {
     class Version
     {
-        public const string VERSION = "0.6.0.1";
+        public const string VERSION = "0.6.0.2";
         public const string PRODUCT_NAME = "engineer_redux";
         private string remoteVersion = null;
         private bool hasCompared = false;
@@ -34,7 +34,11 @@ namespace Engineer
             {
                 if (!hasCompared)
                 {
-                    CompareVersions();
+                    try
+                    {
+                        CompareVersions();
+                    }
+                    catch { }
                 }
                 if (!isNewer && !Same)
                 {
@@ -50,7 +54,11 @@ namespace Engineer
             {
                 if (!hasCompared)
                 {
-                    CompareVersions();
+                    try
+                    {
+                        CompareVersions();
+                    }
+                    catch { }
                 }
                 if (isNewer)
                 {
@@ -74,7 +82,12 @@ namespace Engineer
             {
                 if (remoteVersion == null)
                 {
-                    remoteVersion = GetRemoteVersion();
+                    try
+                    {
+
+                        remoteVersion = GetRemoteVersion();
+                    }
+                    catch { }
                 }
                 return remoteVersion;
             }
@@ -82,7 +95,7 @@ namespace Engineer
 
         private void CompareVersions()
         {
-            if (Remote == "")
+            if (string.IsNullOrWhiteSpace(Remote))
             {
                 hasCompared = true;
                 return;
@@ -91,54 +104,64 @@ namespace Engineer
             string[] local = Local.Split('.');
             string[] remote = Remote.Split('.');
 
-            if (local.Length > remote.Length)
+            try
             {
-                Array.Resize<string>(ref remote, local.Length);
-
-                for (int i = 0; i < remote.Length; i++)
+                if (local.Length > remote.Length)
                 {
-                    if (remote[i] == null)
+                    Array.Resize<string>(ref remote, local.Length);
+
+                    for (int i = 0; i < remote.Length; i++)
                     {
-                        remote[i] = "0";
+                        if (remote[i] == null)
+                        {
+                            remote[i] = "0";
+                        }
                     }
                 }
-            }
-            else
-            {
-                Array.Resize<string>(ref local, remote.Length);
+                else
+                {
+                    Array.Resize<string>(ref local, remote.Length);
+
+                    for (int i = 0; i < local.Length; i++)
+                    {
+                        if (local[i] == null)
+                        {
+                            local[i] = "0";
+                        }
+                    }
+                }
 
                 for (int i = 0; i < local.Length; i++)
                 {
-                    if (local[i] == null)
+                    if (Convert.ToInt32(local[i]) < Convert.ToInt32(remote[i]))
                     {
-                        local[i] = "0";
+                        isNewer = true;
+                        break;
+                    }
+
+                    if (Convert.ToInt32(local[i]) > Convert.ToInt32(remote[i]))
+                    {
+                        isNewer = false;
+                        break;
                     }
                 }
             }
-
-            for (int i = 0; i < local.Length; i++)
-            {
-                if (Convert.ToInt32(local[i]) < Convert.ToInt32(remote[i]))
-                {
-                    isNewer = true;
-                    break;
-                }
-
-                if (Convert.ToInt32(local[i]) > Convert.ToInt32(remote[i]))
-                {
-                    isNewer = false;
-                    break;
-                }
-            }
+            catch { }
 
             hasCompared = true;
         }
 
         private string GetRemoteVersion()
         {
-            WWW www = new WWW("http://www.cybutek.net/ksp/getversion.php?name=" + PRODUCT_NAME);
-            while (!www.isDone) { }
-            return www.text;
+            try
+            {
+                WWW www = new WWW("http://www.cybutek.net/ksp/getversion.php?name=" + PRODUCT_NAME);
+                while (!www.isDone) { }
+                return www.text;
+            }
+            catch { }
+
+            return "";
         }
     }
 }
