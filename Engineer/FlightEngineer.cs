@@ -40,6 +40,12 @@ namespace Engineer
         public void ShowWindow()
         {
             settings.Set<bool>("_TOGGLE_FLIGHT_ENGINEER", !settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER", true));
+
+            if (part.Modules.Contains("TapeDriveAnimator"))
+            {
+                TapeDriveAnimator tapeAnimator = (TapeDriveAnimator)part.Modules["TapeDriveAnimator"];
+                tapeAnimator.Enabled = settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER");
+            }
         }
 
         public bool IsPrimary

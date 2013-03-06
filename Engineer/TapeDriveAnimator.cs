@@ -140,8 +140,8 @@ namespace Engineer
 
             if (HighLogic.LoadedSceneIsEditor)
             {
-                part.OnEditorAttach = OnEditorAttach;
-                part.OnEditorDetach = OnEditorDetach;
+                part.OnEditorAttach += OnEditorAttach;
+                part.OnEditorDetach += OnEditorDetach;
 
                 _sceneIsEditor = true;
 
@@ -198,12 +198,12 @@ namespace Engineer
                 OnUpdate();
         }
 
-        public void OnEditorAttach()
+        private void OnEditorAttach()
         {
             Enabled = true;
         }
 
-        public void OnEditorDetach()
+        private void OnEditorDetach()
         {
             Enabled = false;
         }

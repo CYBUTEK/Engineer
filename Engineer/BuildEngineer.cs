@@ -57,9 +57,9 @@ namespace Engineer
         {
             if (state == StartState.Editor)
             {
-                this.part.OnEditorAttach = OnEditorAttach;
-                this.part.OnEditorDetach = OnEditorDetach;
-                this.part.OnEditorDestroy = OnEditorDestroy;
+                this.part.OnEditorAttach += OnEditorAttach;
+                this.part.OnEditorDetach += OnEditorDetach;
+                this.part.OnEditorDestroy += OnEditorDestroy;
 
                 referenceBody = referenceBodies["Kerbin"];
                 OnEditorAttach();
