@@ -27,7 +27,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\Release\Plugins\</OutputPath>
+    <OutputPath>..\Output\Engineer\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -36,7 +36,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\Games\Kerbal Space Program (Build)\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\Game\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -44,25 +44,27 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\Games\Kerbal Space Program (Build)\KSP_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\Game\KSP_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BuildEngineer.cs" />
-    <Compile Include="ModuleJettisonFix.cs" />
+    <Compile Include="EngineerTools.cs" />
+    <Compile Include="Extensions\PartExtensions.cs" />
     <Compile Include="TapeDriveAnimator.cs" />
     <Compile Include="Tools.cs" />
     <Compile Include="Version.cs" />
     <Compile Include="CelestialBodies.cs" />
     <Compile Include="FlightEngineer.cs" />
-    <Compile Include="PartSim.cs" />
+    <Compile Include="VesselSimulator\PartSim.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rendezvous.cs" />
-    <Compile Include="ResourceContainer.cs" />
+    <Compile Include="VesselSimulator\ResourceContainer.cs" />
     <Compile Include="Settings.cs" />
-    <Compile Include="Simulator.cs" />
-    <Compile Include="Stage.cs" />
+    <Compile Include="VesselSimulator\SimManager.cs" />
+    <Compile Include="VesselSimulator\Simulation.cs" />
+    <Compile Include="VesselSimulator\Stage.cs" />
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />

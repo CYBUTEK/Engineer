@@ -2,9 +2,9 @@
 // Author:  CYBUTEK
 // License: Attribution-NonCommercial-ShareAlike 3.0 Unported
 
-namespace Engineer
+namespace Engineer.VesselSimulator
 {
-    class Stage
+    public class Stage
     {
         public int number = 0;
         public int cost = 0;

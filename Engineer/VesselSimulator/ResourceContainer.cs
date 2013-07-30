@@ -6,9 +6,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Engineer
+namespace Engineer.VesselSimulator
 {
-    class ResourceContainer
+    public class ResourceContainer
     {
         Hashtable resources = new Hashtable();
 
@@ -22,7 +22,7 @@ namespace Engineer
                 }
                 else
                 {
-                    return 0f;
+                    return 0d;
                 }
             }
             set
@@ -74,7 +74,7 @@ namespace Engineer
             {
                 foreach (int type in resources.Keys)
                 {
-                    if ((double)resources[type] > 1f)
+                    if ((double)resources[type] > 1d)
                     {
                         return false;
                     }

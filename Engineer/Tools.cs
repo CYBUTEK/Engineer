@@ -67,8 +67,32 @@ namespace Engineer
             double s = seconds;
             int m = 0;
             int h = 0;
-            int d = 0;
-            int y = 0;
+            double d = 0d;
+            double y = 0d;
+
+            if (s >= 31536000)
+            {
+                while (s >= 31536000)
+                {
+                    y++;
+                    s -= 31536000;
+                }
+
+                y += (s / 31536000);
+                return y.ToString("0.000") + "y";
+            }
+
+            if (s >= 86400)
+            {
+                while (s >= 86400)
+                {
+                    d++;
+                    s -= 86400;
+                }
+
+                d += (s / 86400);
+                return d.ToString("0.000") + "d";
+            }
 
             while (s >= 60)
             {
@@ -86,23 +110,6 @@ namespace Engineer
             {
                 d++;
                 h -= 24;
-            }
-
-            while (d >= 365)
-            {
-                y++;
-                d -= 365;
-            }
-
-            if (y > 0)
-            {
-
-                return y + ":" + d.ToString("000") + ":" + h.ToString("00") + ":" + m.ToString("00") + ":" + s.ToString("00.0") + "s";
-            }
-
-            if (d > 0)
-            {
-                return d + ":" + h.ToString("00") + ":" + m.ToString("00") + ":" + s.ToString("00.0") + "s";
             }
 
             if (h > 0)

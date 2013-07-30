@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Engineer
 {
-    class CelestialBodies
+    public class CelestialBodies
     {
         public List<Body> bodies = new List<Body>();
 

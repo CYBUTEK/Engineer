@@ -8,9 +8,9 @@ using UnityEngine;
 
 namespace Engineer
 {
-    class Version
+    public class Version
     {
-        public const string VERSION = "0.6.0.2";
+        public const string VERSION = "0.6.1.0";
         public const string PRODUCT_NAME = "engineer_redux";
         private string remoteVersion = null;
         private bool hasCompared = false;

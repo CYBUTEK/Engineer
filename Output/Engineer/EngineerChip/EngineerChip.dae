@@ -97,7 +97,7 @@
   </library_lights>
   <library_images>
     <image id="EngineerChipDiffuse_png" name="EngineerChipDiffuse_png">
-      <init_from>EngineerChip/EngineerChipDiffuse.png</init_from>
+      <init_from>EngineerChipDiffuse.png</init_from>
     </image>
   </library_images>
   <library_effects>

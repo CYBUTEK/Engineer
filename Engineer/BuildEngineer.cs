@@ -4,9 +4,10 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text;
 using UnityEngine;
+using Engineer.VesselSimulator;
+using Engineer.Extensions;
 
 namespace Engineer
 {
@@ -16,20 +17,19 @@ namespace Engineer
         Settings settings = new Settings();
         bool showUpdate = true;
         string settingsFile = "build_engineer.cfg";
-        GUIStyle heading, data;
+        GUIStyle headingStyle, dataStyle, windowStyle, buttonStyle, areaStyle;
+        bool hasInitStyles = false;
         Rect windowPosition = new Rect(300, 70, 0, 0);
         int windowID = new System.Random().Next();
         int windowMargin = 25;
         string windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
-        string windowTitleCompact = "Kerbal Engineer Redux - Compact"; 
+        string windowTitleCompact = "Kerbal Engineer Redux - Compact";
         bool isEditorLocked = false;
         CelestialBodies referenceBodies = new CelestialBodies();
         CelestialBodies.Body referenceBody;
         Stage[] stages;
         int stageCount;
         int stageCountAll;
-        Stopwatch simTimer = new Stopwatch();
-        double simDelay = 0d;
 
         public bool IsPrimary
         {
@@ -85,7 +85,7 @@ namespace Engineer
                 {
                     settings.Set("_WINDOW_POSITION", settings.ConvertToString(windowPosition));
                     settings.Save(settingsFile);
-                    //print("BuildEngineer: OnSave");
+                    print("BuildEngineer: OnSave");
                 }
             }
             catch { }
@@ -99,7 +99,7 @@ namespace Engineer
                 {
                     settings.Load(settingsFile);
                     windowPosition = settings.ConvertToRect(settings.Get("_WINDOW_POSITION", settings.ConvertToString(windowPosition)));
-                    //print("BuildEngineer: OnLoad");
+                    print("BuildEngineer: OnLoad");
                 }
             }
             catch { }
@@ -107,7 +107,7 @@ namespace Engineer
 
         private void OnEditorAttach()
         {
-            if (IsPrimary && (this.part.parent != null || (this.part is CommandPod)))
+            if (IsPrimary && (this.part.parent != null || this.part.HasModule("ModuleCommand")))
             {
                 OnLoad(null);
                 RenderingManager.AddToPostDrawQueue(0, DrawGUI);
@@ -134,6 +134,18 @@ namespace Engineer
             }
         }
 
+        private void Update()
+        {
+            if (IsPrimary)
+            {
+                if (SimManager.Instance.Stages != null)
+                {
+                    stages = SimManager.Instance.Stages;
+                }
+                SimManager.Instance.TryStartSimulation();
+            }
+        }
+
         private void DrawGUI()
         {
             if (!this.part.isAttached || !IsPrimary)
@@ -143,15 +155,9 @@ namespace Engineer
                 return;
             }
 
+            if (!hasInitStyles) InitStyles();
+
             CheckEditorLock();
-
-            GUI.skin = HighLogic.Skin;
-            heading = new GUIStyle(GUI.skin.label);
-            heading.normal.textColor = Color.white;
-            heading.fontStyle = FontStyle.Normal;
-
-            data = new GUIStyle(GUI.skin.label);
-            data.fontStyle = FontStyle.Normal;
 
             if (!settings.IsDrawing)
             {
@@ -165,7 +171,8 @@ namespace Engineer
                 {
                     title = windowTitleCompact;
                 }
-                windowPosition = GUILayout.Window(windowID, windowPosition, Window, title);
+
+                windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
             }
             else
             {
@@ -180,34 +187,31 @@ namespace Engineer
             if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
             {
                 GUILayout.BeginHorizontal(GUILayout.Width(700));
-                settings.Set("_SAVEONCHANGE_SHOW_MAIN", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_MAIN", true), "Main Display", GUI.skin.button));
-                settings.Set("_SAVEONCHANGE_SHOW_REFERENCES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_REFERENCES", true), "Reference Bodies", GUI.skin.button));
-                settings.Set("_SAVEONCHANGE_USE_ATMOSPHERE", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_USE_ATMOSPHERE", false), "Atmospheric Stats", GUI.skin.button));
-                settings.Set("_SAVEONCHANGE_SHOW_ALL_STAGES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_ALL_STAGES", false), "Show All Stages", GUI.skin.button));
+                settings.Set("_SAVEONCHANGE_SHOW_MAIN", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_MAIN", true), "Main Display", buttonStyle));
+                settings.Set("_SAVEONCHANGE_SHOW_REFERENCES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_REFERENCES", true), "Reference Bodies", buttonStyle));
+                settings.Set("_SAVEONCHANGE_USE_ATMOSPHERE", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_USE_ATMOSPHERE", false), "Atmospheric Stats", buttonStyle));
+                settings.Set("_SAVEONCHANGE_SHOW_ALL_STAGES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_ALL_STAGES", false), "Show All Stages", buttonStyle));
             }
             else
             {
                 GUILayout.BeginHorizontal(GUILayout.Width(215));
             }
-            settings.Set("_SAVEONCHANGE_COMPACT", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_COMPACT", false), "Compact", GUI.skin.button));
+            settings.Set("_SAVEONCHANGE_COMPACT", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_COMPACT", false), "Compact", buttonStyle));
             GUILayout.EndHorizontal();
 
-            if (((TimeWarp.WarpMode == TimeWarp.Modes.LOW) || (TimeWarp.CurrentRate <= TimeWarp.MaxPhysicsRate)) && (simDelay == 0 || simTimer.ElapsedMilliseconds > simDelay))
+            SimManager.Instance.Gravity = referenceBody.gravity;
+
+            if (settings.Get<bool>("_SAVEONCHANGE_USE_ATMOSPHERE"))
             {
-                Stopwatch stopwatch = Stopwatch.StartNew();
-                if (settings.Get<bool>("_SAVEONCHANGE_USE_ATMOSPHERE"))
-                {
-                    stages = new Simulator().RunSimulation(EditorLogic.SortedShipList, referenceBody.gravity, referenceBody.atmosphere);
-                }
-                else
-                {
-                    stages = new Simulator().RunSimulation(EditorLogic.SortedShipList, referenceBody.gravity, 0f);
-                }
-                stopwatch.Stop();
-                simDelay = 10 * stopwatch.ElapsedMilliseconds;
-                simTimer.Reset();
-                simTimer.Start();
+                SimManager.Instance.Atmosphere = referenceBody.atmosphere;
             }
+            else
+            {
+                SimManager.Instance.Atmosphere = 0d;
+                
+            }
+
+            SimManager.Instance.RequestSimulation();
 
             int stageArrayLength = stages.Length;
             int stageCountUseful = 0;
@@ -261,7 +265,7 @@ namespace Engineer
 
         private void DrawStandard()
         {
-            GUILayout.BeginHorizontal(GUI.skin.textArea);
+            GUILayout.BeginHorizontal(areaStyle);
 
             DrawStage(stages);
             if (!settings.Get<bool>("_SAVEONCHANGE_COMPACT"))
@@ -285,11 +289,11 @@ namespace Engineer
 
         private void DrawThrust()
         {
-            GUILayout.BeginHorizontal(GUI.skin.textArea);
+            GUILayout.BeginHorizontal(areaStyle);
 
             foreach (CelestialBodies.Body body in referenceBodies.bodies)
             {
-                if (GUILayout.Toggle(referenceBody == body, body.name, GUI.skin.button))
+                if (GUILayout.Toggle(referenceBody == body, body.name, buttonStyle))
                 {
                     referenceBody = body;
                 }
@@ -309,7 +313,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label("S " + i, heading);
+                GUILayout.Label("S " + i, headingStyle);
             }
 
             GUILayout.EndVertical();
@@ -318,7 +322,7 @@ namespace Engineer
         private void DrawCost(Stage[] stages)
         {
             GUILayout.BeginVertical(GUILayout.Width(120));
-            GUILayout.Label("COST", heading);
+            GUILayout.Label("COST", headingStyle);
 
             for (int i = 0; i < stages.Length; i++)
             {
@@ -326,7 +330,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatNumber(stages[i].cost) + " / " + Tools.FormatNumber(stages[i].totalCost), data);
+                GUILayout.Label(EngineerTools.SimpleFormatter(stages[i].cost, stages[i].totalCost), dataStyle);
             }
 
             GUILayout.EndVertical();
@@ -335,7 +339,7 @@ namespace Engineer
         private void DrawMass(Stage[] stages)
         {
             GUILayout.BeginVertical(GUILayout.Width(150));
-            GUILayout.Label("MASS", heading);
+            GUILayout.Label("MASS", headingStyle);
 
             for (int i = 0; i < stages.Length; i++)
             {
@@ -343,7 +347,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatNumber(stages[i].mass, 3) + " / " + Tools.FormatNumber(stages[i].totalMass, "Mg", 3), data);
+                GUILayout.Label(EngineerTools.WeightFormatter(stages[i].mass, stages[i].totalMass), dataStyle);
             }
 
             GUILayout.EndVertical();
@@ -352,7 +356,7 @@ namespace Engineer
         private void DrawIsp(Stage[] stages)
         {
             GUILayout.BeginVertical(GUILayout.Width(50));
-            GUILayout.Label("ISP", heading);
+            GUILayout.Label("ISP", headingStyle);
 
             for (int i = 0; i < stages.Length; i++)
             {
@@ -360,7 +364,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatNumber(stages[i].isp, "s", 0), data);
+                GUILayout.Label(EngineerTools.SimpleFormatter(stages[i].isp, "s"), dataStyle);
             }
 
             GUILayout.EndVertical();
@@ -369,7 +373,7 @@ namespace Engineer
         private void DrawThrust(Stage[] stages)
         {
             GUILayout.BeginVertical(GUILayout.Width(85));
-            GUILayout.Label("THRUST", heading);
+            GUILayout.Label("THRUST", headingStyle);
 
             for (int i = 0; i < stages.Length; i++)
             {
@@ -377,7 +381,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatSI(stages[i].thrust, Tools.SIUnitType.Force), data);
+                GUILayout.Label(EngineerTools.ForceFormatter(stages[i].thrust), dataStyle);
             }
 
             GUILayout.EndVertical();
@@ -386,7 +390,7 @@ namespace Engineer
         private void DrawDeltaV(Stage[] stages)
         {
             GUILayout.BeginVertical(GUILayout.Width(115));
-            GUILayout.Label("DELTA-V", heading);
+            GUILayout.Label("DELTA-V", headingStyle);
 
             for (int i = 0; i < stages.Length; i++)
             {
@@ -394,7 +398,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatNumber(stages[i].deltaV, 0) + " / " + Tools.FormatNumber(stages[i].inverseTotalDeltaV, "m/s", 0), data);
+                GUILayout.Label(EngineerTools.SimpleFormatter(stages[i].deltaV, stages[i].inverseTotalDeltaV, "m/s"), dataStyle);
             }
 
             GUILayout.EndVertical();
@@ -403,7 +407,7 @@ namespace Engineer
         private void DrawTWR(Stage[] stages)
         {
             GUILayout.BeginVertical(GUILayout.Width(50));
-            GUILayout.Label("TWR", heading);
+            GUILayout.Label("TWR", headingStyle);
 
             for (int i = 0; i < stages.Length; i++)
             {
@@ -412,7 +416,7 @@ namespace Engineer
                     continue;
                 }
 
-                GUILayout.Label(Tools.FormatNumber(stages[i].thrustToWeight, 2), data);
+                GUILayout.Label(EngineerTools.SimpleFormatter(stages[i].thrustToWeight, "", 2), dataStyle);
             }
 
             GUILayout.EndVertical();
@@ -421,7 +425,7 @@ namespace Engineer
         private void DrawTime(Stage[] stages)
         {
             GUILayout.BeginVertical(GUILayout.Width(60));
-            GUILayout.Label("TIME", heading);
+            GUILayout.Label("TIME", headingStyle);
 
             for (int i = 0; i < stages.Length; i++)
             {
@@ -429,7 +433,7 @@ namespace Engineer
                 {
                     continue;
                 }
-                GUILayout.Label(Tools.FormatTime(stages[i].time), data);
+                GUILayout.Label(Tools.FormatTime(stages[i].time), dataStyle);
             }
 
             GUILayout.EndVertical();
@@ -479,6 +483,27 @@ namespace Engineer
                 EditorLogic.fetch.Unlock();
                 isEditorLocked = false;
             }
+        }
+
+        private void InitStyles()
+        {
+            windowStyle = new GUIStyle(HighLogic.Skin.window);
+
+            buttonStyle = new GUIStyle(HighLogic.Skin.button);
+
+            areaStyle = new GUIStyle(HighLogic.Skin.textArea);
+            areaStyle.active = areaStyle.hover = areaStyle.normal;
+
+            headingStyle = new GUIStyle(HighLogic.Skin.label);
+            headingStyle.normal.textColor = Color.white;
+            headingStyle.fontStyle = FontStyle.Bold;
+            headingStyle.alignment = TextAnchor.MiddleCenter;
+            headingStyle.stretchWidth = true;
+
+            dataStyle = new GUIStyle(HighLogic.Skin.label);
+            dataStyle.fontStyle = FontStyle.Normal;
+            dataStyle.alignment = TextAnchor.MiddleCenter;
+            dataStyle.stretchWidth = true;
         }
     }
 }

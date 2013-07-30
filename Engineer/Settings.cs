@@ -10,7 +10,7 @@ using KSP.IO;
 
 namespace Engineer
 {
-    class Settings
+    public class Settings
     {
         Dictionary<string, string> settings = new Dictionary<string, string>();
         Vessel vessel = null;

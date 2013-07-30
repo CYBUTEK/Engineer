@@ -12,10 +12,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 using UnityEngine;
+using Engineer.Extensions;
 
-namespace Engineer
+namespace Engineer.VesselSimulator
 {
-    class PartSim
+    public class PartSim
     {
         ResourceContainer resources = new ResourceContainer();
         ResourceContainer resourceConsumptions = new ResourceContainer();
@@ -25,9 +26,10 @@ namespace Engineer
 
         public Part part;
         public int decoupledInStage;
-        public double thrust = 0;
-        public double actualThrust = 0;
-        public double isp = 0;
+        public double thrust = 0d;
+        public double actualThrust = 0d;
+        public double isp = 0d;
+        public bool surfaceMounted = true;
 
         public PartSim(Part part, double atmosphere)
         {
@@ -63,7 +65,7 @@ namespace Engineer
                 switch (ResourceContainer.GetResourceFlowMode(type))
                 {
                     case ResourceFlowMode.NO_FLOW:
-                        if (resources[type] < 1f)
+                        if (resources[type] < 1d)
                         {
                             return false;
                         }
@@ -72,7 +74,7 @@ namespace Engineer
                     case ResourceFlowMode.ALL_VESSEL:
                         foreach (PartSim partSim in partSims)
                         {
-                            if (partSim.resources[type] > 1f)
+                            if (partSim.resources[type] > 1d)
                             {
                                 return true;
                             }
@@ -102,43 +104,33 @@ namespace Engineer
                 {
                     if (engine.throttleLocked)
                     {
-                        flowRate = engine.maxThrust / (isp * 9.81d);
+                        flowRate = engine.maxThrust / (isp * Simulation.STD_GRAVITY);
                     }
                     else
                     {
-                        //if (part.vessel.Landed)
-                        //{
-                        //    flowRate = Math.Max(0.000001d, engine.maxThrust * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
-                        //}
-                        //else
-                        //{
-                        //    flowRate = Math.Max(0.000001d, engine.requestedThrust) / (isp * 9.81d);
-                        //}
                         if (part.vessel.Landed)
                         {
-                            flowRate = Math.Max(0.000001d, engine.maxThrust * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
+                            flowRate = Math.Max(0.000001d, engine.maxThrust * FlightInputHandler.state.mainThrottle) / (isp * Simulation.STD_GRAVITY);
                         }
                         else
                         {
-                            //flowRate = Math.Max(0.000001d, engine.requestedThrust) / (isp * 9.81d);
-
-                            if (engine.requestedThrust > 0)
+                            if (engine.requestedThrust > 0d)
                             {
-                                flowRate = engine.requestedThrust / (isp * 9.81d);
+                                flowRate = engine.requestedThrust / (isp * Simulation.STD_GRAVITY);
                             }
                             else
                             {
-                                flowRate = engine.maxThrust / (isp * 9.81d);
+                                flowRate = engine.maxThrust / (isp * Simulation.STD_GRAVITY);
                             }
                         }
                     }
                 }
                 else
                 {
-                    flowRate = engine.maxThrust / (isp * 9.81d);
+                    flowRate = engine.maxThrust / (isp * Simulation.STD_GRAVITY);
                 }
 
-                float flowMass = 0f;
+                double flowMass = 0d;
 
                 foreach (ModuleEngines.Propellant propellant in engine.propellants)
                 {
@@ -146,7 +138,7 @@ namespace Engineer
                 }
 
                 foreach (ModuleEngines.Propellant propellant in engine.propellants)
-               { 
+                { 
                     if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
                     {
                         continue;
@@ -194,27 +186,14 @@ namespace Engineer
             foreach (AttachNode attachNode in this.part.attachNodes)
             {
                 if (attachNode.attachedPart != null && attachNode.nodeType == AttachNode.NodeType.Stack &&
-                    (attachNode.attachedPart.fuelCrossFeed || attachNode.attachedPart is FuelTank) &&
                     !(this.part.NoCrossFeedNodeKey.Length > 0 && attachNode.id.Contains(this.part.NoCrossFeedNodeKey)))
                 {
-                    sourceParts.Add((PartSim)partSimLookup[attachNode.attachedPart]);
+                    if (part.fuelCrossFeed) sourceParts.Add((PartSim)partSimLookup[attachNode.attachedPart]);
+                    if (attachNode.attachedPart == part.parent) surfaceMounted = false;
                 }
             }
 
-            //if (this.part is FuelLine && this.part.parent != null)
-            //{
-            //    sourceParts.Add(partSimLookup[this.part.parent]);
-            //}
-
-            //if (this.part.Modules.OfType<ModuleEngines>().Count() > 0 && this.part.parent != null)
-            //{
-            //    sourceParts.Add(partSimLookup[this.part.parent]);
-            //}
-
-            if (this.part.parent != null && this.part.parent.fuelCrossFeed == true && !IsDecoupler(this.part.parent))
-            {
-                sourceParts.Add((PartSim)partSimLookup[this.part.parent]);
-            }
+            if (part.parent != null && (this.part.fuelCrossFeed || this.part.IsEngine())) sourceParts.Add((PartSim)partSimLookup[part.parent]);
         }
 
         public void RemoveSourcePart(PartSim part)
@@ -232,7 +211,7 @@ namespace Engineer
                 part = this.part;
             }
 
-            if (IsDecoupler(part))
+            if (part.IsDecoupler() || part.IsLaunchClamp())
             {
                 if (part.inverseStage > stage)
                 {
@@ -262,7 +241,7 @@ namespace Engineer
 
             foreach (int type in resourceDrains.Types)
             {
-                if (resourceDrains[type] > 0)
+                if (resourceDrains[type] > 0d)
                 {
                     time = Math.Min(time, resources[type] / resourceDrains[type]);
                 }
@@ -308,7 +287,7 @@ namespace Engineer
 
             foreach (PartSim partSim in partSims)
             {
-                if (partSim.resources[type] > 1f)
+                if (partSim.resources[type] > 1d)
                 {
                     if (source == null || partSim.InverseStage > source.InverseStage)
                     {
@@ -366,7 +345,7 @@ namespace Engineer
                 }
             }
 
-            if (this.resources[type] > 0)
+            if (this.resources[type] > 0d)
             {
                 resourceDrains.Add(type, amount);
             }
@@ -379,7 +358,7 @@ namespace Engineer
                 visited = new List<PartSim>();
             }
 
-            if (this.resources[type] > 1f)
+            if (this.resources[type] > 1d)
             {
                 return true;
             }
@@ -403,7 +382,7 @@ namespace Engineer
 
         private bool DrainFromSourceBeforeSelf(int type, PartSim source)
         {
-            if (resources[type] < 1f)
+            if (resources[type] < 1d)
             {
                 return true;
             }
@@ -472,60 +451,6 @@ namespace Engineer
             return mass;
         }
 
-        public double EngineFairingFix(int currentStage)
-        {
-            //
-            // This is the code which SHOULD be used...  But there is a bug in KSP where the jettisoned
-            // fairing mass is not subtracted from the engine when staged.
-            //
-            //if (part.Modules.OfType<ModuleJettison>().Count() > 0)
-            //{
-            //    if (part.vessel == null)
-            //    {
-            //        ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
-            //        if (part.findAttachNode(jettison.bottomNodeName).attachedPart == null || InverseStage == currentStage)
-            //        {
-            //            return -jettison.jettisonedObjectMass;
-            //        }
-            //    }
-            //    else
-            //    {
-            //        ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
-            //        if (part.findAttachNode(jettison.bottomNodeName).attachedPart != null && InverseStage == currentStage)
-            //        {
-            //            return -jettison.jettisonedObjectMass;
-            //        }
-            //    }
-            //}
-
-            //if (part.Modules.OfType<ModuleJettison>().Count() > 0)
-            //{
-            //    if (part.vessel == null)
-            //    {
-            //        ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
-            //        if (part.findAttachNode(jettison.bottomNodeName).attachedPart != null)
-            //        {
-            //            return jettison.jettisonedObjectMass;
-            //        }
-            //    }
-            //    else
-            //    {
-            //        ModuleJettison jettison = part.Modules.OfType<ModuleJettison>().First();
-            //        if (part.findAttachNode(jettison.bottomNodeName).attachedPart != null)
-            //        {
-            //            if (jettison.jettisonedObjectMass > 0)
-            //            {
-            //                part.mass += jettison.jettisonedObjectMass;
-            //                jettison.jettisonedObjectMass = 0;
-            //            }
-            //            UnityEngine.MonoBehaviour.print(part.mass);
-            //        }
-            //    }
-            //}
-
-            return 0f;
-        }
-
         public ResourceContainer Resources
         {
             get
@@ -562,7 +487,7 @@ namespace Engineer
         {
             get
             {
-                return thrust > 0;
+                return thrust > 0d;
             }
         }
 

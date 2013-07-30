@@ -9,17 +9,21 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-//using System.Linq;
 using System.Diagnostics;
 using UnityEngine;
+using Engineer.Extensions;
 
-namespace Engineer
+namespace Engineer.VesselSimulator
 {
-    class Simulator
+    public class Simulation
     {
         List<PartSim> partSims;
+        List<Part> partList;
+
         int currentStage = 0;
         bool firstSimulation = true;
+
+        public const double STD_GRAVITY = 9.81d;
 
         public bool FirstSimulation
         {
@@ -35,22 +39,25 @@ namespace Engineer
             }
         }
 
-        public Stage[] RunSimulation(List<Part> parts, double gravity, double atmosphere = 0)
+        public Simulation(List<Part> parts)
         {
-            BuildVessel(parts, atmosphere);
+            this.partList = parts;
+        }
 
+        public Stage[] RunSimulation(double gravity, double atmosphere = 0)
+        {
             currentStage = Staging.lastStage;
             Stage[] stages = new Stage[currentStage + 1];
+
+            BuildVessel(this.partList, atmosphere);
 
             while (currentStage >= 0)
             {
                 Stage stage = new Stage();
-                double stageTime = 0;
-                double stageDeltaV = 0;
-                double totalStageThrust = 0;
-                double totalStageActualThrust = 0;
-                //double totalStageIsp = 0;
-                //double totalStageIspThrust = 0;
+                double stageTime = 0d;
+                double stageDeltaV = 0d;
+                double totalStageThrust = 0d;
+                double totalStageActualThrust = 0d;
 
                 double totalStageFlowRate = 0d;
                 double totalStageIspFlowRate = 0d;
@@ -62,50 +69,9 @@ namespace Engineer
 
                     totalStageFlowRate += engine.ResourceConsumptions.Mass;
                     totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
-
-                    //    if (engine.part.vessel != null)
-                    //    {
-                    //        if (engine.part.vessel.Landed)
-                    //        {
-                    //            if (engine.IsSolidMotor)
-                    //            {
-                    //                totalStageIsp += engine.isp * engine.thrust;
-                    //                totalStageIspThrust += engine.thrust;
-                    //            }
-                    //            else
-                    //            {
-                    //                totalStageIsp += engine.isp * engine.thrust * Math.Max(0.000001d, FlightInputHandler.state.mainThrottle);
-                    //                totalStageIspThrust += engine.thrust * Math.Max(0.000001d, FlightInputHandler.state.mainThrottle);
-                    //            }
-                    //        }
-                    //        else
-                    //        {
-                    //            if (engine.actualThrust > 0)
-                    //            {
-                    //                totalStageIsp += engine.isp * engine.actualThrust;
-                    //                totalStageIspThrust += engine.actualThrust;
-                    //            }
-                    //            else
-                    //            {
-                    //                totalStageIsp += engine.isp * 0.000001d;
-                    //                totalStageIspThrust += 0.000001d;
-                    //            }
-                    //        }
-                    //    }
-                    //    else
-                    //    {
-                    //        totalStageIsp += engine.isp * engine.thrust;
-                    //        totalStageIspThrust += engine.thrust;
-                    //    }
-                    //}
-
-                    //if (totalStageThrust > 0 && totalStageIsp > 0)
-                    //{
-                    //    stage.isp = totalStageIsp / totalStageIspThrust;
-                    //}
                 }
 
-                if (totalStageFlowRate > 0 && totalStageIspFlowRate > 0)
+                if (totalStageFlowRate > 0d && totalStageIspFlowRate > 0d)
                 {
                     stage.isp = totalStageIspFlowRate / totalStageFlowRate;
                 }
@@ -130,10 +96,10 @@ namespace Engineer
                     loopCounter++;
 
                     List<PartSim> engines = ActiveEngines;
-                    totalStageThrust = 0;
+                    totalStageThrust = 0d;
                     foreach (PartSim engine in engines)
                     {
-                        if (engine.actualThrust > 0)
+                        if (engine.actualThrust > 0d)
                         {
                             totalStageThrust += engine.actualThrust;
                         }
@@ -164,9 +130,9 @@ namespace Engineer
                     double endMass = ShipMass;
                     stageTime += resourceDrainTime;
 
-                    if (resourceDrainTime > 0 && startMass > endMass && startMass > 0 && endMass > 0)
+                    if (resourceDrainTime > 0d && startMass > endMass && startMass > 0d && endMass > 0d)
                     {
-                        stageDeltaV += (stage.isp * 9.81d) * Math.Log(startMass / endMass);
+                        stageDeltaV += (stage.isp * STD_GRAVITY) * Math.Log(startMass / endMass);
                     }
 
                     if (loopCounter == 1000)
@@ -182,7 +148,7 @@ namespace Engineer
                 }
                 else
                 {
-                    stage.time = 0;
+                    stage.time = 0d;
                 }
                 stages[currentStage] = stage;
 
@@ -204,9 +170,9 @@ namespace Engineer
                     stages[i].inverseTotalDeltaV += stages[j].deltaV;
                 }
 
-                if (stages[i].totalTime > 9999)
+                if (stages[i].totalTime > 9999d)
                 {
-                    stages[i].totalTime = 0;
+                    stages[i].totalTime = 0d;
                 }
             }
 
@@ -221,33 +187,12 @@ namespace Engineer
             {
                 PartSim partSim = new PartSim(part, atmosphere);
 
-                //if (partSim.part.vessel != null)
-                //{
-                //    if (partSim.part.vessel.Landed)
-                //    {
-                //        partSim.SetResourceConsumptions(Math.Max(0.000001d, partSim.thrust * FlightInputHandler.state.mainThrottle));
-                //    }
-                //    else
-                //    {
-                //        if (partSim.actualThrust > 0)
-                //        {
-                //            partSim.SetResourceConsumptions(partSim.actualThrust);
-                //        }
-                //        else
-                //        {
-                //            partSim.SetResourceConsumptions(0.000001d);
-                //        }
-                //    }
-                //}
-                //else
-                //{
-                //    partSim.SetResourceConsumptions();
-                //}
-
-                partSim.SetResourceConsumptions();
-
-                partSims.Add(partSim);
-                partSimLookup.Add(part, partSim);
+                if (partSim.decoupledInStage < currentStage)
+                {
+                    partSim.SetResourceConsumptions();
+                    partSims.Add(partSim);
+                    partSimLookup.Add(part, partSim);
+                }
             }
 
             foreach (PartSim partSim in partSims)
@@ -267,14 +212,12 @@ namespace Engineer
 
             foreach (PartSim partSim in partSims)
             {
-                if (partSim.decoupledInStage == (currentStage - 1))
-                {
-                    if (!partSim.IsSepratron)
+                if (partSim.decoupledInStage == (currentStage - 1) && !partSim.part.IsSepratron())
+                {    
+
+                    if (!partSim.Resources.Empty || engines.Contains(partSim))
                     {
-                        if (!partSim.Resources.Empty || engines.Contains(partSim))
-                        {
-                            return false;
-                        }
+                        return false;
                     }
                 }
             }
@@ -336,7 +279,7 @@ namespace Engineer
                 {
                     foreach (PartSim partSim in partSims)
                     {
-                        if (partSim.IsEngine && partSim.InverseStage >= currentStage && partSim.CanDrawNeededResources(partSims))
+                        if (partSim.part.IsEngine() && partSim.InverseStage >= currentStage && partSim.CanDrawNeededResources(partSims))
                         {
                             engines.Add(partSim);
                         }
@@ -367,7 +310,7 @@ namespace Engineer
         {
             get
             {
-                double mass = 0f;
+                double mass = 0d;
 
                 foreach (PartSim partSim in partSims)
                 {
@@ -382,7 +325,7 @@ namespace Engineer
         {
             get
             {
-                double mass = 0f;
+                double mass = 0d;
 
                 foreach (PartSim partSim in partSims)
                 {
