@@ -62,7 +62,8 @@ namespace Engineer.VesselSimulator
 
             if (parts.Count > 0)
             {
-                ThreadPool.QueueUserWorkItem(RunSimulation, new Simulation(parts));
+                //ThreadPool.QueueUserWorkItem(RunSimulation, new Simulation(parts));
+                RunSimulation(new Simulation(parts));
             }
             else
             {
@@ -76,7 +77,7 @@ namespace Engineer.VesselSimulator
             this.LastStage = this.Stages.Last();
 
             _timer.Stop();
-            _millisecondsBetweenSimulations = 2 * _timer.ElapsedMilliseconds;
+            _millisecondsBetweenSimulations = 10 * _timer.ElapsedMilliseconds;
 
             _timer.Reset();
             _timer.Start();

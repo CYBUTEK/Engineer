@@ -12,7 +12,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 using UnityEngine;
-using Engineer.Extensions;
 
 namespace Engineer.VesselSimulator
 {
@@ -26,10 +25,9 @@ namespace Engineer.VesselSimulator
 
         public Part part;
         public int decoupledInStage;
-        public double thrust = 0d;
-        public double actualThrust = 0d;
-        public double isp = 0d;
-        public bool surfaceMounted = true;
+        public double thrust = 0;
+        public double actualThrust = 0;
+        public double isp = 0;
 
         public PartSim(Part part, double atmosphere)
         {
@@ -65,7 +63,7 @@ namespace Engineer.VesselSimulator
                 switch (ResourceContainer.GetResourceFlowMode(type))
                 {
                     case ResourceFlowMode.NO_FLOW:
-                        if (resources[type] < 1d)
+                        if (resources[type] < 1f)
                         {
                             return false;
                         }
@@ -74,7 +72,7 @@ namespace Engineer.VesselSimulator
                     case ResourceFlowMode.ALL_VESSEL:
                         foreach (PartSim partSim in partSims)
                         {
-                            if (partSim.resources[type] > 1d)
+                            if (partSim.resources[type] > 1f)
                             {
                                 return true;
                             }
@@ -104,33 +102,33 @@ namespace Engineer.VesselSimulator
                 {
                     if (engine.throttleLocked)
                     {
-                        flowRate = engine.maxThrust / (isp * Simulation.STD_GRAVITY);
+                        flowRate = engine.maxThrust / (isp * 9.81d);
                     }
                     else
                     {
                         if (part.vessel.Landed)
                         {
-                            flowRate = Math.Max(0.000001d, engine.maxThrust * FlightInputHandler.state.mainThrottle) / (isp * Simulation.STD_GRAVITY);
+                            flowRate = Math.Max(0.000001d, engine.maxThrust * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
                         }
                         else
                         {
-                            if (engine.requestedThrust > 0d)
+                            if (engine.requestedThrust > 0)
                             {
-                                flowRate = engine.requestedThrust / (isp * Simulation.STD_GRAVITY);
+                                flowRate = engine.requestedThrust / (isp * 9.81d);
                             }
                             else
                             {
-                                flowRate = engine.maxThrust / (isp * Simulation.STD_GRAVITY);
+                                flowRate = engine.maxThrust / (isp * 9.81d);
                             }
                         }
                     }
                 }
                 else
                 {
-                    flowRate = engine.maxThrust / (isp * Simulation.STD_GRAVITY);
+                    flowRate = engine.maxThrust / (isp * 9.81d);
                 }
 
-                double flowMass = 0d;
+                float flowMass = 0f;
 
                 foreach (ModuleEngines.Propellant propellant in engine.propellants)
                 {
@@ -138,7 +136,7 @@ namespace Engineer.VesselSimulator
                 }
 
                 foreach (ModuleEngines.Propellant propellant in engine.propellants)
-                { 
+                {
                     if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
                     {
                         continue;
@@ -186,14 +184,17 @@ namespace Engineer.VesselSimulator
             foreach (AttachNode attachNode in this.part.attachNodes)
             {
                 if (attachNode.attachedPart != null && attachNode.nodeType == AttachNode.NodeType.Stack &&
+                    (attachNode.attachedPart.fuelCrossFeed || attachNode.attachedPart is FuelTank) &&
                     !(this.part.NoCrossFeedNodeKey.Length > 0 && attachNode.id.Contains(this.part.NoCrossFeedNodeKey)))
                 {
-                    if (part.fuelCrossFeed) sourceParts.Add((PartSim)partSimLookup[attachNode.attachedPart]);
-                    if (attachNode.attachedPart == part.parent) surfaceMounted = false;
+                    sourceParts.Add((PartSim)partSimLookup[attachNode.attachedPart]);
                 }
             }
 
-            if (part.parent != null && (this.part.fuelCrossFeed || this.part.IsEngine())) sourceParts.Add((PartSim)partSimLookup[part.parent]);
+            if (this.part.parent != null && this.part.parent.fuelCrossFeed == true && !IsDecoupler(this.part.parent))
+            {
+                sourceParts.Add((PartSim)partSimLookup[this.part.parent]);
+            }
         }
 
         public void RemoveSourcePart(PartSim part)
@@ -211,7 +212,7 @@ namespace Engineer.VesselSimulator
                 part = this.part;
             }
 
-            if (part.IsDecoupler() || part.IsLaunchClamp())
+            if (IsDecoupler(part))
             {
                 if (part.inverseStage > stage)
                 {
@@ -241,7 +242,7 @@ namespace Engineer.VesselSimulator
 
             foreach (int type in resourceDrains.Types)
             {
-                if (resourceDrains[type] > 0d)
+                if (resourceDrains[type] > 0)
                 {
                     time = Math.Min(time, resources[type] / resourceDrains[type]);
                 }
@@ -257,7 +258,7 @@ namespace Engineer.VesselSimulator
             {
                 part = this.part;
             }
-           
+
             return part is Decoupler || part is RadialDecoupler || part.Modules.OfType<ModuleDecouple>().Count() > 0 || part.Modules.OfType<ModuleAnchoredDecoupler>().Count() > 0;
         }
 
@@ -287,7 +288,7 @@ namespace Engineer.VesselSimulator
 
             foreach (PartSim partSim in partSims)
             {
-                if (partSim.resources[type] > 1d)
+                if (partSim.resources[type] > 1f)
                 {
                     if (source == null || partSim.InverseStage > source.InverseStage)
                     {
@@ -345,7 +346,7 @@ namespace Engineer.VesselSimulator
                 }
             }
 
-            if (this.resources[type] > 0d)
+            if (this.resources[type] > 0)
             {
                 resourceDrains.Add(type, amount);
             }
@@ -358,7 +359,7 @@ namespace Engineer.VesselSimulator
                 visited = new List<PartSim>();
             }
 
-            if (this.resources[type] > 1d)
+            if (this.resources[type] > 1f)
             {
                 return true;
             }
@@ -382,7 +383,7 @@ namespace Engineer.VesselSimulator
 
         private bool DrainFromSourceBeforeSelf(int type, PartSim source)
         {
-            if (resources[type] < 1d)
+            if (resources[type] < 1f)
             {
                 return true;
             }
@@ -487,7 +488,7 @@ namespace Engineer.VesselSimulator
         {
             get
             {
-                return thrust > 0d;
+                return thrust > 0;
             }
         }
 
