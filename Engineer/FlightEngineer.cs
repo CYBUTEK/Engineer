@@ -413,7 +413,7 @@ namespace Engineer
             }
             if (settings.Get<bool>("Vessel: DeltaV (Total)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].totalDeltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[Staging.lastStage].totalTime) + ")", dataStyle);
             if (settings.Get<bool>("Vessel: Specific Impulse")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].isp, "s", 3), dataStyle);
-            if (settings.Get<bool>("Vessel: Mass")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].mass, 3) + " / " + Tools.FormatNumber(stages[Staging.lastStage].totalMass, "Mg", 3), dataStyle);
+            if (settings.Get<bool>("Vessel: Mass")) GUILayout.Label(EngineerTools.WeightFormatter(stages[Staging.lastStage].mass, stages[Staging.lastStage].totalMass), dataStyle);
             if (settings.Get<bool>("Vessel: Thrust (Maximum)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].thrust, Tools.SIUnitType.Force), dataStyle);
             if (settings.Get<bool>("Vessel: Thrust (Throttle)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].actualThrust, Tools.SIUnitType.Force), dataStyle);
             if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].actualThrustToWeight, 3), dataStyle);
@@ -470,7 +470,7 @@ namespace Engineer
 
             headingStyle = new GUIStyle(HighLogic.Skin.label);
             headingStyle.normal.textColor = Color.white;
-            headingStyle.fontStyle = FontStyle.Bold;
+            headingStyle.fontStyle = FontStyle.Normal;
             headingStyle.alignment = TextAnchor.MiddleLeft;
             headingStyle.stretchWidth = true;
 

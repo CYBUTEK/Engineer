@@ -73,7 +73,7 @@ namespace Engineer
                     windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
                 }
 
-                //print("BuildEngineer: Start (" + state + ")");
+                print("BuildEngineer: Start (" + state + ")");
             }
         }
 
@@ -111,7 +111,7 @@ namespace Engineer
             {
                 OnLoad(null);
                 RenderingManager.AddToPostDrawQueue(0, DrawGUI);
-                //print("BuildEngineer: OnEditorAttach");
+                print("BuildEngineer: OnEditorAttach");
             }
         }
 
@@ -121,7 +121,7 @@ namespace Engineer
             {
                 OnSave(null);
                 RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
-                //print("BuildEngineer: OnEditorDetach");
+                print("BuildEngineer: OnEditorDetach");
             }
         }
 
@@ -130,7 +130,7 @@ namespace Engineer
             if (IsPrimary)
             {
                 RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
-                //print("BuildEngineer: OnEditorDestroy");
+                print("BuildEngineer: OnEditorDestroy");
             }
         }
 
@@ -151,7 +151,7 @@ namespace Engineer
             if (!this.part.isAttached || !IsPrimary)
             {
                 RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
-                //print("BuildEngineer: OnUpdate - Not Attached || Not Primary");
+                print("BuildEngineer: OnUpdate - Not Attached || Not Primary");
                 return;
             }
 
@@ -496,7 +496,7 @@ namespace Engineer
 
             headingStyle = new GUIStyle(HighLogic.Skin.label);
             headingStyle.normal.textColor = Color.white;
-            headingStyle.fontStyle = FontStyle.Bold;
+            headingStyle.fontStyle = FontStyle.Normal;
             headingStyle.alignment = TextAnchor.MiddleCenter;
             headingStyle.stretchWidth = true;
 

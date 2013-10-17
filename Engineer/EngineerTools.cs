@@ -9,22 +9,22 @@ namespace Engineer
         public static string WeightFormatter(double weight)
         {
             weight *= 1000;
-            return (weight > 0d) ? weight.ToString("#,#.#") + " kg" : BLANK;
+            return (weight > 0d) ? weight.ToString("#,#.") + " kg" : BLANK;
         }
 
         public static string WeightFormatter(double weight1, double weight2)
         {
             weight1 *= 1000;
             weight2 *= 1000;
-            string format1 = (weight1 > 0d) ? weight1.ToString("#,#.#") : BLANK;
-            string format2 = (weight2 > 0d) ? weight2.ToString("#,#.#") : BLANK;
+            string format1 = (weight1 > 0d) ? weight1.ToString("#,#.") : BLANK;
+            string format2 = (weight2 > 0d) ? weight2.ToString("#,#.") : BLANK;
 
             return format1 + " / " + format2 + " kg";
         }
 
         public static string ForceFormatter(double force)
         {
-            return (force > 0d) ? force.ToString("#,#.#") + " MN" : BLANK;
+            return (force > 0d) ? force.ToString("#,#.#") + " kN" : BLANK;
         }
 
         public static string SimpleFormatter(double number, string postfix = "", int decimals = -1, bool alwaysShowDecimals = false)
