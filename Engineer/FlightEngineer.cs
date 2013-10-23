@@ -2,6 +2,8 @@
 // Author:  CYBUTEK
 // License: Attribution-NonCommercial-ShareAlike 3.0 Unported
 
+// Thanks to mic_e for impact calculation and linux crash fix.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -26,7 +28,7 @@ namespace Engineer
         double maxGForce = 0f;
 
         public GUIStyle headingStyle, dataStyle, windowStyle, buttonStyle, areaStyle;
-        bool hasInitStyles = false; 
+        bool hasInitStyles = false;
 
         Stage[] stages = new Stage[0];
         double stageDeltaV = 0d;
@@ -49,6 +51,12 @@ namespace Engineer
         {
             get
             {
+                if (this.vessel == null)
+                {
+                    //print ("FlightEngineer: Not primary because this.vessel == null");
+                    return false;
+                }
+
                 foreach (Part part in this.vessel.parts)
                 {
                     if (part.Modules.Contains(this.ClassID))
@@ -85,7 +93,7 @@ namespace Engineer
             {
                 if (IsPrimary)
                 {
-                    //settings.Set("_WINDOW_POSITION", settings.ConvertToString(windowPosition));
+                    settings.Set("_WINDOW_POSITION", settings.ConvertToString(windowPosition));
                     settings.Save(settingsFile);
                     settings.Changed = true;
                     //print("FlightEngineer: OnSave");
@@ -102,7 +110,7 @@ namespace Engineer
                 {
                     settings.Load(settingsFile);
                     settings.Changed = true;
-                    //windowPosition = settings.ConvertToRect(settings.Get("_SAVEONCHANGE_NOCHANGEUPDATE_WINDOW_POSITION", settings.ConvertToString(windowPosition)));
+                    windowPosition = settings.ConvertToRect(settings.Get("_SAVEONCHANGE_NOCHANGEUPDATE_WINDOW_POSITION", settings.ConvertToString(windowPosition)));
                     //print("FlightEngineer: OnLoad");
                 }
             }
@@ -261,8 +269,161 @@ namespace Engineer
             GUILayout.EndHorizontal();
         }
 
+        // Code by: mic_e
+        private double normangle(double ang)
+        {
+            if (ang > 180)
+            {
+                ang -= 360 * Math.Ceiling((ang - 180) / 360);
+            }
+            if (ang <= -180)
+            {
+                ang -= 360 * Math.Floor((ang + 180) / 360);
+            }
+
+            return ang;
+        }
+
+        // Code by: mic_e
+        private Vector3d radiusdirection(double theta)
+        {
+            theta = Math.PI * theta / 180;
+            double omega = Math.PI * this.vessel.orbit.argumentOfPeriapsis / 180;
+            double incl = Math.PI * this.vessel.orbit.inclination / 180;
+
+            double costheta = Math.Cos(theta);
+            double sintheta = Math.Sin(theta);
+            double cosomega = Math.Cos(omega);
+            double sinomega = Math.Sin(omega);
+            double cosincl = Math.Cos(incl);
+            double sinincl = Math.Sin(incl);
+
+            Vector3d result;
+
+            result.x = cosomega * costheta - sinomega * sintheta;
+            result.y = cosincl * (sinomega * costheta + cosomega * sintheta);
+            result.z = sinincl * (sinomega * costheta + cosomega * sintheta);
+
+            return result;
+        }
+
+        // Code by: mic_e
+        public static double ACosh(double x)
+        {
+            return (Math.Log(x + Math.Sqrt((x * x) - 1.0)));
+        }
+
+        // Code by: mic_e
+        private double timetoperiapsis(double theta)
+        {
+            double e = this.vessel.orbit.eccentricity;
+            double a = this.vessel.orbit.semiMajorAxis;
+            double rp = this.vessel.orbit.PeR;
+            double mu = this.vessel.mainBody.gravParameter;
+
+            if (e == 1.0)
+            {
+                double D = Math.Tan(Math.PI * theta / 360.0);
+                double M = D + D * D * D / 3.0;
+                return (Math.Sqrt(2.0 * rp * rp * rp / mu) * M);
+            }
+            else if (a > 0)
+            {
+                double cosTheta = Math.Cos(Math.PI * theta / 180.0);
+                double cosE = (e + cosTheta) / (1.0 + e * cosTheta);
+                double radE = Math.Acos(cosE);
+                double M = radE - e * Math.Sin(radE);
+                return (Math.Sqrt(a * a * a / mu) * M);
+            }
+            else if (a < 0)
+            {
+                double cosTheta = Math.Cos(Math.PI * theta / 180.0);
+                double coshF = (e + cosTheta) / (1.0 + e * cosTheta);
+                double radF = ACosh(coshF);
+                double M = e * Math.Sinh(radF) - radF;
+                return (Math.Sqrt(-a * a * a / mu) * M);
+            }
+
+            return 0;
+        }
+
+        // Code by: mic_e
         private void DrawSurface()
         {
+            //do impact site calculations
+            bool impacthappening = true;
+            double impacttime = 0;
+            double impactlong = 0;
+            double impactlat = 0;
+            double impactalt = 0;
+            double e = this.vessel.orbit.eccentricity;
+            //get current position direction vector
+            Vector3d currentpos = radiusdirection(this.vessel.orbit.trueAnomaly);
+            //calculate longitude in inertial reference frame from that
+            double currentirflong = 180 * Math.Atan2(currentpos.x, currentpos.y) / Math.PI;
+
+            //experimentally determined; even for very flat trajectories, the errors go into the sub-millimeter area after 5 iterations or so
+            const int impactiterations = 6;
+
+            //do a few iterations of impact site calculations
+            for (int i = 0; i < impactiterations; i++)
+            {
+                if (this.vessel.orbit.PeA >= impactalt)
+                {
+                    //periapsis must be lower than impact alt
+                    impacthappening = false;
+                }
+                if ((this.vessel.orbit.eccentricity < 1) && (this.vessel.orbit.ApA <= impactalt))
+                {
+                    //apoapsis must be higher than impact alt
+                    impacthappening = false;
+                }
+                if ((this.vessel.orbit.eccentricity >= 1) && (this.vessel.orbit.timeToPe <= 0))
+                {
+                    //if currently escaping, we still need to be before periapsis
+                    impacthappening = false;
+                }
+                if (!impacthappening)
+                {
+                    impacttime = 0;
+                    impactlong = 0;
+                    impactlat = 0;
+                    impactalt = 0;
+                    break;
+                }
+
+                double impacttheta = 0;
+                if (e > 0)
+                {
+                    //in this step, we are using the calculated impact altitude of the last step, to refine the impact site position
+                    impacttheta = -180 * Math.Acos((this.vessel.orbit.PeR * (1 + e) / (this.vessel.mainBody.Radius + impactalt) - 1) / e) / Math.PI;
+                }
+
+                //calculate time to impact
+                impacttime = this.vessel.orbit.timeToPe - timetoperiapsis(impacttheta);
+                //calculate position vector of impact site
+                Vector3d impactpos = radiusdirection(impacttheta);
+                //calculate longitude of impact site in inertial reference frame
+                double impactirflong = 180 * Math.Atan2(impactpos.x, impactpos.y) / Math.PI;
+                double deltairflong = impactirflong - currentirflong;
+                //get body rotation until impact
+                double bodyrot = 360 * impacttime / this.vessel.mainBody.rotationPeriod;
+                //get current longitude in body coordinates
+                double currentlong = this.vessel.longitude;
+                //finally, calculate the impact longitude in body coordinates
+                impactlong = normangle(currentlong - deltairflong - bodyrot);
+                //calculate impact latitude from impact position
+                impactlat = 180 * Math.Asin(impactpos.z / impactpos.magnitude) / Math.PI;
+                //calculate the actual altitude of the impact site
+                //altitude for long/lat code stolen from some ISA MapSat forum post; who knows why this works, but it seems to.
+                Vector3d rad = QuaternionD.AngleAxis(impactlong, Vector3d.down) * QuaternionD.AngleAxis(impactlat, Vector3d.forward) * Vector3d.right;
+                impactalt = this.vessel.mainBody.pqsController.GetSurfaceHeight(rad) - this.vessel.mainBody.pqsController.radius;
+                if ((impactalt < 0) && (this.vessel.mainBody.ocean == true))
+                {
+                    impactalt = 0;
+                }
+            }
+
             if (this.vessel.geeForce > maxGForce) maxGForce = this.vessel.geeForce;
 
             GUILayout.Label("SURFACE DISPLAY", headingStyle);
@@ -276,6 +437,15 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Horizontal Speed", true)) GUILayout.Label("Horizontal Speed", headingStyle);
             if (settings.Get<bool>("Surface: Longitude", true)) GUILayout.Label("Longitude", headingStyle);
             if (settings.Get<bool>("Surface: Latitude", true)) GUILayout.Label("Latitude", headingStyle);
+
+            if (impacthappening)
+            {
+                if (settings.Get<bool>("Surface: Impact Time", true)) GUILayout.Label("Impact Time", headingStyle);
+                if (settings.Get<bool>("Surface: Impact Longitude", true)) GUILayout.Label("Impact Longitude", headingStyle);
+                if (settings.Get<bool>("Surface: Impact Latitude", true)) GUILayout.Label("Impact Latitude", headingStyle);
+                if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label("Impact Altitude", headingStyle);
+            }
+
             if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", headingStyle);
 
             if (settings.Get<bool>("Surface: Terminal Velocity", true)) GUILayout.Label("Terminal Velocity", headingStyle);
@@ -292,6 +462,15 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Horizontal Speed")) GUILayout.Label(Tools.FormatSI(this.vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), dataStyle);
             if (settings.Get<bool>("Surface: Longitude")) GUILayout.Label(Tools.FormatNumber(this.vessel.longitude, "°", 6), dataStyle);
             if (settings.Get<bool>("Surface: Latitude")) GUILayout.Label(Tools.FormatNumber(this.vessel.latitude, "°", 6), dataStyle);
+
+            if (impacthappening)
+            {
+                if (settings.Get<bool>("Surface: Impact Time", true)) GUILayout.Label(Tools.FormatTime(impacttime), dataStyle);
+                if (settings.Get<bool>("Surface: Impact Longitude", true)) GUILayout.Label(Tools.FormatNumber(impactlong, "°", 6), dataStyle);
+                if (settings.Get<bool>("Surface: Impact Latitude", true)) GUILayout.Label(Tools.FormatNumber(impactlat, "°", 6), dataStyle);
+                if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label(Tools.FormatSI(impactalt, Tools.SIUnitType.Distance), dataStyle);
+            }
+
             if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(this.vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
 
             double totalMass = 0d;

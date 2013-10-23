@@ -2,6 +2,8 @@
 // Author:  CYBUTEK
 // License: Attribution-NonCommercial-ShareAlike 3.0 Unported
 
+// Thanks to mic_e for linux crash fix.
+
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -35,6 +37,12 @@ namespace Engineer
         {
             get
             {
+                if (EditorLogic.fetch == null)
+                {
+                    print("BuildEngineer: Not primary because EditorLogic.fetch == null");
+                    return false;
+                }
+
                 foreach (Part part in EditorLogic.SortedShipList)
                 {
                     if (part.Modules.Contains(this.ClassID))
@@ -208,10 +216,16 @@ namespace Engineer
             else
             {
                 SimManager.Instance.Atmosphere = 0d;
-                
+
             }
 
             SimManager.Instance.RequestSimulation();
+
+            if (stages == null)
+            {
+                //print("BuildEngineer: Not drawing Window because stages == null");
+                return;
+            }
 
             int stageArrayLength = stages.Length;
             int stageCountUseful = 0;
