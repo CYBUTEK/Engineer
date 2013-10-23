@@ -95,7 +95,7 @@ namespace Engineer
 
         private void CompareVersions()
         {
-            if (string.IsNullOrWhiteSpace(Remote))
+            if (Remote != null && Remote.Length > 0)
             {
                 hasCompared = true;
                 return;
