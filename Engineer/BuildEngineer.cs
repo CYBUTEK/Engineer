@@ -2,8 +2,6 @@
 // Author:  CYBUTEK
 // License: Attribution-NonCommercial-ShareAlike 3.0 Unported
 
-// Thanks to mic_e for linux crash fix.
-
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -37,23 +35,20 @@ namespace Engineer
         {
             get
             {
-                if (EditorLogic.fetch == null)
+                if (EditorLogic.fetch != null)
                 {
-                    print("BuildEngineer: Not primary because EditorLogic.fetch == null");
-                    return false;
-                }
-
-                foreach (Part part in EditorLogic.SortedShipList)
-                {
-                    if (part.Modules.Contains(this.ClassID))
+                    foreach (Part part in EditorLogic.fetch.ship.Parts)
                     {
-                        if (this.part == part)
+                        if (part.Modules.Contains(this.ClassID))
                         {
-                            return true;
-                        }
-                        else
-                        {
-                            break;
+                            if (this.part == part)
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
                     }
                 }

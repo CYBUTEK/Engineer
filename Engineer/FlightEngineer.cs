@@ -2,7 +2,7 @@
 // Author:  CYBUTEK
 // License: Attribution-NonCommercial-ShareAlike 3.0 Unported
 
-// Thanks to mic_e for impact calculation and linux crash fix.
+// Thanks to mic_e for impact calculation.
 
 using System;
 using System.Collections.Generic;
@@ -51,23 +51,20 @@ namespace Engineer
         {
             get
             {
-                if (this.vessel == null)
+                if (this.vessel != null)
                 {
-                    //print ("FlightEngineer: Not primary because this.vessel == null");
-                    return false;
-                }
-
-                foreach (Part part in this.vessel.parts)
-                {
-                    if (part.Modules.Contains(this.ClassID))
+                    foreach (Part part in this.vessel.parts)
                     {
-                        if (this.part == part)
+                        if (part.Modules.Contains(this.ClassID))
                         {
-                            return true;
-                        }
-                        else
-                        {
-                            break;
+                            if (this.part == part)
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                break;
+                            }
                         }
                     }
                 }
