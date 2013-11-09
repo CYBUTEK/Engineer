@@ -35,6 +35,9 @@ namespace Engineer
         int numberOfStages = 0;
         int numberOfStagesUseful = 0;
 
+        bool hasCheckedForFAR = false;
+        bool hasInstalledFAR = false;
+
         [KSPEvent(guiActive = true, guiName = "Toggle Flight Engineer", active = false)]
         public void ShowWindow()
         {
@@ -344,7 +347,7 @@ namespace Engineer
             return 0;
         }
 
-        // Code by: mic_e
+        // Impact Code by: mic_e
         private void DrawSurface()
         {
             //do impact site calculations
@@ -423,6 +426,20 @@ namespace Engineer
 
             if (this.vessel.geeForce > maxGForce) maxGForce = this.vessel.geeForce;
 
+            if (!hasCheckedForFAR)
+            {
+                hasCheckedForFAR = true;
+
+                foreach (AssemblyLoader.LoadedAssembly assembly in AssemblyLoader.loadedAssemblies)
+                {
+                    if (assembly.assembly.ToString().Split(',')[0] == "FerramAerospaceResearch")
+                    {
+                        hasInstalledFAR = true;
+                        print("[KerbalEngineer]: FAR detected!  Turning off atmospheric details!");
+                    }
+                }
+            }
+
             GUILayout.Label("SURFACE DISPLAY", headingStyle);
             GUILayout.BeginHorizontal(areaStyle);
             GUILayout.BeginVertical();
@@ -445,11 +462,14 @@ namespace Engineer
 
             if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", headingStyle);
 
-            if (settings.Get<bool>("Surface: Terminal Velocity", true)) GUILayout.Label("Terminal Velocity", headingStyle);
-            if (settings.Get<bool>("Surface: Atmospheric Efficiency", true)) GUILayout.Label("Atmospheric Efficiency", headingStyle);
-            if (settings.Get<bool>("Surface: Atmospheric Drag", true)) GUILayout.Label("Atmospheric Drag", headingStyle);
-            if (settings.Get<bool>("Surface: Atmospheric Pressure", true)) GUILayout.Label("Atmospheric Pressure", headingStyle);
-            if (settings.Get<bool>("Surface: Atmospheric Density", true)) GUILayout.Label("Atmospheric Density", headingStyle);
+            if (!hasInstalledFAR)
+            {
+                if (settings.Get<bool>("Surface: Terminal Velocity", true)) GUILayout.Label("Terminal Velocity", headingStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Efficiency", true)) GUILayout.Label("Atmospheric Efficiency", headingStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Drag", true)) GUILayout.Label("Atmospheric Drag", headingStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Pressure", true)) GUILayout.Label("Atmospheric Pressure", headingStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Density", true)) GUILayout.Label("Atmospheric Density", headingStyle);
+            }
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();
@@ -470,41 +490,43 @@ namespace Engineer
 
             if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(this.vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
 
-            double totalMass = 0d;
-            double massDrag = 0d;
-            foreach (Part part in this.vessel.parts)
+            if (!hasInstalledFAR)
             {
-                if (part.physicalSignificance != Part.PhysicalSignificance.NONE)
+                double totalMass = 0d;
+                double massDrag = 0d;
+                foreach (Part part in this.vessel.parts)
                 {
-                    double partMass = part.mass + part.GetResourceMass();
-                    totalMass += partMass;
-                    massDrag += partMass * part.maximum_drag;
+                    if (part.physicalSignificance != Part.PhysicalSignificance.NONE)
+                    {
+                        double partMass = part.mass + part.GetResourceMass();
+                        totalMass += partMass;
+                        massDrag += partMass * part.maximum_drag;
+                    }
                 }
+
+                double gravity = FlightGlobals.getGeeForceAtPosition(this.vessel.CoM).magnitude;
+                double atmosphere = this.vessel.atmDensity;
+
+                double terminalVelocity = 0d;
+                if (atmosphere > 0)
+                {
+                    terminalVelocity = Math.Sqrt((2 * totalMass * gravity) / (atmosphere * massDrag * FlightGlobals.DragMultiplier));
+                }
+
+                double atmosphericEfficiency = 0d;
+                if (terminalVelocity > 0)
+                {
+                    atmosphericEfficiency = FlightGlobals.ship_srfSpeed / terminalVelocity;
+                }
+
+                double dragForce = 0.5 * atmosphere * Math.Pow(FlightGlobals.ship_srfSpeed, 2) * massDrag * FlightGlobals.DragMultiplier;
+
+                if (settings.Get<bool>("Surface: Terminal Velocity")) GUILayout.Label(Tools.FormatSI(terminalVelocity, Tools.SIUnitType.Speed), dataStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Efficiency")) GUILayout.Label(Tools.FormatNumber(atmosphericEfficiency * 100, "%", 2), dataStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Drag")) GUILayout.Label(Tools.FormatSI(dragForce, Tools.SIUnitType.Force), dataStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Pressure")) GUILayout.Label(Tools.FormatSI(this.part.dynamicPressureAtm * 100, Tools.SIUnitType.Pressure), dataStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Density")) GUILayout.Label(Tools.FormatSI(this.vessel.atmDensity, Tools.SIUnitType.Density), dataStyle);
             }
-
-            double gravity = FlightGlobals.getGeeForceAtPosition(this.vessel.CoM).magnitude;
-            double atmosphere = this.vessel.atmDensity;
-
-            double terminalVelocity = 0d;
-            if (atmosphere > 0)
-            {
-                terminalVelocity = Math.Sqrt((2 * totalMass * gravity) / (atmosphere * massDrag * FlightGlobals.DragMultiplier));
-            }
-
-            double atmosphericEfficiency = 0d;
-            if (terminalVelocity > 0)
-            {
-                atmosphericEfficiency = FlightGlobals.ship_srfSpeed / terminalVelocity;
-            }
-
-            double dragForce = 0.5 * atmosphere * Math.Pow(FlightGlobals.ship_srfSpeed, 2) * massDrag * FlightGlobals.DragMultiplier;
-
-            if (settings.Get<bool>("Surface: Terminal Velocity")) GUILayout.Label(Tools.FormatSI(terminalVelocity, Tools.SIUnitType.Speed), dataStyle);
-            if (settings.Get<bool>("Surface: Atmospheric Efficiency")) GUILayout.Label(Tools.FormatNumber(atmosphericEfficiency * 100, "%", 2), dataStyle);
-            if (settings.Get<bool>("Surface: Atmospheric Drag")) GUILayout.Label(Tools.FormatSI(dragForce, Tools.SIUnitType.Force), dataStyle);
-            if (settings.Get<bool>("Surface: Atmospheric Pressure")) GUILayout.Label(Tools.FormatSI(this.part.dynamicPressureAtm * 100, Tools.SIUnitType.Pressure), dataStyle);
-            if (settings.Get<bool>("Surface: Atmospheric Density")) GUILayout.Label(Tools.FormatSI(this.vessel.atmDensity, Tools.SIUnitType.Density), dataStyle);
-
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
         }
