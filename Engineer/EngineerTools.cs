@@ -9,22 +9,22 @@ namespace Engineer
         public static string WeightFormatter(double weight)
         {
             weight *= 1000;
-            return (weight > 0d) ? weight.ToString("#,#.") + " kg" : BLANK;
+            return (weight > 0d) ? weight.ToString("#,0.") + " kg" : BLANK;
         }
 
         public static string WeightFormatter(double weight1, double weight2)
         {
             weight1 *= 1000;
             weight2 *= 1000;
-            string format1 = (weight1 > 0d) ? weight1.ToString("#,#.") : BLANK;
-            string format2 = (weight2 > 0d) ? weight2.ToString("#,#.") : BLANK;
+            string format1 = (weight1 > 0d) ? weight1.ToString("#,0.") : BLANK;
+            string format2 = (weight2 > 0d) ? weight2.ToString("#,0.") : BLANK;
 
             return format1 + " / " + format2 + " kg";
         }
 
         public static string ForceFormatter(double force)
         {
-            return (force > 0d) ? force.ToString("#,#.#") + " kN" : BLANK;
+            return (force > 0d) ? force.ToString("#,0.#") + " kN" : BLANK;
         }
 
         public static string SimpleFormatter(double number, string postfix = "", int decimals = -1, bool alwaysShowDecimals = false)
@@ -40,7 +40,7 @@ namespace Engineer
                 }
             }
 
-            string format = (number > 0d) ? number.ToString("#,#." + decimalMask) : BLANK;
+            string format = (number > 0d) ? number.ToString("#,0." + decimalMask) : BLANK;
 
             return  format + " " + postfix;
         }
@@ -59,8 +59,8 @@ namespace Engineer
                 }
             }
 
-            string format1 = (number1 > 0d) ? number1.ToString("#,#." + decimalMask) : BLANK;
-            string format2 = (number2 > 0d) ? number2.ToString("#,#." + decimalMask) : BLANK;
+            string format1 = (number1 > 0d) ? number1.ToString("#,0." + decimalMask) : BLANK;
+            string format2 = (number2 > 0d) ? number2.ToString("#,0." + decimalMask) : BLANK;
 
             return format1 + " / " + format2 + " " + postfix;
         }

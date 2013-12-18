@@ -482,14 +482,16 @@ namespace Engineer
         {
             Vector2 mousePos = Input.mousePosition;
             mousePos.y = Screen.height - mousePos.y;
-            if (windowPosition.Contains(mousePos) && !isEditorLocked && !EditorLogic.editorLocked)
+            if (windowPosition.Contains(mousePos) && !isEditorLocked)
             {
-                EditorLogic.fetch.Lock(true, true, true);
+                EditorLogic.fetch.Lock(true, true, true, windowID.ToString());
+                print("Lock");
                 isEditorLocked = true;
             }
-            else if (!windowPosition.Contains(mousePos) && isEditorLocked && EditorLogic.editorLocked)
+            else if (!windowPosition.Contains(mousePos) && isEditorLocked)
             {
-                EditorLogic.fetch.Unlock();
+                EditorLogic.fetch.Unlock(windowID.ToString());
+                print("Unlock");
                 isEditorLocked = false;
             }
         }

@@ -25,9 +25,10 @@ namespace Engineer
             switch (type)
             {
                 case SIUnitType.Distance:
-                    notation = new string[] { "mm", "m", "km", "Mm", "Gm", "Tm", "Pm", "Em", "Zm", "Ym" };
-                    number *= 1000;
-                    break;
+                    return ToDistance(number); // Quick and dirty implementation of the new distance formatter from KER 1.0
+                    //notation = new string[] { "mm", "m", "km", "Mm", "Gm", "Tm", "Pm", "Em", "Zm", "Ym" };
+                    //number *= 1000;
+
                 case SIUnitType.Speed:
                     notation = new string[] { "mm/s", "m/s", "km/s", "Mm/s", "Gm/s", "Tm/s", "Pm/s", "Em/s", "Zm/s", "Ym/s" };
                     number *= 1000;
@@ -60,6 +61,63 @@ namespace Engineer
 
             // Return a string of the concatinated number and selected notation.
             return number.ToString("0.000") + notation[notationIndex];
+        }
+
+        // Quick and dirty implementation of the new distance formatter from KER 1.0
+        private static string ToDistance(double value, bool showNotation = true)
+        {
+            bool negative = value < 0d;
+
+            if (negative) value = -value;
+
+            if (value < 1000000d)
+            {
+                if (value < 1d)
+                {
+                    value *= 1000d;
+
+                    if (negative) value = -value;
+                    return value.ToString("#,0.") + "mm";
+                }
+                else
+                {
+                    if (value < 10d)
+                    {
+                        if (negative) value = -value;
+                        return value.ToString("#,0.000") + "m";
+                    }
+                    else if (value < 100d)
+                    {
+                        if (negative) value = -value;
+                        return value.ToString("#,0.00") + "m";
+                    }
+                    else if (value < 1000d)
+                    {
+                        if (negative) value = -value;
+                        return value.ToString("#,0.0") + "m";
+                    }
+                    else
+                    {
+                        if (negative) value = -value;
+                        return value.ToString("#,0.") + "m";
+                    }
+                }
+            }
+            else
+            {
+                value /= 1000d;
+                if (value >= 1000000d)
+                {
+                    value /= 1000d;
+                    if (negative) value = -value;
+                    return value.ToString("#,0." + "Mm");
+                }
+                else
+                {
+                    if (negative) value = -value;
+                    return value.ToString("#,0." + "km");
+                }
+            }
         }
 
         public static string FormatTime(double seconds)

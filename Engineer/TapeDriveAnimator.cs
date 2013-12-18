@@ -267,7 +267,7 @@ namespace Engineer
                 _lights6ShaderOff = _lights6Transform.renderer.material.shader;
             }
 
-            _lightsShaderOn = Shader.Find("Self-Illumin/Specular");
+            _lightsShaderOn = Shader.Find("Unlit/Texture");
         }
 
         private void UpdateTimerCycle()

@@ -350,77 +350,86 @@ namespace Engineer
         // Impact Code by: mic_e
         private void DrawSurface()
         {
-            //do impact site calculations
-            bool impacthappening = true;
+            bool impacthappening = false;
             double impacttime = 0;
             double impactlong = 0;
             double impactlat = 0;
             double impactalt = 0;
-            double e = this.vessel.orbit.eccentricity;
-            //get current position direction vector
-            Vector3d currentpos = radiusdirection(this.vessel.orbit.trueAnomaly);
-            //calculate longitude in inertial reference frame from that
-            double currentirflong = 180 * Math.Atan2(currentpos.x, currentpos.y) / Math.PI;
 
-            //experimentally determined; even for very flat trajectories, the errors go into the sub-millimeter area after 5 iterations or so
-            const int impactiterations = 6;
-
-            //do a few iterations of impact site calculations
-            for (int i = 0; i < impactiterations; i++)
+            if (FlightGlobals.ActiveVessel.mainBody != Planetarium.fetch.Sun)
             {
-                if (this.vessel.orbit.PeA >= impactalt)
-                {
-                    //periapsis must be lower than impact alt
-                    impacthappening = false;
-                }
-                if ((this.vessel.orbit.eccentricity < 1) && (this.vessel.orbit.ApA <= impactalt))
-                {
-                    //apoapsis must be higher than impact alt
-                    impacthappening = false;
-                }
-                if ((this.vessel.orbit.eccentricity >= 1) && (this.vessel.orbit.timeToPe <= 0))
-                {
-                    //if currently escaping, we still need to be before periapsis
-                    impacthappening = false;
-                }
-                if (!impacthappening)
-                {
-                    impacttime = 0;
-                    impactlong = 0;
-                    impactlat = 0;
-                    impactalt = 0;
-                    break;
-                }
+                //do impact site calculations
+                impacthappening = true;
+                impacttime = 0;
+                impactlong = 0;
+                impactlat = 0;
+                impactalt = 0;
+                double e = this.vessel.orbit.eccentricity;
+                //get current position direction vector
+                Vector3d currentpos = radiusdirection(this.vessel.orbit.trueAnomaly);
+                //calculate longitude in inertial reference frame from that
+                double currentirflong = 180 * Math.Atan2(currentpos.x, currentpos.y) / Math.PI;
 
-                double impacttheta = 0;
-                if (e > 0)
-                {
-                    //in this step, we are using the calculated impact altitude of the last step, to refine the impact site position
-                    impacttheta = -180 * Math.Acos((this.vessel.orbit.PeR * (1 + e) / (this.vessel.mainBody.Radius + impactalt) - 1) / e) / Math.PI;
-                }
+                //experimentally determined; even for very flat trajectories, the errors go into the sub-millimeter area after 5 iterations or so
+                const int impactiterations = 6;
 
-                //calculate time to impact
-                impacttime = this.vessel.orbit.timeToPe - timetoperiapsis(impacttheta);
-                //calculate position vector of impact site
-                Vector3d impactpos = radiusdirection(impacttheta);
-                //calculate longitude of impact site in inertial reference frame
-                double impactirflong = 180 * Math.Atan2(impactpos.x, impactpos.y) / Math.PI;
-                double deltairflong = impactirflong - currentirflong;
-                //get body rotation until impact
-                double bodyrot = 360 * impacttime / this.vessel.mainBody.rotationPeriod;
-                //get current longitude in body coordinates
-                double currentlong = this.vessel.longitude;
-                //finally, calculate the impact longitude in body coordinates
-                impactlong = normangle(currentlong - deltairflong - bodyrot);
-                //calculate impact latitude from impact position
-                impactlat = 180 * Math.Asin(impactpos.z / impactpos.magnitude) / Math.PI;
-                //calculate the actual altitude of the impact site
-                //altitude for long/lat code stolen from some ISA MapSat forum post; who knows why this works, but it seems to.
-                Vector3d rad = QuaternionD.AngleAxis(impactlong, Vector3d.down) * QuaternionD.AngleAxis(impactlat, Vector3d.forward) * Vector3d.right;
-                impactalt = this.vessel.mainBody.pqsController.GetSurfaceHeight(rad) - this.vessel.mainBody.pqsController.radius;
-                if ((impactalt < 0) && (this.vessel.mainBody.ocean == true))
+                //do a few iterations of impact site calculations
+                for (int i = 0; i < impactiterations; i++)
                 {
-                    impactalt = 0;
+                    if (this.vessel.orbit.PeA >= impactalt)
+                    {
+                        //periapsis must be lower than impact alt
+                        impacthappening = false;
+                    }
+                    if ((this.vessel.orbit.eccentricity < 1) && (this.vessel.orbit.ApA <= impactalt))
+                    {
+                        //apoapsis must be higher than impact alt
+                        impacthappening = false;
+                    }
+                    if ((this.vessel.orbit.eccentricity >= 1) && (this.vessel.orbit.timeToPe <= 0))
+                    {
+                        //if currently escaping, we still need to be before periapsis
+                        impacthappening = false;
+                    }
+                    if (!impacthappening)
+                    {
+                        impacttime = 0;
+                        impactlong = 0;
+                        impactlat = 0;
+                        impactalt = 0;
+                        break;
+                    }
+
+                    double impacttheta = 0;
+                    if (e > 0)
+                    {
+                        //in this step, we are using the calculated impact altitude of the last step, to refine the impact site position
+                        impacttheta = -180 * Math.Acos((this.vessel.orbit.PeR * (1 + e) / (this.vessel.mainBody.Radius + impactalt) - 1) / e) / Math.PI;
+                    }
+
+                    //calculate time to impact
+                    impacttime = this.vessel.orbit.timeToPe - timetoperiapsis(impacttheta);
+                    //calculate position vector of impact site
+                    Vector3d impactpos = radiusdirection(impacttheta);
+                    //calculate longitude of impact site in inertial reference frame
+                    double impactirflong = 180 * Math.Atan2(impactpos.x, impactpos.y) / Math.PI;
+                    double deltairflong = impactirflong - currentirflong;
+                    //get body rotation until impact
+                    double bodyrot = 360 * impacttime / this.vessel.mainBody.rotationPeriod;
+                    //get current longitude in body coordinates
+                    double currentlong = this.vessel.longitude;
+                    //finally, calculate the impact longitude in body coordinates
+                    impactlong = normangle(currentlong - deltairflong - bodyrot);
+                    //calculate impact latitude from impact position
+                    impactlat = 180 * Math.Asin(impactpos.z / impactpos.magnitude) / Math.PI;
+                    //calculate the actual altitude of the impact site
+                    //altitude for long/lat code stolen from some ISA MapSat forum post; who knows why this works, but it seems to.
+                    Vector3d rad = QuaternionD.AngleAxis(impactlong, Vector3d.down) * QuaternionD.AngleAxis(impactlat, Vector3d.forward) * Vector3d.right;
+                    impactalt = this.vessel.mainBody.pqsController.GetSurfaceHeight(rad) - this.vessel.mainBody.pqsController.radius;
+                    if ((impactalt < 0) && (this.vessel.mainBody.ocean == true))
+                    {
+                        impactalt = 0;
+                    }
                 }
             }
 

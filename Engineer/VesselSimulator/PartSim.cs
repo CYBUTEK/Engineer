@@ -50,7 +50,7 @@ namespace Engineer.VesselSimulator
                     isp = engine.atmosphereCurve.Evaluate((float)atmosphere);
                 }
 
-                thrust += engine.maxThrust;
+                thrust += engine.maxThrust * (engine.thrustPercentage / 100f);
             }
 
             decoupledInStage = DecoupledInStage();
@@ -102,13 +102,13 @@ namespace Engineer.VesselSimulator
                 {
                     if (engine.throttleLocked)
                     {
-                        flowRate = engine.maxThrust / (isp * 9.81d);
+                        flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
                     }
                     else
                     {
                         if (part.vessel.Landed)
                         {
-                            flowRate = Math.Max(0.000001d, engine.maxThrust * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
+                            flowRate = Math.Max(0.000001d, engine.maxThrust * (engine.thrustPercentage / 100f) * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
                         }
                         else
                         {
@@ -118,24 +118,24 @@ namespace Engineer.VesselSimulator
                             }
                             else
                             {
-                                flowRate = engine.maxThrust / (isp * 9.81d);
+                                flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
                             }
                         }
                     }
                 }
                 else
                 {
-                    flowRate = engine.maxThrust / (isp * 9.81d);
+                    flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
                 }
 
                 float flowMass = 0f;
 
-                foreach (ModuleEngines.Propellant propellant in engine.propellants)
+                foreach (Propellant propellant in engine.propellants)
                 {
                     flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
                 }
 
-                foreach (ModuleEngines.Propellant propellant in engine.propellants)
+                foreach (Propellant propellant in engine.propellants)
                 {
                     if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
                     {
