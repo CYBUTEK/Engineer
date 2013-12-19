@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Kerbal Engineer Redux
+// Author:  CYBUTEK
+// License: Attribution-NonCommercial-ShareAlike 3.0 Unported
+
+using System;
 using UnityEngine;
 using Engineer;
 using Toolbar;
