@@ -25,7 +25,7 @@ namespace Engineer
         Rendezvous rendezvous = new Rendezvous();
 
         public Rect windowPosition = new Rect(UnityEngine.Screen.width - 275, 0, 0, 0);
-        int windowID = new System.Random().Next();
+        int windowID = Guid.NewGuid().GetHashCode();
         int windowMargin = 25;
 
         double maxGForce = 0f;

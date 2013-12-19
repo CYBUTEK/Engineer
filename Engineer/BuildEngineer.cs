@@ -23,7 +23,7 @@ namespace Engineer
         GUIStyle headingStyle, dataStyle, windowStyle, buttonStyle, areaStyle;
         bool hasInitStyles = false;
         Rect windowPosition = new Rect(300, 70, 0, 0);
-        int windowID = new System.Random().Next();
+        int windowID = Guid.NewGuid().GetHashCode();
         int windowMargin = 25;
         string windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
         string windowTitleCompact = "Kerbal Engineer Redux - Compact";
