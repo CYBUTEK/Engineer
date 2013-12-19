@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics;
 using UnityEngine;
+using Engineer.Extensions;
 
 namespace Engineer.VesselSimulator
 {
@@ -38,11 +39,35 @@ namespace Engineer.VesselSimulator
                 resources.Add(resource.info.id, resource.amount);
             }
 
-            foreach (ModuleEngines engine in part.Modules.OfType<ModuleEngines>())
+            if (this.part.HasModule<MultiModeEngine>())
             {
+                string mode = this.part.GetModule<MultiModeEngine>().mode;
+
+                foreach (ModuleEnginesFX engine in this.part.GetModules<ModuleEnginesFX>())
+                {
+                    if (engine.engineID == mode)
+                    {
+                        if (part.vessel != null)
+                        {
+                            actualThrust = engine.requestedThrust;
+                            isp = engine.atmosphereCurve.Evaluate((float)part.staticPressureAtm);
+                        }
+                        else
+                        {
+                            isp = engine.atmosphereCurve.Evaluate((float)atmosphere);
+                        }
+
+                        thrust = engine.maxThrust * (engine.thrustPercentage / 100f);
+                    }
+                }
+            }
+            else if (this.part.HasModule<ModuleEngines>())
+            {
+                ModuleEngines engine = part.GetModule<ModuleEngines>();
+
                 if (part.vessel != null)
                 {
-                    actualThrust += engine.requestedThrust;
+                    actualThrust = engine.requestedThrust;
                     isp = engine.atmosphereCurve.Evaluate((float)part.staticPressureAtm);
                 }
                 else
@@ -50,7 +75,7 @@ namespace Engineer.VesselSimulator
                     isp = engine.atmosphereCurve.Evaluate((float)atmosphere);
                 }
 
-                thrust += engine.maxThrust * (engine.thrustPercentage / 100f);
+                thrust = engine.maxThrust * (engine.thrustPercentage / 100f);
             }
 
             decoupledInStage = DecoupledInStage();
@@ -95,8 +120,69 @@ namespace Engineer.VesselSimulator
 
         public void SetResourceConsumptions()
         {
-            foreach (ModuleEngines engine in part.Modules.OfType<ModuleEngines>())
+            if (this.part.HasModule<MultiModeEngine>())
             {
+                string mode = this.part.GetModule<MultiModeEngine>().mode;
+
+                foreach (ModuleEnginesFX engine in this.part.GetModules<ModuleEnginesFX>())
+                {
+                    if (engine.engineID == mode)
+                    {
+                        double flowRate = 0d;
+                        if (part.vessel != null)
+                        {
+                            if (engine.throttleLocked)
+                            {
+                                flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
+                            }
+                            else
+                            {
+                                if (part.vessel.Landed)
+                                {
+                                    flowRate = Math.Max(0.000001d, engine.maxThrust * (engine.thrustPercentage / 100f) * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
+                                }
+                                else
+                                {
+                                    if (engine.requestedThrust > 0)
+                                    {
+                                        flowRate = engine.requestedThrust / (isp * 9.81d);
+                                    }
+                                    else
+                                    {
+                                        flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
+                        }
+
+                        float flowMass = 0f;
+
+                        foreach (Propellant propellant in engine.propellants)
+                        {
+                            flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
+                        }
+
+                        foreach (Propellant propellant in engine.propellants)
+                        {
+                            if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
+                            {
+                                continue;
+                            }
+
+                            double consumptionRate = propellant.ratio * flowRate / flowMass;
+                            resourceConsumptions.Add(propellant.id, consumptionRate);
+                        }
+                    }
+                }
+            }
+            else if (this.part.HasModule<ModuleEngines>())
+            {
+                ModuleEngines engine = part.GetModule<ModuleEngines>();
+
                 double flowRate = 0d;
                 if (part.vessel != null)
                 {
@@ -481,14 +567,6 @@ namespace Engineer.VesselSimulator
             get
             {
                 return part.inverseStage;
-            }
-        }
-
-        public bool IsEngine
-        {
-            get
-            {
-                return thrust > 0;
             }
         }
 

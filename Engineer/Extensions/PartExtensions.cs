@@ -31,12 +31,32 @@ namespace Engineer.Extensions
             return part.Modules.Contains(moduleID);
         }
 
+        public static IEnumerable<T> GetModules<T>(this Part part) where T : PartModule
+        {
+            return part.Modules.OfType<T>();
+        }
+
+        /// <summary>
+        /// Gets the first typed PartModule.
+        /// </summary>
+        public static T GetModule<T>(this Part part) where T : PartModule
+        {
+            foreach (PartModule module in part.Modules)
+            {
+                if (module is T)
+                {
+                    return module as T;
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Gets a typed PartModule.
         /// </summary>
         public static T GetModule<T>(this Part part, string className) where T : PartModule
         {
-
             return (T)Convert.ChangeType(part.Modules[className], typeof(T));
         }
 
@@ -67,18 +87,18 @@ namespace Engineer.Extensions
         /// <summary>
         /// Gets the maximum thrust of the part if it's an engine.
         /// </summary>
-        public static double GetMaxThrust(this Part part)
-        {
-            return (part.IsEngine()) ? part.GetModule<ModuleEngines>("ModuleEngines").maxThrust : 0d;
-        }
+        //public static double GetMaxThrust(this Part part)
+        //{
+        //    return (part.IsEngine()) ? part.GetModule<ModuleEngines>("ModuleEngines").maxThrust : 0d;
+        //}
 
         /// <summary>
         /// Gets whether the part has fuel.
         /// </summary>
-        public static bool EngineHasFuel(this Part part)
-        {
-            return part.HasModule("ModuleEngines") && !part.GetModule<ModuleEngines>("ModuleEngines").getFlameoutState;
-        }
+        //public static bool EngineHasFuel(this Part part)
+        //{
+        //    return part.HasModule("ModuleEngines") && !part.GetModule<ModuleEngines>("ModuleEngines").getFlameoutState;
+        //}
 
         /// <summary>
         /// Gets whether the part is a decoupler.
@@ -111,7 +131,7 @@ namespace Engineer.Extensions
         /// </summary>
         public static bool IsEngine(this Part part)
         {
-            return part.HasModule("ModuleEngines");
+            return part.HasModule("ModuleEngines") || part.HasModule("MultiModeEngine");
         }
 
         /// <summary>
