@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Engineer Toolbar")]
+[assembly: AssemblyTitle("Kerbal Engineer Redux - Toolbar Plugin")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("CYBUTEK")]
 [assembly: AssemblyProduct("Engineer Toolbar")]
-[assembly: AssemblyCopyright("Copyright © CYBUTEK 2013")]
+[assembly: AssemblyCopyright("Creative Commons BY-NC-SA")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

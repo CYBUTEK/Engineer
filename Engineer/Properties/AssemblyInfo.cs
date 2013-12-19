@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Kerbal Engineer Redux")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("CYBUTEK")]
 [assembly: AssemblyProduct("Engineer")]
 [assembly: AssemblyCopyright("Creative Commons BY-NC-SA")]
 [assembly: AssemblyTrademark("")]
