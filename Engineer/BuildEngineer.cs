@@ -13,6 +13,9 @@ namespace Engineer
 {
     public class BuildEngineer : PartModule
     {
+        public static bool isVisible = true;
+        public static bool isActive = false;
+
         Version version = new Version();
         Settings settings = new Settings();
         bool showUpdate = true;
@@ -146,6 +149,7 @@ namespace Engineer
                     stages = SimManager.Instance.Stages;
                 }
                 SimManager.Instance.TryStartSimulation();
+                isActive = true;
             }
         }
 
@@ -175,7 +179,10 @@ namespace Engineer
                     title = windowTitleCompact;
                 }
 
-                windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
+                if (isVisible)
+                {
+                    windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
+                }
             }
             else
             {

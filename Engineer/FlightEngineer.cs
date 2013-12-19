@@ -14,11 +14,14 @@ namespace Engineer
 {
     public class FlightEngineer : PartModule
     {
+        public static bool isVisible = true;
+        public static bool isActive = false;
+
         public Settings settings = new Settings();
         Version version = new Version();
         bool showUpdate = true;
         string settingsFile = "flight_engineer.cfg";
-
+        
         Rendezvous rendezvous = new Rendezvous();
 
         public Rect windowPosition = new Rect(UnityEngine.Screen.width - 275, 0, 0, 0);
@@ -129,6 +132,7 @@ namespace Engineer
                     }
                     SimManager.Instance.Gravity = this.vessel.mainBody.gravParameter / Math.Pow(this.vessel.mainBody.Radius, 2);
                     SimManager.Instance.TryStartSimulation();
+                    isActive = true;
                 }
             }
         }
@@ -141,7 +145,7 @@ namespace Engineer
                 {
                     Events["ShowWindow"].active = true;
 
-                    if (settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER", true))
+                    if (settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER", true) && isVisible)
                     {
                         if (!hasInitStyles) InitStyles();
 
