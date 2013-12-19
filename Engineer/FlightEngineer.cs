@@ -360,7 +360,7 @@ namespace Engineer
             double impactlat = 0;
             double impactalt = 0;
 
-            if (FlightGlobals.ActiveVessel.mainBody != Planetarium.fetch.Sun)
+            if (FlightGlobals.ActiveVessel.mainBody.pqsController != null)
             {
                 //do impact site calculations
                 impacthappening = true;

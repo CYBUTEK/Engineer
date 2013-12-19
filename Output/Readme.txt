@@ -19,4 +19,4 @@ of this by downloading the Toolbar Plugin from:
 https://www.dropbox.com/s/rswx39dxsjetmmz/Toolbar-1.2.0.zip
 
 For more information, the plugin's thread on the forum is:
-http://forum.kerbalspaceprogram.com/threads/60066-0-23-0-Toolbar-Plugin-1-2-0-Common-API-for-draggable-resizable-buttons-toolbar
+http://forum.kerbalspaceprogram.com/threads/60863
