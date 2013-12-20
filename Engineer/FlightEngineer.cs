@@ -120,7 +120,7 @@ namespace Engineer
             catch { }
         }
 
-        public override void OnUpdate()
+        public void Update()
         {
             if (this.vessel != null && this.vessel == FlightGlobals.ActiveVessel)
             {
