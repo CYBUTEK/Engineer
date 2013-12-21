@@ -154,7 +154,7 @@ namespace Engineer
         }
 
         private void DrawGUI()
-        {
+        {         
             if (!this.part.isAttached || !IsPrimary)
             {
                 RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
@@ -164,32 +164,33 @@ namespace Engineer
 
             if (!hasInitStyles) InitStyles();
 
-            CheckEditorLock();
-
-            if (!settings.IsDrawing)
+            if (isVisible)
             {
-                string title = "";
+                CheckEditorLock();
 
-                if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
+                if (!settings.IsDrawing)
                 {
-                    title = windowTitle;
+                    string title = "";
+
+                    if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
+                    {
+                        title = windowTitle;
+                    }
+                    else
+                    {
+                        title = windowTitleCompact;
+                    }
+
+
+                    windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
                 }
                 else
                 {
-                    title = windowTitleCompact;
+                    settings.DrawWindow();
                 }
 
-                if (isVisible)
-                {
-                    windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
-                }
+                CheckWindowMargin();
             }
-            else
-            {
-                settings.DrawWindow();
-            }
-
-            CheckWindowMargin();
         }
 
         private void Window(int windowID)
