@@ -9,7 +9,7 @@ using Toolbar;
 
 namespace EngineerToolbar
 {
-    [KSPAddon(KSPAddon.Startup.EditorAny | KSPAddon.Startup.Flight, false)]
+    [KSPAddon(KSPAddon.Startup.EveryScene, false)]
     public class EngineerToolbar : MonoBehaviour
     {
         public const string VERSION = "1.0.0.0";
@@ -20,24 +20,27 @@ namespace EngineerToolbar
 
         private void Start()
         {
-            this.button = ToolbarManager.Instance.add("KER", "engineerButton");
-            this.button.ToolTip = "Kerbal Engineer Redux";
+            if (HighLogic.LoadedSceneIsEditor || HighLogic.LoadedSceneIsFlight)
+            {
+                this.button = ToolbarManager.Instance.add("KER", "engineerButton");
+                this.button.ToolTip = "Kerbal Engineer Redux";
 
-            if (HighLogic.LoadedSceneIsEditor)
-            {
-                SetButtonState(BuildEngineer.isVisible);
-                this.button.OnClick += (e) =>
+                if (HighLogic.LoadedSceneIsEditor)
                 {
-                    TogglePluginVisibility(ref BuildEngineer.isVisible);
-                };
-            }
-            else if (HighLogic.LoadedSceneIsFlight)
-            {
-                SetButtonState(FlightEngineer.isVisible);
-                this.button.OnClick += (e) =>
+                    SetButtonState(BuildEngineer.isVisible);
+                    this.button.OnClick += (e) =>
+                    {
+                        TogglePluginVisibility(ref BuildEngineer.isVisible);
+                    };
+                }
+                else if (HighLogic.LoadedSceneIsFlight)
                 {
-                    TogglePluginVisibility(ref FlightEngineer.isVisible);
-                };
+                    SetButtonState(FlightEngineer.isVisible);
+                    this.button.OnClick += (e) =>
+                    {
+                        TogglePluginVisibility(ref FlightEngineer.isVisible);
+                    };
+                }
             }
         }
 
@@ -57,7 +60,10 @@ namespace EngineerToolbar
 
         private void OnDestroy()
         {
-            button.Destroy();
+            if (button != null)
+            {
+                button.Destroy();
+            }
         }
 
         private void TogglePluginVisibility(ref bool toggle)
