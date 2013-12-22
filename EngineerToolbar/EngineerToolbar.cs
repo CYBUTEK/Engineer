@@ -12,7 +12,7 @@ namespace EngineerToolbar
     [KSPAddon(KSPAddon.Startup.EveryScene, false)]
     public class EngineerToolbar : MonoBehaviour
     {
-        public const string VERSION = "1.0.0.0";
+        public const string VERSION = "1.0.0.1";
 
         private string enabledTexturePath = "Engineer/ToolbarEnabled";
         private string disabledTexturePath = "Engineer/ToolbarDisabled";
