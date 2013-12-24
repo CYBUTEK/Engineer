@@ -130,7 +130,7 @@ namespace Engineer
                     {
                         stages = SimManager.Instance.Stages;
                     }
-                    SimManager.Instance.Gravity = this.vessel.mainBody.gravParameter / Math.Pow(this.vessel.mainBody.Radius, 2);
+                    SimManager.Instance.Gravity = this.vessel.mainBody.gravParameter / Math.Pow(this.vessel.mainBody.Radius + this.vessel.mainBody.GetAltitude(this.vessel.CoM), 2);
                     SimManager.Instance.TryStartSimulation();
                     isActive = true;
                 }
