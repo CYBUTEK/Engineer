@@ -62,8 +62,8 @@ namespace Engineer.VesselSimulator
 
             if (parts.Count > 0)
             {
-                //ThreadPool.QueueUserWorkItem(RunSimulation, new Simulation(parts));
-                RunSimulation(new Simulation(parts));
+                ThreadPool.QueueUserWorkItem(RunSimulation, new Simulation(parts));
+                //RunSimulation(new Simulation(parts));
             }
             else
             {
@@ -73,8 +73,12 @@ namespace Engineer.VesselSimulator
 
         private void RunSimulation(object simObject)
         {
-            this.Stages = (simObject as Simulation).RunSimulation(this.Gravity, this.Atmosphere);
-            this.LastStage = this.Stages.Last();
+            try
+            {
+                this.Stages = (simObject as Simulation).RunSimulation(this.Gravity, this.Atmosphere);
+                this.LastStage = this.Stages.Last();
+            }
+            catch { /* Something went wrong! */ }
 
             _timer.Stop();
             _millisecondsBetweenSimulations = 10 * _timer.ElapsedMilliseconds;
