@@ -10,7 +10,7 @@ namespace Engineer
 {
     public class Version
     {
-        public const string VERSION = "0.6.2.2";
+        public const string VERSION = "0.6.2.3";
         public const string PRODUCT_NAME = "engineer_redux";
         private string remoteVersion = null;
         private bool hasCompared = false;
@@ -153,6 +153,8 @@ namespace Engineer
 
         private string GetRemoteVersion()
         {
+            return VERSION; // Skip version checking as this system has not been used in a while
+
             try
             {
                 WWW www = new WWW("http://www.cybutek.net/ksp/getversion.php?name=" + PRODUCT_NAME);
