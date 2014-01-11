@@ -61,21 +61,39 @@ namespace Engineer.VesselSimulator
                     }
                 }
             }
+            else if (this.part.HasModule<ModuleEnginesFX>())
+            {
+                foreach (ModuleEnginesFX engine in this.part.GetModules<ModuleEnginesFX>())
+                {
+                    if (part.vessel != null)
+                    {
+                        actualThrust = engine.requestedThrust;
+                        isp = engine.atmosphereCurve.Evaluate((float)part.staticPressureAtm);
+                    }
+                    else
+                    {
+                        isp = engine.atmosphereCurve.Evaluate((float)atmosphere);
+                    }
+
+                    thrust = engine.maxThrust * (engine.thrustPercentage / 100f);
+                }
+            }
             else if (this.part.HasModule<ModuleEngines>())
             {
-                ModuleEngines engine = part.GetModule<ModuleEngines>();
-
-                if (part.vessel != null)
+                foreach (ModuleEngines engine in this.part.GetModules<ModuleEngines>())
                 {
-                    actualThrust = engine.requestedThrust;
-                    isp = engine.atmosphereCurve.Evaluate((float)part.staticPressureAtm);
-                }
-                else
-                {
-                    isp = engine.atmosphereCurve.Evaluate((float)atmosphere);
-                }
+                    if (part.vessel != null)
+                    {
+                        actualThrust = engine.requestedThrust;
+                        isp = engine.atmosphereCurve.Evaluate((float)part.staticPressureAtm);
+                    }
+                    else
+                    {
+                        isp = engine.atmosphereCurve.Evaluate((float)atmosphere);
+                    }
 
-                thrust = engine.maxThrust * (engine.thrustPercentage / 100f);
+                    thrust = engine.maxThrust * (engine.thrustPercentage / 100f);
+                }
             }
 
             decoupledInStage = DecoupledInStage();
@@ -179,57 +197,112 @@ namespace Engineer.VesselSimulator
                     }
                 }
             }
-            else if (this.part.HasModule<ModuleEngines>())
+            else if (this.part.HasModule<ModuleEnginesFX>())
             {
-                ModuleEngines engine = part.GetModule<ModuleEngines>();
-
-                double flowRate = 0d;
-                if (part.vessel != null)
+                foreach (ModuleEnginesFX engine in part.GetModules<ModuleEnginesFX>())
                 {
-                    if (engine.throttleLocked)
+                    double flowRate = 0d;
+                    if (part.vessel != null)
                     {
-                        flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                    }
-                    else
-                    {
-                        if (part.vessel.Landed)
+                        if (engine.throttleLocked)
                         {
-                            flowRate = Math.Max(0.000001d, engine.maxThrust * (engine.thrustPercentage / 100f) * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
+                            flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
                         }
                         else
                         {
-                            if (engine.requestedThrust > 0)
+                            if (part.vessel.Landed)
                             {
-                                flowRate = engine.requestedThrust / (isp * 9.81d);
+                                flowRate = Math.Max(0.000001d, engine.maxThrust * (engine.thrustPercentage / 100f) * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
                             }
                             else
                             {
-                                flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
+                                if (engine.requestedThrust > 0)
+                                {
+                                    flowRate = engine.requestedThrust / (isp * 9.81d);
+                                }
+                                else
+                                {
+                                    flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
+                                }
                             }
                         }
                     }
-                }
-                else
-                {
-                    flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                }
-
-                float flowMass = 0f;
-
-                foreach (Propellant propellant in engine.propellants)
-                {
-                    flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
-                }
-
-                foreach (Propellant propellant in engine.propellants)
-                {
-                    if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
+                    else
                     {
-                        continue;
+                        flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
                     }
 
-                    double consumptionRate = propellant.ratio * flowRate / flowMass;
-                    resourceConsumptions.Add(propellant.id, consumptionRate);
+                    float flowMass = 0f;
+
+                    foreach (Propellant propellant in engine.propellants)
+                    {
+                        flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
+                    }
+
+                    foreach (Propellant propellant in engine.propellants)
+                    {
+                        if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
+                        {
+                            continue;
+                        }
+
+                        double consumptionRate = propellant.ratio * flowRate / flowMass;
+                        resourceConsumptions.Add(propellant.id, consumptionRate);
+                    }
+                }
+            }
+            else if (this.part.HasModule<ModuleEngines>())
+            {
+                foreach (ModuleEngines engine in part.GetModules<ModuleEngines>())
+                {
+                    double flowRate = 0d;
+                    if (part.vessel != null)
+                    {
+                        if (engine.throttleLocked)
+                        {
+                            flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
+                        }
+                        else
+                        {
+                            if (part.vessel.Landed)
+                            {
+                                flowRate = Math.Max(0.000001d, engine.maxThrust * (engine.thrustPercentage / 100f) * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
+                            }
+                            else
+                            {
+                                if (engine.requestedThrust > 0)
+                                {
+                                    flowRate = engine.requestedThrust / (isp * 9.81d);
+                                }
+                                else
+                                {
+                                    flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
+                    }
+
+                    float flowMass = 0f;
+
+                    foreach (Propellant propellant in engine.propellants)
+                    {
+                        flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
+                    }
+
+                    foreach (Propellant propellant in engine.propellants)
+                    {
+                        if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
+                        {
+                            continue;
+                        }
+
+                        double consumptionRate = propellant.ratio * flowRate / flowMass;
+                        resourceConsumptions.Add(propellant.id, consumptionRate);
+                    }
                 }
             }
         }

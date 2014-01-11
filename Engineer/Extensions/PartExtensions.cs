@@ -131,7 +131,7 @@ namespace Engineer.Extensions
         /// </summary>
         public static bool IsEngine(this Part part)
         {
-            return part.HasModule("ModuleEngines") || part.HasModule("MultiModeEngine");
+            return part.HasModule("ModuleEngines") || part.HasModule("ModuleEnginesFX");
         }
 
         /// <summary>
