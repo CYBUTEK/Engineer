@@ -458,7 +458,8 @@ namespace Engineer
 		}
 
 		// Code by: mic_e
-		private void CheckForFAR () {
+		private void CheckForFAR ()
+		{
 			hasCheckedForFAR = true;
 
 			foreach (AssemblyLoader.LoadedAssembly assembly in AssemblyLoader.loadedAssemblies) {
@@ -494,7 +495,28 @@ namespace Engineer
 			}
 		}
 
-		// Impact, FAR and some atmospheric drag code by: mic_e
+		// Code by mic_e
+		private string getBiomeName (double latitude, double longitude)
+		{
+			string result = null;
+			CBAttributeMap biomeMap = this.vessel.mainBody.BiomeMap;
+
+			try {
+				result = biomeMap.GetAtt (Mathf.Deg2Rad * latitude, Mathf.Deg2Rad * longitude).name;
+			} catch {
+				//pokemon exception handling
+			}
+
+			// it seems that bodies that have no biomes will not throw an exception, but instead
+			// return an empty string.
+			if (String.IsNullOrEmpty (result)) {
+				result = "[" + this.vessel.mainBody.name + "]";
+			}
+
+			return result;
+		}
+
+		// Impact, biome, FAR and some atmospheric drag code by: mic_e
         private void DrawSurface ()
 		{
 			try {
@@ -529,6 +551,10 @@ namespace Engineer
 					GUILayout.Label ("Longitude", headingStyle);
 				if (settings.Get<bool> ("Surface: Latitude", true))
 					GUILayout.Label ("Latitude", headingStyle);
+				if (settings.Get<bool> ("Surface: Biome", true))
+					GUILayout.Label ("Biome", headingStyle);
+				if (settings.Get<bool> ("Surface: G-Force", true))
+					GUILayout.Label ("G-Force", headingStyle);
 
 				if (impacthappening) {
 					if (settings.Get<bool> ("Surface: Impact Time", true))
@@ -537,33 +563,34 @@ namespace Engineer
 						GUILayout.Label ("Impact Longitude", headingStyle);
 					if (settings.Get<bool> ("Surface: Impact Latitude", true))
 						GUILayout.Label ("Impact Latitude", headingStyle);
-					if (settings.Get<bool> ("Surface: Impact Altitude", true))
+					if (settings.Get<bool> ("Surface: Impact Altitude", false))
 						GUILayout.Label ("Impact Altitude", headingStyle);
+					if (settings.Get<bool> ("Surface: Impact Biome", true))
+						GUILayout.Label ("Impact Biome", headingStyle);
 				}
 
-				if (settings.Get<bool> ("Surface: G-Force", true))
-					GUILayout.Label ("G-Force", headingStyle);
-
-				if (settings.Get<bool> ("Surface: Terminal Velocity", true))
+				if (settings.Get<bool> ("Surface: Terminal Velocity", false))
 					GUILayout.Label ("Terminal Velocity", headingStyle);
 				if (settings.Get<bool> ("Surface: Atmospheric Efficiency", true))
 					GUILayout.Label ("Atmospheric Efficiency", headingStyle);
-				if (settings.Get<bool> ("Surface: Static Pressure", true))
+				if (settings.Get<bool> ("Surface: Static Pressure", false))
 					GUILayout.Label ("Static Pressure", headingStyle);
 				if (settings.Get<bool> ("Surface: Dynamic Pressure", true))
 					GUILayout.Label ("Dynamic Pressure", headingStyle);
-				if (settings.Get<bool> ("Surface: Max-Q", true))
+				if (settings.Get<bool> ("Surface: Max-Q", false))
 					GUILayout.Label ("Max-Q", headingStyle);
-				if (settings.Get<bool> ("Surface: Atmospheric Density", true))
+				if (settings.Get<bool> ("Surface: Atmospheric Density", false))
 					GUILayout.Label ("Atmospheric Density", headingStyle);
 				if (settings.Get<bool> ("Surface: Drag Coefficient", true))
 					GUILayout.Label ("Drag Coefficient", headingStyle);
-				if (settings.Get<bool> ("Surface: Drag Force", true))
+				if (settings.Get<bool> ("Surface: Drag Force", false))
 					GUILayout.Label ("Drag Force", headingStyle);
 				if (settings.Get<bool> ("Surface: Drag Deceleration", true))
 					GUILayout.Label ("Drag Deceleration", headingStyle);
 				if (settings.Get<bool> ("Surface: Drag Losses", true))
 					GUILayout.Label ("Drag Losses", headingStyle);
+				if (settings.Get<bool> ("Surface: FAR density factor", false))
+					GUILayout.Label ("FAR density factor", headingStyle);
 
 				GUILayout.EndVertical ();
 
@@ -577,9 +604,13 @@ namespace Engineer
 				if (settings.Get<bool> ("Surface: Horizontal Speed"))
 					GUILayout.Label (Tools.FormatSI (this.vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), dataStyle);
 				if (settings.Get<bool> ("Surface: Longitude"))
-					GUILayout.Label (Tools.FormatNumber (this.vessel.longitude, "°", 6), dataStyle);
+					GUILayout.Label (Tools.FormatNumber (normangle (this.vessel.longitude), "°", 6), dataStyle);
 				if (settings.Get<bool> ("Surface: Latitude"))
-					GUILayout.Label (Tools.FormatNumber (normangle (this.vessel.latitude), "°", 6), dataStyle);
+					GUILayout.Label (Tools.FormatNumber (this.vessel.latitude, "°", 6), dataStyle);
+				if (settings.Get<bool> ("Surface: Biome"))
+					GUILayout.Label (getBiomeName(this.vessel.latitude, this.vessel.longitude), dataStyle);
+				if (settings.Get<bool> ("Surface: G-Force"))
+					GUILayout.Label (Tools.FormatNumber (this.vessel.geeForce, 3) + " / " + Tools.FormatNumber (maxGForce, "g", 3), dataStyle);
 
 				if (impacthappening) {
 					if (settings.Get<bool> ("Surface: Impact Time", true))
@@ -590,10 +621,9 @@ namespace Engineer
 						GUILayout.Label (Tools.FormatNumber (impactlat, "°", 6), dataStyle);
 					if (settings.Get<bool> ("Surface: Impact Altitude", true))
 						GUILayout.Label (Tools.FormatSI (impactalt, Tools.SIUnitType.Distance), dataStyle);
+					if (settings.Get<bool> ("Surface: Impact Biome", true))
+						GUILayout.Label (getBiomeName (impactlat, impactlong), dataStyle);
 				}
-
-				if (settings.Get<bool> ("Surface: G-Force"))
-					GUILayout.Label (Tools.FormatNumber (this.vessel.geeForce, 3) + " / " + Tools.FormatNumber (maxGForce, "g", 3), dataStyle);
 
 				//drag calculations (work for both FAR and Stock aerodynamics)
 
@@ -697,15 +727,13 @@ namespace Engineer
 				}
 
 				//integrate drag Deceleration for aerodynamic d-v losses
+				//note: this currently only works while the surface tab is opened
 				if (!FlightDriver.Pause) {
 					dragLosses += dragDecel * Time.fixedDeltaTime;
 				}
 
 				//calculate stock-equivalent drag coefficient
-				double stockEquivalentDragCoefficient = 0;
-				if (classicalDragAdjustmentFactor > 0.000001) {
-					stockEquivalentDragCoefficient = dragDecelFactor / classicalDragAdjustmentFactor;
-				}
+				double stockEquivalentDragCoefficient = dragDecelFactor / FlightGlobals.DragMultiplier;
 
 				/*
 				 * bug?: Pressure and Force SIUnitTypes accept kN/kPa as arguments, instead of SI N/Pa
@@ -721,6 +749,7 @@ namespace Engineer
 				if (settings.Get<bool>("Surface: Drag Force")) GUILayout.Label(Tools.FormatSI(dragForce / 1000, Tools.SIUnitType.Force), dataStyle);
 				if (settings.Get<bool>("Surface: Drag Deceleration")) GUILayout.Label(Tools.FormatNumber(dragDecel / 9.81, "g", 3), dataStyle);
 				if (settings.Get<bool>("Surface: Drag Losses")) GUILayout.Label(Tools.FormatSI(dragLosses, Tools.SIUnitType.Speed), dataStyle);
+				if (settings.Get<bool>("Surface: FAR density factor")) GUILayout.Label(Tools.FormatNumber(airDensityAdjustmentFactor, 4), dataStyle);
 
 	            GUILayout.EndVertical();
 	            GUILayout.EndHorizontal();
