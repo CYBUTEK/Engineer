@@ -14,6 +14,15 @@ namespace Engineer
 {
     public class FlightEngineer : PartModule
     {
+		private Type FARWingAerodynamicModelType = null;
+		private System.Reflection.MethodInfo FARWingAerodynamicModelCdMethod;
+		private System.Reflection.FieldInfo FARWingAerodynamicModelSField;
+		private Type FARBasicDragModelType = null;
+		private System.Reflection.FieldInfo FARBasicDragModelCdField;
+		private System.Reflection.FieldInfo FARBasicDragModelSField;
+		private Type FARAeroUtilType = null;
+		private System.Reflection.MethodInfo FARGetCurrentDensityMethod;
+
         public static bool isVisible = true;
         public static bool isActive = false;
 
@@ -29,6 +38,8 @@ namespace Engineer
         int windowMargin = 25;
 
         double maxGForce = 0f;
+		double dragLosses = 0f;
+		double maxQ = 0f;
 
         public GUIStyle headingStyle, dataStyle, windowStyle, buttonStyle, areaStyle;
         bool hasInitStyles = false;
@@ -263,7 +274,7 @@ namespace Engineer
                 if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.timeToPe), dataStyle);
             }
             if (settings.Get<bool>("Orbital: Inclination")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.inclination, "°", 6), dataStyle);
-            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.eccentricity, "°", 6), dataStyle);
+            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.eccentricity, "", 6), dataStyle);
             if (settings.Get<bool>("Orbital: Period")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.period), dataStyle);
             if (settings.Get<bool>("Orbital: Longitude of AN")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.LAN, "°", 6), dataStyle);
             if (settings.Get<bool>("Orbital: Longitude of Pe")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.LAN + this.vessel.orbit.argumentOfPeriapsis, "°", 6), dataStyle);
@@ -274,6 +285,8 @@ namespace Engineer
         }
 
         // Code by: mic_e
+		//
+		// normalizes an angle to the range [-180; 180]
         private double normangle(double ang)
         {
             if (ang > 180)
@@ -289,6 +302,8 @@ namespace Engineer
         }
 
         // Code by: mic_e
+		//
+		// calculates the radius unit vector for a given true anomaly
         private Vector3d radiusdirection(double theta)
         {
             theta = Math.PI * theta / 180;
@@ -318,6 +333,8 @@ namespace Engineer
         }
 
         // Code by: mic_e
+		//
+		// calculates the time to periapsis for a given true anomaly 
         private double timetoperiapsis(double theta)
         {
             double e = this.vessel.orbit.eccentricity;
@@ -351,197 +368,397 @@ namespace Engineer
             return 0;
         }
 
-        // Impact Code by: mic_e
-        private void DrawSurface()
-        {
-            bool impacthappening = false;
-            double impacttime = 0;
-            double impactlong = 0;
-            double impactlat = 0;
-            double impactalt = 0;
+		//Code by mic_e
+		//
+		//this method simply assumes a spherical body, and calculates the intersection point of the orbit with that body.
+		//if an intersect is found, the actual altitude at that point is read and the method repeated with a sphere of that new
+		//radius.
+		private bool FindImpact (out double impacttime, out double impactlong, out double impactlat, out double impactalt)
+		{
+			impacttime = 0;
+			impactlong = 0;
+			impactlat = 0;
 
-            if (FlightGlobals.ActiveVessel.mainBody.pqsController != null)
-            {
-                //do impact site calculations
-                impacthappening = true;
-                impacttime = 0;
-                impactlong = 0;
-                impactlat = 0;
-                impactalt = 0;
-                double e = this.vessel.orbit.eccentricity;
-                //get current position direction vector
-                Vector3d currentpos = radiusdirection(this.vessel.orbit.trueAnomaly);
-                //calculate longitude in inertial reference frame from that
-                double currentirflong = 180 * Math.Atan2(currentpos.x, currentpos.y) / Math.PI;
+			if (this.vessel.mainBody.pqsController == null) {
+				impactalt = 0;
+			} else {
+				impactalt = this.vessel.mainBody.pqsController.radiusMin - this.vessel.mainBody.Radius;
+			}
 
-                //experimentally determined; even for very flat trajectories, the errors go into the sub-millimeter area after 5 iterations or so
-                const int impactiterations = 6;
+			double e = this.vessel.orbit.eccentricity;
+			//get current position direction vector
+			Vector3d currentpos = radiusdirection (this.vessel.orbit.trueAnomaly);
+			//calculate longitude in inertial reference frame from that
+			double currentirflong = 180 * Math.Atan2 (currentpos.x, currentpos.y) / Math.PI;
 
-                //do a few iterations of impact site calculations
-                for (int i = 0; i < impactiterations; i++)
-                {
-                    if (this.vessel.orbit.PeA >= impactalt)
-                    {
-                        //periapsis must be lower than impact alt
-                        impacthappening = false;
-                    }
-                    if ((this.vessel.orbit.eccentricity < 1) && (this.vessel.orbit.ApA <= impactalt))
-                    {
-                        //apoapsis must be higher than impact alt
-                        impacthappening = false;
-                    }
-                    if ((this.vessel.orbit.eccentricity >= 1) && (this.vessel.orbit.timeToPe <= 0))
-                    {
-                        //if currently escaping, we still need to be before periapsis
-                        impacthappening = false;
-                    }
-                    if (!impacthappening)
-                    {
-                        impacttime = 0;
-                        impactlong = 0;
-                        impactlat = 0;
-                        impactalt = 0;
-                        break;
-                    }
+			//experimentally determined; even for very flat trajectories, the errors go into the sub-millimeter area after 5 iterations or so
+			const int impactiterations = 6;
 
-                    double impacttheta = 0;
-                    if (e > 0)
-                    {
-                        //in this step, we are using the calculated impact altitude of the last step, to refine the impact site position
-                        impacttheta = -180 * Math.Acos((this.vessel.orbit.PeR * (1 + e) / (this.vessel.mainBody.Radius + impactalt) - 1) / e) / Math.PI;
-                    }
+			//do a few iterations of impact site calculations
+			for (int i = 0; i < impactiterations; i++) {
+				if (this.vessel.orbit.PeA >= impactalt) {
+					//periapsis must be lower than impact alt
+					return false;
+				}
+				if ((this.vessel.orbit.eccentricity < 1) && (this.vessel.orbit.ApA <= impactalt)) {
+					//apoapsis must be higher than impact alt
+					return false;
+				}
+				if ((this.vessel.orbit.eccentricity >= 1) && (this.vessel.orbit.timeToPe <= 0)) {
+					//if currently escaping, we still need to be before periapsis
+					return false;
+				}
 
-                    //calculate time to impact
-                    impacttime = this.vessel.orbit.timeToPe - timetoperiapsis(impacttheta);
-                    //calculate position vector of impact site
-                    Vector3d impactpos = radiusdirection(impacttheta);
-                    //calculate longitude of impact site in inertial reference frame
-                    double impactirflong = 180 * Math.Atan2(impactpos.x, impactpos.y) / Math.PI;
-                    double deltairflong = impactirflong - currentirflong;
-                    //get body rotation until impact
-                    double bodyrot = 360 * impacttime / this.vessel.mainBody.rotationPeriod;
-                    //get current longitude in body coordinates
-                    double currentlong = this.vessel.longitude;
-                    //finally, calculate the impact longitude in body coordinates
-                    impactlong = normangle(currentlong - deltairflong - bodyrot);
-                    //calculate impact latitude from impact position
-                    impactlat = 180 * Math.Asin(impactpos.z / impactpos.magnitude) / Math.PI;
-                    //calculate the actual altitude of the impact site
-                    //altitude for long/lat code stolen from some ISA MapSat forum post; who knows why this works, but it seems to.
-                    Vector3d rad = QuaternionD.AngleAxis(impactlong, Vector3d.down) * QuaternionD.AngleAxis(impactlat, Vector3d.forward) * Vector3d.right;
-                    impactalt = this.vessel.mainBody.pqsController.GetSurfaceHeight(rad) - this.vessel.mainBody.pqsController.radius;
-                    if ((impactalt < 0) && (this.vessel.mainBody.ocean == true))
-                    {
-                        impactalt = 0;
-                    }
-                }
-            }
+				double impacttheta = 0;
+				if (e > 0) {
+					//in this step, we are using the calculated impact altitude of the last step, to refine the impact site position
+					impacttheta = -180 * Math.Acos ((this.vessel.orbit.PeR * (1 + e) / (this.vessel.mainBody.Radius + impactalt) - 1) / e) / Math.PI;
+				}
 
-            if (this.vessel.geeForce > maxGForce) maxGForce = this.vessel.geeForce;
+				//calculate time to impact
+				impacttime = this.vessel.orbit.timeToPe - timetoperiapsis (impacttheta);
+				//calculate position vector of impact site
+				Vector3d impactpos = radiusdirection (impacttheta);
+				//calculate longitude of impact site in inertial reference frame
+				double impactirflong = 180 * Math.Atan2 (impactpos.x, impactpos.y) / Math.PI;
+				double deltairflong = impactirflong - currentirflong;
+				//get body rotation until impact
+				double bodyrot = 360 * impacttime / this.vessel.mainBody.rotationPeriod;
+				//get current longitude in body coordinates
+				double currentlong = this.vessel.longitude;
+				//finally, calculate the impact longitude in body coordinates
+				impactlong = normangle (currentlong - deltairflong - bodyrot);
+				//calculate impact latitude from impact position
+				impactlat = 180 * Math.Asin (impactpos.z / impactpos.magnitude) / Math.PI;
+				//calculate the actual altitude of the impact site
+				//altitude for long/lat code stolen from some ISA MapSat forum post; who knows why this works, but it seems to.
+				if(this.vessel.mainBody.pqsController != null) {
+					Vector3d rad = QuaternionD.AngleAxis (impactlong, Vector3d.down) * QuaternionD.AngleAxis (impactlat, Vector3d.forward) * Vector3d.right;
+					impactalt = this.vessel.mainBody.pqsController.GetSurfaceHeight(rad) - this.vessel.mainBody.pqsController.radius;
+					if ((impactalt < 0) && (this.vessel.mainBody.ocean == true)) {
+						impactalt = 0;
+					}
+				} else {
+					impactalt = 0;
+				}
+			}
 
-            if (!hasCheckedForFAR)
-            {
-                hasCheckedForFAR = true;
+			return true;
+		}
 
-                foreach (AssemblyLoader.LoadedAssembly assembly in AssemblyLoader.loadedAssemblies)
-                {
-                    if (assembly.assembly.ToString().Split(',')[0] == "FerramAerospaceResearch")
-                    {
-                        hasInstalledFAR = true;
-                        print("[KerbalEngineer]: FAR detected!  Turning off atmospheric details!");
-                    }
-                }
-            }
+		// Code by: mic_e
+		private bool checkNotNull (object o, string errormessage)
+		{
+			if (o == null) {
+				print ("[KerbalEngineer]: " + errormessage);
+				return false;
+			} else {
+				return true;
+			}
+		}
 
-            GUILayout.Label("SURFACE DISPLAY", headingStyle);
-            GUILayout.BeginHorizontal(areaStyle);
-            GUILayout.BeginVertical();
-            settings.Set("*SPACER_SURFACE", "");
-            settings.Set("*headingStyle_SURFACE", "SURFACE DISPLAY");
-            if (settings.Get<bool>("Surface: Altitude (Sea Level)", true)) GUILayout.Label("Altitude (Sea Level)", headingStyle);
-            if (settings.Get<bool>("Surface: Altitude (Terrain)", true)) GUILayout.Label("Altitude (Terrain)", headingStyle);
-            if (settings.Get<bool>("Surface: Vertical Speed", true)) GUILayout.Label("Vertical Speed", headingStyle);
-            if (settings.Get<bool>("Surface: Horizontal Speed", true)) GUILayout.Label("Horizontal Speed", headingStyle);
-            if (settings.Get<bool>("Surface: Longitude", true)) GUILayout.Label("Longitude", headingStyle);
-            if (settings.Get<bool>("Surface: Latitude", true)) GUILayout.Label("Latitude", headingStyle);
+		// Code by: mic_e
+		private void CheckForFAR ()
+		{
+			hasCheckedForFAR = true;
 
-            if (impacthappening)
-            {
-                if (settings.Get<bool>("Surface: Impact Time", true)) GUILayout.Label("Impact Time", headingStyle);
-                if (settings.Get<bool>("Surface: Impact Longitude", true)) GUILayout.Label("Impact Longitude", headingStyle);
-                if (settings.Get<bool>("Surface: Impact Latitude", true)) GUILayout.Label("Impact Latitude", headingStyle);
-                if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label("Impact Altitude", headingStyle);
-            }
+			foreach (AssemblyLoader.LoadedAssembly assembly in AssemblyLoader.loadedAssemblies) {
+				if (assembly.assembly.ToString ().Split (',') [0] == "FerramAerospaceResearch") {
 
-            if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", headingStyle);
+					print ("[KerbalEngineer]: FAR detected!");
 
-            if (!hasInstalledFAR)
-            {
-                if (settings.Get<bool>("Surface: Terminal Velocity", true)) GUILayout.Label("Terminal Velocity", headingStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Efficiency", true)) GUILayout.Label("Atmospheric Efficiency", headingStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Drag", true)) GUILayout.Label("Atmospheric Drag", headingStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Pressure", true)) GUILayout.Label("Atmospheric Pressure", headingStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Density", true)) GUILayout.Label("Atmospheric Density", headingStyle);
-            }
-            GUILayout.EndVertical();
+					FARWingAerodynamicModelType = assembly.assembly.GetType ("ferram4.FARWingAerodynamicModel");
+					FARBasicDragModelType = assembly.assembly.GetType ("ferram4.FARBasicDragModel");
+					FARAeroUtilType = assembly.assembly.GetType("ferram4.FARAeroUtil");
 
-            GUILayout.BeginVertical();
-            if (settings.Get<bool>("Surface: Altitude (Sea Level)")) GUILayout.Label(Tools.FormatSI(this.vessel.mainBody.GetAltitude(this.vessel.CoM), Tools.SIUnitType.Distance), dataStyle);
-            if (settings.Get<bool>("Surface: Altitude (Terrain)")) GUILayout.Label(Tools.FormatSI(this.vessel.mainBody.GetAltitude(this.vessel.CoM) - this.vessel.terrainAltitude, Tools.SIUnitType.Distance), dataStyle);
-            if (settings.Get<bool>("Surface: Vertical Speed")) GUILayout.Label(Tools.FormatSI(this.vessel.verticalSpeed, Tools.SIUnitType.Speed), dataStyle);
-            if (settings.Get<bool>("Surface: Horizontal Speed")) GUILayout.Label(Tools.FormatSI(this.vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), dataStyle);
-            if (settings.Get<bool>("Surface: Longitude")) GUILayout.Label(Tools.FormatNumber(this.vessel.longitude, "°", 6), dataStyle);
-            if (settings.Get<bool>("Surface: Latitude")) GUILayout.Label(Tools.FormatNumber(this.vessel.latitude, "°", 6), dataStyle);
+					if (!checkNotNull(FARWingAerodynamicModelType, "Could not load FARWingAerodynamicModel type")) break;
+					if (!checkNotNull(FARBasicDragModelType, "Could not load FARBasicDragModel type")) break;
+					if (!checkNotNull(FARAeroUtilType, "Could not load FARAeroUtil type")) break;
 
-            if (impacthappening)
-            {
-                if (settings.Get<bool>("Surface: Impact Time", true)) GUILayout.Label(Tools.FormatTime(impacttime), dataStyle);
-                if (settings.Get<bool>("Surface: Impact Longitude", true)) GUILayout.Label(Tools.FormatNumber(impactlong, "°", 6), dataStyle);
-                if (settings.Get<bool>("Surface: Impact Latitude", true)) GUILayout.Label(Tools.FormatNumber(impactlat, "°", 6), dataStyle);
-                if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label(Tools.FormatSI(impactalt, Tools.SIUnitType.Distance), dataStyle);
-            }
+					FARBasicDragModelCdField = FARBasicDragModelType.GetField ("Cd");
+					FARBasicDragModelSField = FARBasicDragModelType.GetField ("S");
+					FARWingAerodynamicModelCdMethod = FARWingAerodynamicModelType.GetMethod ("GetCd");
+					FARWingAerodynamicModelSField = FARWingAerodynamicModelType.GetField ("S");
+					FARGetCurrentDensityMethod = FARAeroUtilType.GetMethod("GetCurrentDensity", new[] {typeof(CelestialBody), typeof(float)});
 
-            if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(this.vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
+					if (!checkNotNull(FARBasicDragModelCdField, "Could not load BasicDragModel.Cd field")) break;
+					if (!checkNotNull(FARBasicDragModelSField, "Could not load BasicDragModel.S field")) break;
+					if (!checkNotNull(FARWingAerodynamicModelCdMethod, "Could not load WingAerodynamicDragModel.Cd() method")) break;
+					if (!checkNotNull(FARWingAerodynamicModelSField, "Could not load WingAerodynamicDragModel.S field")) break;
+					if (!checkNotNull(FARGetCurrentDensityMethod, "Could no load AeroUtil.GeCurrentDensity(CelestialBody, float) method")) break;
 
-            if (!hasInstalledFAR)
-            {
-                double totalMass = 0d;
-                double massDrag = 0d;
-                foreach (Part part in this.vessel.parts)
-                {
-                    if (part.physicalSignificance != Part.PhysicalSignificance.NONE)
-                    {
-                        double partMass = part.mass + part.GetResourceMass();
-                        totalMass += partMass;
-                        massDrag += partMass * part.maximum_drag;
-                    }
-                }
+					print ("[KerbalEngineer]: Turning on awesome FAR atmospheric details!");
 
-                double gravity = FlightGlobals.getGeeForceAtPosition(this.vessel.CoM).magnitude;
-                double atmosphere = this.vessel.atmDensity;
+					hasInstalledFAR = true;
+					break;
+				}
+			}
+		}
 
-                double terminalVelocity = 0d;
-                if (atmosphere > 0)
-                {
-                    terminalVelocity = Math.Sqrt((2 * totalMass * gravity) / (atmosphere * massDrag * FlightGlobals.DragMultiplier));
-                }
+		// Code by mic_e
+		private string getBiomeName (double latitude, double longitude)
+		{
+			string result = null;
+			CBAttributeMap biomeMap = this.vessel.mainBody.BiomeMap;
 
-                double atmosphericEfficiency = 0d;
-                if (terminalVelocity > 0)
-                {
-                    atmosphericEfficiency = FlightGlobals.ship_srfSpeed / terminalVelocity;
-                }
+			try {
+				result = biomeMap.GetAtt (Mathf.Deg2Rad * latitude, Mathf.Deg2Rad * longitude).name;
+			} catch {
+				//pokemon exception handling
+			}
 
-                double dragForce = 0.5 * atmosphere * Math.Pow(FlightGlobals.ship_srfSpeed, 2) * massDrag * FlightGlobals.DragMultiplier;
+			// it seems that bodies that have no biomes will not throw an exception, but instead
+			// return an empty string.
+			if (String.IsNullOrEmpty (result)) {
+				result = "[" + this.vessel.mainBody.name + "]";
+			}
 
-                if (settings.Get<bool>("Surface: Terminal Velocity")) GUILayout.Label(Tools.FormatSI(terminalVelocity, Tools.SIUnitType.Speed), dataStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Efficiency")) GUILayout.Label(Tools.FormatNumber(atmosphericEfficiency * 100, "%", 2), dataStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Drag")) GUILayout.Label(Tools.FormatSI(dragForce, Tools.SIUnitType.Force), dataStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Pressure")) GUILayout.Label(Tools.FormatSI(this.part.dynamicPressureAtm * 100, Tools.SIUnitType.Pressure), dataStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Density")) GUILayout.Label(Tools.FormatSI(this.vessel.atmDensity, Tools.SIUnitType.Density), dataStyle);
-            }
-            GUILayout.EndVertical();
-            GUILayout.EndHorizontal();
+			return result;
+		}
+
+		// Impact, biome, FAR and some atmospheric drag code by: mic_e
+        private void DrawSurface ()
+		{
+			try {
+
+				double impacttime;
+				double impactlong;
+				double impactlat;
+				double impactalt;
+				bool impacthappening = FindImpact (out impacttime, out impactlong, out impactlat, out impactalt);
+
+				if (this.vessel.geeForce > maxGForce)
+					maxGForce = this.vessel.geeForce;
+
+				if (!hasCheckedForFAR) {
+					CheckForFAR ();
+				}
+
+				GUILayout.Label ("SURFACE DISPLAY", headingStyle);
+				GUILayout.BeginHorizontal (areaStyle);
+				GUILayout.BeginVertical ();
+				settings.Set ("*SPACER_SURFACE", "");
+				settings.Set ("*headingStyle_SURFACE", "SURFACE DISPLAY");
+				if (settings.Get<bool> ("Surface: Altitude (Sea Level)", true))
+					GUILayout.Label ("Altitude (Sea Level)", headingStyle);
+				if (settings.Get<bool> ("Surface: Altitude (Terrain)", true))
+					GUILayout.Label ("Altitude (Terrain)", headingStyle);
+				if (settings.Get<bool> ("Surface: Vertical Speed", true))
+					GUILayout.Label ("Vertical Speed", headingStyle);
+				if (settings.Get<bool> ("Surface: Horizontal Speed", true))
+					GUILayout.Label ("Horizontal Speed", headingStyle);
+				if (settings.Get<bool> ("Surface: Longitude", true))
+					GUILayout.Label ("Longitude", headingStyle);
+				if (settings.Get<bool> ("Surface: Latitude", true))
+					GUILayout.Label ("Latitude", headingStyle);
+				if (settings.Get<bool> ("Surface: Biome", true))
+					GUILayout.Label ("Biome", headingStyle);
+				if (settings.Get<bool> ("Surface: G-Force", true))
+					GUILayout.Label ("G-Force", headingStyle);
+
+				if (impacthappening) {
+					if (settings.Get<bool> ("Surface: Impact Time", true))
+						GUILayout.Label ("Impact Time", headingStyle);
+					if (settings.Get<bool> ("Surface: Impact Longitude", true))
+						GUILayout.Label ("Impact Longitude", headingStyle);
+					if (settings.Get<bool> ("Surface: Impact Latitude", true))
+						GUILayout.Label ("Impact Latitude", headingStyle);
+					if (settings.Get<bool> ("Surface: Impact Altitude", false))
+						GUILayout.Label ("Impact Altitude", headingStyle);
+					if (settings.Get<bool> ("Surface: Impact Biome", true))
+						GUILayout.Label ("Impact Biome", headingStyle);
+				}
+
+				if (settings.Get<bool> ("Surface: Terminal Velocity", false))
+					GUILayout.Label ("Terminal Velocity", headingStyle);
+				if (settings.Get<bool> ("Surface: Atmospheric Efficiency", true))
+					GUILayout.Label ("Atmospheric Efficiency", headingStyle);
+				if (settings.Get<bool> ("Surface: Static Pressure", false))
+					GUILayout.Label ("Static Pressure", headingStyle);
+				if (settings.Get<bool> ("Surface: Dynamic Pressure", true))
+					GUILayout.Label ("Dynamic Pressure", headingStyle);
+				if (settings.Get<bool> ("Surface: Max-Q", false))
+					GUILayout.Label ("Max-Q", headingStyle);
+				if (settings.Get<bool> ("Surface: Atmospheric Density", false))
+					GUILayout.Label ("Atmospheric Density", headingStyle);
+				if (settings.Get<bool> ("Surface: Drag Coefficient", true))
+					GUILayout.Label ("Drag Coefficient", headingStyle);
+				if (settings.Get<bool> ("Surface: Drag Force", false))
+					GUILayout.Label ("Drag Force", headingStyle);
+				if (settings.Get<bool> ("Surface: Drag Deceleration", true))
+					GUILayout.Label ("Drag Deceleration", headingStyle);
+				if (settings.Get<bool> ("Surface: Drag Losses", true))
+					GUILayout.Label ("Drag Losses", headingStyle);
+				if (settings.Get<bool> ("Surface: FAR density factor", false))
+					GUILayout.Label ("FAR density factor", headingStyle);
+
+				GUILayout.EndVertical ();
+
+				GUILayout.BeginVertical ();
+				if (settings.Get<bool> ("Surface: Altitude (Sea Level)"))
+					GUILayout.Label (Tools.FormatSI (this.vessel.mainBody.GetAltitude (this.vessel.CoM), Tools.SIUnitType.Distance), dataStyle);
+				if (settings.Get<bool> ("Surface: Altitude (Terrain)"))
+					GUILayout.Label (Tools.FormatSI (this.vessel.mainBody.GetAltitude (this.vessel.CoM) - this.vessel.terrainAltitude, Tools.SIUnitType.Distance), dataStyle);
+				if (settings.Get<bool> ("Surface: Vertical Speed"))
+					GUILayout.Label (Tools.FormatSI (this.vessel.verticalSpeed, Tools.SIUnitType.Speed), dataStyle);
+				if (settings.Get<bool> ("Surface: Horizontal Speed"))
+					GUILayout.Label (Tools.FormatSI (this.vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), dataStyle);
+				if (settings.Get<bool> ("Surface: Longitude"))
+					GUILayout.Label (Tools.FormatNumber (normangle (this.vessel.longitude), "°", 6), dataStyle);
+				if (settings.Get<bool> ("Surface: Latitude"))
+					GUILayout.Label (Tools.FormatNumber (this.vessel.latitude, "°", 6), dataStyle);
+				if (settings.Get<bool> ("Surface: Biome"))
+					GUILayout.Label (getBiomeName(this.vessel.latitude, this.vessel.longitude), dataStyle);
+				if (settings.Get<bool> ("Surface: G-Force"))
+					GUILayout.Label (Tools.FormatNumber (this.vessel.geeForce, 3) + " / " + Tools.FormatNumber (maxGForce, "g", 3), dataStyle);
+
+				if (impacthappening) {
+					if (settings.Get<bool> ("Surface: Impact Time", true))
+						GUILayout.Label (Tools.FormatTime (impacttime), dataStyle);
+					if (settings.Get<bool> ("Surface: Impact Longitude", true))
+						GUILayout.Label (Tools.FormatNumber (impactlong, "°", 6), dataStyle);
+					if (settings.Get<bool> ("Surface: Impact Latitude", true))
+						GUILayout.Label (Tools.FormatNumber (impactlat, "°", 6), dataStyle);
+					if (settings.Get<bool> ("Surface: Impact Altitude", true))
+						GUILayout.Label (Tools.FormatSI (impactalt, Tools.SIUnitType.Distance), dataStyle);
+					if (settings.Get<bool> ("Surface: Impact Biome", true))
+						GUILayout.Label (getBiomeName (impactlat, impactlong), dataStyle);
+				}
+
+				//drag calculations (work for both FAR and Stock aerodynamics)
+
+				//get true FAR air density value (if applies)
+				float airDensity = (float) vessel.atmDensity;
+				float airDensityAdjustmentFactor = 1f;
+				if (hasInstalledFAR) {
+					object airDensityObject = FARGetCurrentDensityMethod.Invoke(null, new object[] {this.vessel.mainBody, (object) ((float) this.vessel.altitude)});
+					if (airDensityObject is float) {
+						airDensity = (float) airDensityObject;
+						if (airDensity > 0) {
+							airDensityAdjustmentFactor = (float) vessel.atmDensity / airDensity;
+						}
+					}
+				}
+				float classicalDragAdjustmentFactor = FlightGlobals.DragMultiplier * airDensityAdjustmentFactor;
+
+				//drag factor: the 'c_d * A' in F_D = q * c_d * A
+				//(unit: newtons per pascal)
+				double dragForceFactor = 0;
+				//total vessel mass
+				//(unit: kg)
+				double totalMass = 0;
+
+				foreach (Part p in vessel.parts) {
+					if (p == null /*|| p.physicalSignificance == Part.PhysicalSignificance.NONE*/) {
+						continue;
+					}
+
+					//mass
+					double partMass = (p.mass + p.GetResourceMass()) * 1000;
+					totalMass += partMass;
+
+					//classical drag
+					dragForceFactor += partMass * p.maximum_drag * classicalDragAdjustmentFactor;
+
+					//FAR drag
+					if (hasInstalledFAR) {
+						foreach (PartModule m in p.Modules) {
+							if (m == null) {
+								continue;
+							}
+
+							//part drag coefficient
+							object CdObj = null;
+							//part area
+							object SObj = null;
+							if (FARWingAerodynamicModelType.IsAssignableFrom (m.GetType ())) {
+								CdObj = FARWingAerodynamicModelCdMethod.Invoke (m, null);
+								SObj = FARWingAerodynamicModelSField.GetValue (m);
+							} else if (FARBasicDragModelType.IsAssignableFrom (m.GetType ())) {
+								CdObj = FARBasicDragModelCdField.GetValue (m);
+								SObj = FARBasicDragModelSField.GetValue (m);
+							}
+							if ((CdObj != null) && (SObj != null) && (CdObj is float) && (SObj is float)) {
+								dragForceFactor += ((float)CdObj) * ((float)SObj);
+								break;
+							}
+						}
+					}
+				}
+
+				//drag deceleration per dynamic pressure
+				//the 'c_d * A / m' in a_D = q * c_d * A / m
+				//(unit: m/s² per pascal)
+				double dragDecelFactor = 0;
+
+				if (totalMass > 0.001) {
+					dragDecelFactor = dragForceFactor / totalMass;
+				}
+
+				//dynamic pressure
+				//(unit: pascal)
+				double dynamicPressure = 0.5 * airDensity * FlightGlobals.ship_srfSpeed * FlightGlobals.ship_srfSpeed;
+
+				if (dynamicPressure > maxQ) {
+					maxQ = dynamicPressure;
+				}
+
+				//drag deceleration
+				double dragDecel = dynamicPressure * dragDecelFactor;
+				//drag force
+				double dragForce = dynamicPressure * dragForceFactor;
+
+				//local gravity
+				//(unit: m/s²)ty))
+				double gravity = FlightGlobals.getGeeForceAtPosition(this.vessel.CoM).magnitude;
+
+				//terminal velocity (i.e. F_d = F_g)
+				//(unit: m/s)
+				double terminalVelocity = 0d;
+				//calculate terminal velocity only if specific drag not close to 0, to prevent crashes
+				if (airDensity > 0.000000001 && dragDecelFactor > 0.000001 && gravity > 0) {
+					terminalVelocity = Math.Sqrt((2 * gravity) / (dragDecelFactor * airDensity));
+				}
+
+				//atospheric efficiency (v/v_term)
+				double atmosphericEfficiency = 0d;
+				if (terminalVelocity > 0.000001) {
+					atmosphericEfficiency = FlightGlobals.ship_srfSpeed / terminalVelocity;
+				}
+
+				//integrate drag Deceleration for aerodynamic d-v losses
+				//note: this currently only works while the surface tab is opened
+				if (!FlightDriver.Pause) {
+					dragLosses += dragDecel * Time.fixedDeltaTime;
+				}
+
+				//calculate stock-equivalent drag coefficient
+				double stockEquivalentDragCoefficient = dragDecelFactor / FlightGlobals.DragMultiplier;
+
+				/*
+				 * bug?: Pressure and Force SIUnitTypes accept kN/kPa as arguments, instead of SI N/Pa
+				 */
+
+				if (settings.Get<bool>("Surface: Terminal Velocity")) GUILayout.Label(Tools.FormatSI(terminalVelocity, Tools.SIUnitType.Speed), dataStyle);
+	            if (settings.Get<bool>("Surface: Atmospheric Efficiency")) GUILayout.Label(Tools.FormatNumber(atmosphericEfficiency * 100, "%", 2), dataStyle);
+	            if (settings.Get<bool>("Surface: Static Pressure")) GUILayout.Label(Tools.FormatSI(this.part.dynamicPressureAtm * 100, Tools.SIUnitType.Pressure), dataStyle);
+				if (settings.Get<bool>("Surface: Dynamic Pressure")) GUILayout.Label(Tools.FormatSI(dynamicPressure / 1000, Tools.SIUnitType.Pressure), dataStyle);
+				if (settings.Get<bool>("Surface: Max-Q")) GUILayout.Label(Tools.FormatSI(maxQ / 1000, Tools.SIUnitType.Pressure), dataStyle);
+				if (settings.Get<bool>("Surface: Atmospheric Density")) GUILayout.Label(Tools.FormatSI(airDensity, Tools.SIUnitType.Density), dataStyle);
+				if (settings.Get<bool>("Surface: Drag Coefficient")) GUILayout.Label(Tools.FormatNumber(stockEquivalentDragCoefficient, 5), dataStyle);
+				if (settings.Get<bool>("Surface: Drag Force")) GUILayout.Label(Tools.FormatSI(dragForce / 1000, Tools.SIUnitType.Force), dataStyle);
+				if (settings.Get<bool>("Surface: Drag Deceleration")) GUILayout.Label(Tools.FormatNumber(dragDecel / 9.81, "g", 3), dataStyle);
+				if (settings.Get<bool>("Surface: Drag Losses")) GUILayout.Label(Tools.FormatSI(dragLosses, Tools.SIUnitType.Speed), dataStyle);
+				if (settings.Get<bool>("Surface: FAR density factor")) GUILayout.Label(Tools.FormatNumber(airDensityAdjustmentFactor, 4), dataStyle);
+
+	            GUILayout.EndVertical();
+	            GUILayout.EndHorizontal();
+
+			} catch(Exception e) {
+				print("Caught exception in DrawSurface. Info (Message, StackTrace):");
+				print(e.Message);
+				print(e.StackTrace);
+			}
         }
 
         private double GetDrag()
