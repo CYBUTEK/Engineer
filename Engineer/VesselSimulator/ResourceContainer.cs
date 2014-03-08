@@ -38,6 +38,11 @@ namespace Engineer.VesselSimulator
             }
         }
 
+        public bool HasType(int type)
+        {
+            return resources.ContainsKey(type);
+        }
+
         public List<int> Types
         {
             get

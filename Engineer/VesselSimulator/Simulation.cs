@@ -10,6 +10,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using UnityEngine;
 using Engineer.Extensions;
 
@@ -17,42 +18,115 @@ namespace Engineer.VesselSimulator
 {
     public class Simulation
     {
-        List<PartSim> partSims;
-        List<Part> partList;
+        private List<Part> partList;
 
-        int currentStage = 0;
-        bool firstSimulation = true;
+        private List<PartSim> allParts;
+        private List<PartSim> allFuelLines;
+        private List<PartSim> allEngines;
+        private List<PartSim> activeEngines;
+        private List<PartSim> drainingParts;
 
-        public const double STD_GRAVITY = 9.81d;
+        private int lastStage = 0;
+        private int currentStage = 0;
 
-        public bool FirstSimulation
+        private double gravity = 0;
+        private double atmosphere = 0;
+#if LOG
+        private Stopwatch _timer = new Stopwatch();
+#endif
+        private const double STD_GRAVITY = 9.81d;
+
+        public Simulation()
         {
-            get
+#if LOG
+            MonoBehaviour.print("Simulation created");
+#endif
+        }
+
+        public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0)
+        {
+#if LOG
+            MonoBehaviour.print("PrepareSimulation started");
+            _timer.Start();
+#endif
+            // Store the parameters in members for ease of access in other functions
+            partList = parts;
+            gravity = theGravity;
+            atmosphere = theAtmosphere;
+            lastStage = Staging.lastStage;
+            //MonoBehaviour.print("lastStage = " + lastStage);
+
+            // Create the lists for our simulation parts
+            allParts = new List<PartSim>();
+            allFuelLines = new List<PartSim>();
+            allEngines = new List<PartSim>();
+            activeEngines = new List<PartSim>();
+            drainingParts = new List<PartSim>();
+
+            // A dictionary for fast lookup of Part->PartSim during the preparation phase
+            Dictionary<Part, PartSim> partSimLookup = new Dictionary<Part, PartSim>();
+
+            // First we create a PartSim for each Part (giving each a unique id)
+            int partId = 1;
+            foreach (Part part in partList)
             {
-                if (firstSimulation)
-                {
-                    firstSimulation = false;
-                    return true;
-                }
+                // Create the PartSim
+                PartSim partSim = new PartSim(part, partId, atmosphere);
 
-                return false;
+                // Add it to the Part lookup dictionary and the necessary lists
+                partSimLookup.Add(part, partSim);
+                allParts.Add(partSim);
+                if (partSim.isFuelLine)
+                    allFuelLines.Add(partSim);
+                if (partSim.isEngine)
+                    allEngines.Add(partSim);
+
+                partId++;
             }
+
+            // Now that all the PartSims have been created we can do any set up that needs access to other parts
+            //MonoBehaviour.print("SetupAttachNodes and count stages");
+            foreach (PartSim partSim in allParts)
+            {
+                partSim.SetupAttachNodes(partSimLookup);
+                if (partSim.decoupledInStage >= lastStage)
+                    lastStage = partSim.decoupledInStage + 1;
+            }
+
+            // And finally release the Part references from all the PartSims
+            //MonoBehaviour.print("ReleaseParts");
+            foreach (PartSim partSim in allParts)
+                partSim.ReleasePart();
+
+            // And dereference the core's part list
+            partList = null;
+#if LOG
+            _timer.Stop();
+            MonoBehaviour.print("PrepareSimulation took " + _timer.ElapsedMilliseconds + "ms");
+            Dump();
+#endif
+            return true;
         }
 
-        public Simulation(List<Part> parts)
+        public Stage[] RunSimulation()
         {
-            this.partList = parts;
-        }
-
-        public Stage[] RunSimulation(double gravity, double atmosphere = 0)
-        {
-            currentStage = Staging.lastStage;
+#if LOG
+            MonoBehaviour.print("RunSimulation started");
+#endif
+            currentStage = lastStage;
             Stage[] stages = new Stage[currentStage + 1];
-
-            BuildVessel(this.partList, atmosphere);
+            List<PartSim> allDrains = new List<PartSim>();
 
             while (currentStage >= 0)
             {
+#if LOG
+                MonoBehaviour.print("Simulating stage " + currentStage);
+                MonoBehaviour.print("ShipMass = " + ShipMass);
+                _timer.Reset();
+                _timer.Start();
+#endif
+                UpdateResourceDrains();
+
                 Stage stage = new Stage();
                 double stageTime = 0d;
                 double stageDeltaV = 0d;
@@ -62,7 +136,7 @@ namespace Engineer.VesselSimulator
                 double totalStageFlowRate = 0d;
                 double totalStageIspFlowRate = 0d;
 
-                foreach (PartSim engine in ActiveEngines)
+                foreach (PartSim engine in activeEngines)
                 {
                     totalStageActualThrust += engine.actualThrust;
                     totalStageThrust += engine.thrust;
@@ -81,79 +155,97 @@ namespace Engineer.VesselSimulator
                 stage.actualThrust = totalStageActualThrust;
                 stage.actualThrustToWeight = (double)(totalStageActualThrust / (ShipMass * gravity));
 
-                foreach (PartSim partSim in partSims)
+                foreach (PartSim partSim in allParts)
                 {
                     if (partSim.decoupledInStage == currentStage - 1)
                     {
-                        stage.cost += partSim.part.partInfo.cost;
-                        stage.mass += partSim.GetStartMass(currentStage);
+                        stage.cost += partSim.cost;
+                        stage.mass += partSim.GetStartMass();
                     }
                 }
+#if LOG
+                MonoBehaviour.print("Stage setup took " + _timer.ElapsedMilliseconds + "ms");
+#endif
+                double currentisp = stage.isp;
 
                 int loopCounter = 0;
                 while (!AllowedToStage())
                 {
                     loopCounter++;
-
-                    List<PartSim> engines = ActiveEngines;
-                    totalStageThrust = 0d;
-                    foreach (PartSim engine in engines)
-                    {
-                        if (engine.actualThrust > 0d)
-                        {
-                            totalStageThrust += engine.actualThrust;
-                        }
-                        else
-                        {
-                            totalStageThrust += engine.thrust;
-                        }
-                    }
-
-                    SetResourceDrainRates();
+                    //MonoBehaviour.print("loop = " + loopCounter);
 
                     double resourceDrainTime = double.MaxValue;
-                    foreach (PartSim partSim in partSims)
+                    foreach (PartSim partSim in allParts)
                     {
-                        double time = 0d;
-                        time = partSim.TimeToDrainResource();
+                        double time = partSim.TimeToDrainResource();
                         if (time < resourceDrainTime)
-                        {
                             resourceDrainTime = time;
-                        }
                     }
-
+#if LOG
+                    MonoBehaviour.print("Drain time = " + resourceDrainTime);
+#endif
                     double startMass = ShipMass;
-                    foreach (PartSim partSim in partSims)
-                    {
+                    foreach (PartSim partSim in allParts)
                         partSim.DrainResources(resourceDrainTime);
-                    }
+
                     double endMass = ShipMass;
                     stageTime += resourceDrainTime;
 
                     if (resourceDrainTime > 0d && startMass > endMass && startMass > 0d && endMass > 0d)
                     {
-                        stageDeltaV += (stage.isp * STD_GRAVITY) * Math.Log(startMass / endMass);
+                        stageDeltaV += (currentisp * STD_GRAVITY) * Math.Log(startMass / endMass);
+                    }
+
+                    UpdateResourceDrains();
+
+                    totalStageFlowRate = 0d;
+                    totalStageIspFlowRate = 0d;
+                    foreach (PartSim engine in activeEngines)
+                    {
+                        totalStageFlowRate += engine.ResourceConsumptions.Mass;
+                        totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
+                    }
+
+                    if (totalStageFlowRate > 0d && totalStageIspFlowRate > 0d)
+                    {
+                        currentisp = totalStageIspFlowRate / totalStageFlowRate;
+                    }
+
+                    if (startMass == endMass)
+                    {
+                        MonoBehaviour.print("No change in mass");
+                        break;
                     }
 
                     if (loopCounter == 1000)
                     {
+                        MonoBehaviour.print("exceeded loop count");
+                        MonoBehaviour.print("startMass = " + startMass);
+                        MonoBehaviour.print("endMass   = " + endMass);
                         break;
                     }
                 }
 
                 stage.deltaV = stageDeltaV;
-                if (stageTime < 9999)
-                {
-                    stage.time = stageTime;
-                }
-                else
-                {
-                    stage.time = 0d;
-                }
+                stage.time = stageTime;
+                stage.number = currentStage;
                 stages[currentStage] = stage;
 
                 currentStage--;
+#if LOG
+                _timer.Stop();
+                MonoBehaviour.print("Simulating stage took " + _timer.ElapsedMilliseconds + "ms");
+
+                stage.Dump();
+
+                _timer.Reset();
+                _timer.Start();
+#endif
                 ActivateStage();
+#if LOG
+                _timer.Stop();
+                MonoBehaviour.print("ActivateStage took " + _timer.ElapsedMilliseconds + "ms");
+#endif
             }
 
             for (int i = 0; i < stages.Length; i++)
@@ -170,53 +262,70 @@ namespace Engineer.VesselSimulator
                     stages[i].inverseTotalDeltaV += stages[j].deltaV;
                 }
 
-                if (stages[i].totalTime > 9999d)
-                {
-                    stages[i].totalTime = 0d;
-                }
+                //if (stages[i].totalTime > 9999d)
+                //{
+                //    stages[i].totalTime = 0d;
+                //}
             }
+
+            ResetPartRefs();
 
             return stages;
         }
 
-        private void BuildVessel(List<Part> parts, double atmosphere)
+        private void UpdateResourceDrains()
         {
-            partSims = new List<PartSim>();
-            Hashtable partSimLookup = new Hashtable();
-            foreach (Part part in parts)
-            {
-                PartSim partSim = new PartSim(part, atmosphere);
+            activeEngines.Clear();
+            foreach (PartSim partSim in allParts)
+                partSim.ResourceDrains.Reset();
 
-                if (partSim.decoupledInStage < currentStage)
+            foreach (PartSim engine in allEngines)
+            {
+                if (engine.inverseStage >= currentStage)
                 {
-                    partSim.SetResourceConsumptions();
-                    partSims.Add(partSim);
-                    partSimLookup.Add(part, partSim);
+                    if (engine.SetResourceDrains(allParts, allFuelLines))
+                        activeEngines.Add(engine);
                 }
             }
-
-            foreach (PartSim partSim in partSims)
-            {
-                partSim.SetSourceNodes(partSimLookup);
-            }
+#if LOG
+            StringBuilder buffer = new StringBuilder(1024);
+            buffer.AppendFormat("Active engines = {0:d}\n", activeEngines.Count);
+            //int i = 0;
+            //foreach (PartSim engine in activeEngines)
+            //    engine.DumpPartAndParentsToBuffer(buffer, "Engine " + (i++) + ":");
+            MonoBehaviour.print(buffer);
+#endif
         }
 
         private bool AllowedToStage()
         {
-            List<PartSim> engines = ActiveEngines;
+            //StringBuilder buffer = new StringBuilder(1024);
+            //buffer.Append("AllowedToStage\n");
+            //buffer.AppendFormat("currentStage = {0:d}\n", currentStage);
 
-            if (engines.Count == 0)
+            if (activeEngines.Count == 0)
             {
+                //buffer.Append("No active engines => true\n");
+                //MonoBehaviour.print(buffer);
                 return true;
             }
 
-            foreach (PartSim partSim in partSims)
+            foreach (PartSim partSim in allParts)
             {
-                if (partSim.decoupledInStage == (currentStage - 1) && !partSim.part.IsSepratron())
-                {    
-
-                    if (!partSim.Resources.Empty || engines.Contains(partSim))
+                //partSim.DumpPartToBuffer(buffer, "Testing: ");
+                //buffer.AppendFormat("isSepratron = {0}\n", partSim.isSepratron ? "true" : "false");
+                if (partSim.decoupledInStage == (currentStage - 1) && (!partSim.isSepratron || partSim.decoupledInStage < partSim.inverseStage))
+                {
+                    if (!partSim.Resources.Empty)
                     {
+                        //buffer.Append("Decoupled part not empty => false\n");
+                        //MonoBehaviour.print(buffer);
+                        return false;
+                    }
+                    if (activeEngines.Contains(partSim))
+                    {
+                        //buffer.Append("Decoupled part is active engine => false\n");
+                        //MonoBehaviour.print(buffer);
                         return false;
                     }
                 }
@@ -224,34 +333,29 @@ namespace Engineer.VesselSimulator
 
             if (currentStage > 0)
             {
+                //buffer.Append("Current stage > 0 => true\n");
+                //MonoBehaviour.print(buffer);
                 return true;
             }
 
+            //buffer.Append("Returning false\n");
+            //MonoBehaviour.print(buffer);
             return false;
         }
 
-        private void SetResourceDrainRates()
+        private void ResetPartRefs()
         {
-            foreach (PartSim partSim in partSims)
-            {
-                partSim.ResourceDrains.Reset();
-            }
-
-            List<PartSim> engines = ActiveEngines;
-
-            foreach (PartSim engine in engines)
-            {
-                engine.SetResourceDrainRates(partSims);
-            }
+            foreach (PartSim partSim in allParts)
+                partSim.ClearRefs();
         }
 
         private void ActivateStage()
         {
             List<PartSim> decoupledParts = new List<PartSim>();
 
-            foreach (PartSim partSim in partSims)
+            foreach (PartSim partSim in allParts)
             {
-                if (partSim.decoupledInStage == currentStage)
+                if (partSim.decoupledInStage >= currentStage)
                 {
                     decoupledParts.Add(partSim);
                 }
@@ -259,47 +363,31 @@ namespace Engineer.VesselSimulator
 
             foreach (PartSim partSim in decoupledParts)
             {
-                partSims.Remove(partSim);
+                allParts.Remove(partSim);
+                if (partSim.isEngine)
+                    allEngines.Remove(partSim);
+                if (partSim.isFuelLine)
+                    allFuelLines.Remove(partSim);
             }
 
-            foreach (PartSim partSim in partSims)
+            foreach (PartSim partSim in allParts)
             {
                 foreach (PartSim decoupledPart in decoupledParts)
                 {
-                    partSim.RemoveSourcePart(decoupledPart);
+                    partSim.RemoveAttachedPart(decoupledPart);
                 }
             }
         }
 
-        private List<PartSim> ActiveEngines
-        {
-            get
-            {
-                List<PartSim> engines = new List<PartSim>();
-                {
-                    foreach (PartSim partSim in partSims)
-                    {
-                        if (partSim.part.IsEngine() && partSim.InverseStage >= currentStage && partSim.CanDrawNeededResources(partSims))
-                        {
-                            engines.Add(partSim);
-                        }
-                    }
-                }
-
-                return engines;
-            }
-        }
 
         private bool StageHasSolids
         {
             get
             {
-                foreach (PartSim engine in ActiveEngines)
+                foreach (PartSim engine in activeEngines)
                 {
-                    if (engine.IsSolidMotor)
-                    {
+                    if (engine.isSolidMotor)
                         return true;
-                    }
                 }
 
                 return false;
@@ -312,9 +400,9 @@ namespace Engineer.VesselSimulator
             {
                 double mass = 0d;
 
-                foreach (PartSim partSim in partSims)
+                foreach (PartSim partSim in allParts)
                 {
-                    mass += partSim.GetStartMass(currentStage);
+                    mass += partSim.GetStartMass();
                 }
 
                 return mass;
@@ -327,13 +415,32 @@ namespace Engineer.VesselSimulator
             {
                 double mass = 0d;
 
-                foreach (PartSim partSim in partSims)
+                foreach (PartSim partSim in allParts)
                 {
-                    mass += partSim.GetMass(currentStage);
+                    mass += partSim.GetMass();
                 }
 
                 return mass;
             }
         }
+#if LOG
+        public void Dump()
+        {
+            StringBuilder buffer = new StringBuilder(1024);
+            buffer.AppendFormat("Part count = {0:d}\n", allParts.Count);
+
+            // Output a nice tree view of the rocket
+            if (allParts.Count > 0)
+            {
+                PartSim root = allParts[0];
+                while (root.parent != null)
+                    root = root.parent;
+
+                root.DumpPartToBuffer(buffer, "", allParts);
+            }
+
+            MonoBehaviour.print(buffer);
+        }
+#endif
     }
 }

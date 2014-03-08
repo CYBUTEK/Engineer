@@ -34,6 +34,14 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Logging|AnyCPU'">
+    <OutputPath>..\Logging\</OutputPath>
+    <DefineConstants>TRACE;LOG</DefineConstants>
+    <Optimize>true</Optimize>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Compile Include="BuildEngineer.cs" />
     <Compile Include="EngineerTools.cs" />
@@ -43,6 +51,7 @@
     <Compile Include="Version.cs" />
     <Compile Include="CelestialBodies.cs" />
     <Compile Include="FlightEngineer.cs" />
+    <Compile Include="VesselSimulator\AttachNodeSim.cs" />
     <Compile Include="VesselSimulator\PartSim.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rendezvous.cs" />
@@ -57,12 +66,12 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\Game\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\..\..\Program Files\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEngine">
-      <HintPath>..\Game\KSP_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\..\Program Files\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

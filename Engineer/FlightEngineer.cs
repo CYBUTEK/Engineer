@@ -80,13 +80,18 @@ namespace Engineer
 
         public override void OnStart(StartState state)
         {
-            if (state != StartState.Editor)
+            try
             {
-                rendezvous.FlightEngineer = this;
-
-                RenderingManager.AddToPostDrawQueue(0, DrawGUI);
-
-                //print("FlightEngineer: OnStart (" + state + ")");
+                print("FlightEngineer: OnStart (" + state + ")");
+                if (state != StartState.Editor)
+                {
+                    rendezvous.FlightEngineer = this;
+                    RenderingManager.AddToPostDrawQueue(0, DrawGUI);
+                }
+            }
+            catch (Exception e)
+            {
+                print("Exception in FlightEng.OnStart: " + e);
             }
         }
 
@@ -96,13 +101,16 @@ namespace Engineer
             {
                 if (IsPrimary)
                 {
+                    print("FlightEngineer: OnSave");
                     settings.Set("_WINDOW_POSITION", settings.ConvertToString(windowPosition));
                     settings.Save(settingsFile);
                     settings.Changed = true;
-                    //print("FlightEngineer: OnSave");
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                print("Exception in FlightEng.OnSave: " + e);
+            }
         }
 
         public override void OnLoad(ConfigNode node)
@@ -111,13 +119,16 @@ namespace Engineer
             {
                 if (IsPrimary)
                 {
+                    print("FlightEngineer: OnLoad");
                     settings.Load(settingsFile);
                     settings.Changed = true;
                     windowPosition = settings.ConvertToRect(settings.Get("_SAVEONCHANGE_NOCHANGEUPDATE_WINDOW_POSITION", settings.ConvertToString(windowPosition)));
-                    //print("FlightEngineer: OnLoad");
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                print("Exception in FlightEng.OnLoad: " + e);
+            }
         }
 
         public void Update()

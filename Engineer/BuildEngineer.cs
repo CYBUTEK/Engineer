@@ -61,25 +61,31 @@ namespace Engineer
 
         public override void OnStart(StartState state)
         {
-            if (state == StartState.Editor)
+            try
             {
-                this.part.OnEditorAttach += OnEditorAttach;
-                this.part.OnEditorDetach += OnEditorDetach;
-                this.part.OnEditorDestroy += OnEditorDestroy;
-
-                referenceBody = referenceBodies["Kerbin"];
-                OnEditorAttach();
-
-                if (this.part.Modules.Contains("FlightEngineer"))
+                print("BuildEngineer: OnStart (" + state + ")");
+                if (state == StartState.Editor)
                 {
-                    windowTitle = "Kerbal Engineer Redux - Build Engineer (inc. Flight Engineer) Version " + Version.VERSION;
-                }
-                else
-                {
-                    windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
-                }
+                    this.part.OnEditorAttach += OnEditorAttach;
+                    this.part.OnEditorDetach += OnEditorDetach;
+                    this.part.OnEditorDestroy += OnEditorDestroy;
 
-                print("BuildEngineer: Start (" + state + ")");
+                    referenceBody = referenceBodies["Kerbin"];
+                    OnEditorAttach();
+
+                    if (this.part.Modules.Contains("FlightEngineer"))
+                    {
+                        windowTitle = "Kerbal Engineer Redux - Build Engineer (inc. Flight Engineer) Version " + Version.VERSION;
+                    }
+                    else
+                    {
+                        windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                print("Exception in BuildEng.OnStart: " + e);
             }
         }
 
@@ -89,12 +95,15 @@ namespace Engineer
             {
                 if (IsPrimary)
                 {
+                    print("BuildEngineer: OnSave");
                     settings.Set("_WINDOW_POSITION", settings.ConvertToString(windowPosition));
                     settings.Save(settingsFile);
-                    print("BuildEngineer: OnSave");
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                print("Exception in BuildEng.OnSave: " + e);
+            }
         }
 
         public override void OnLoad(ConfigNode node)
@@ -103,21 +112,24 @@ namespace Engineer
             {
                 if (IsPrimary)
                 {
+                    print("BuildEngineer: OnLoad");
                     settings.Load(settingsFile);
                     windowPosition = settings.ConvertToRect(settings.Get("_WINDOW_POSITION", settings.ConvertToString(windowPosition)));
-                    print("BuildEngineer: OnLoad");
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                print("Exception in BuildEng.OnLoad: " + e);
+            }
         }
 
         private void OnEditorAttach()
         {
             if (IsPrimary && (this.part.parent != null || this.part.HasModule("ModuleCommand")))
             {
+                print("BuildEngineer: OnEditorAttach");
                 OnLoad(null);
                 RenderingManager.AddToPostDrawQueue(0, DrawGUI);
-                print("BuildEngineer: OnEditorAttach");
             }
         }
 
@@ -125,9 +137,9 @@ namespace Engineer
         {
             if (IsPrimary)
             {
+                print("BuildEngineer: OnEditorDetach");
                 OnSave(null);
                 RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
-                print("BuildEngineer: OnEditorDetach");
             }
         }
 
@@ -135,8 +147,8 @@ namespace Engineer
         {
             if (IsPrimary)
             {
-                RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
                 print("BuildEngineer: OnEditorDestroy");
+                RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
             }
         }
 
@@ -157,8 +169,8 @@ namespace Engineer
         {         
             if (!this.part.isAttached || !IsPrimary)
             {
+                print("BuildEngineer: DrawGUI - Not Attached || Not Primary");
                 RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
-                print("BuildEngineer: OnUpdate - Not Attached || Not Primary");
                 return;
             }
 

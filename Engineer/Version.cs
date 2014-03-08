@@ -155,7 +155,7 @@ namespace Engineer
         {
             return VERSION; // Skip version checking as this system has not been used in a while
 
-            try
+/*            try
             {
                 WWW www = new WWW("http://www.cybutek.net/ksp/getversion.php?name=" + PRODUCT_NAME);
                 while (!www.isDone) { }
@@ -164,6 +164,7 @@ namespace Engineer
             catch { }
 
             return "";
+ */
         }
     }
 }

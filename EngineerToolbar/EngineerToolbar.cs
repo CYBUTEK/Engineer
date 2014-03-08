@@ -22,13 +22,13 @@ namespace EngineerToolbar
         {
             if (HighLogic.LoadedSceneIsEditor || HighLogic.LoadedSceneIsFlight)
             {
-                this.button = ToolbarManager.Instance.add("KER", "engineerButton");
-                this.button.ToolTip = "Kerbal Engineer Redux";
+                button = ToolbarManager.Instance.add("KER", "engineerButton");
+                button.ToolTip = "Kerbal Engineer Redux";
 
                 if (HighLogic.LoadedSceneIsEditor)
                 {
                     SetButtonState(BuildEngineer.isVisible);
-                    this.button.OnClick += (e) =>
+                    button.OnClick += (e) =>
                     {
                         TogglePluginVisibility(ref BuildEngineer.isVisible);
                     };
@@ -36,7 +36,7 @@ namespace EngineerToolbar
                 else if (HighLogic.LoadedSceneIsFlight)
                 {
                     SetButtonState(FlightEngineer.isVisible);
-                    this.button.OnClick += (e) =>
+                    button.OnClick += (e) =>
                     {
                         TogglePluginVisibility(ref FlightEngineer.isVisible);
                     };
@@ -61,42 +61,24 @@ namespace EngineerToolbar
         private void OnDestroy()
         {
             if (button != null)
-            {
                 button.Destroy();
-            }
         }
 
         private void TogglePluginVisibility(ref bool toggle)
         {
-            if (toggle)
-            {
-                toggle = false;
-            }
-            else
-            {
-                toggle = true;
-            }
+            toggle = !toggle;
             SetButtonState(toggle);
         }
 
         private void SetButtonVisibility(bool visible)
         {
-            if (this.button.Visible != visible)
-            {
-                this.button.Visible = visible;
-            }
+            if (button.Visible != visible)
+                button.Visible = visible;
         }
 
         private void SetButtonState(bool state)
         {
-            if (state)
-            {
-                this.button.TexturePath = this.enabledTexturePath;
-            }
-            else
-            {
-                this.button.TexturePath = this.disabledTexturePath;
-            }
+            button.TexturePath = state ? enabledTexturePath : disabledTexturePath;
         }
     }
 }
