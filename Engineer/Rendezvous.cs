@@ -405,7 +405,7 @@ namespace Engineer
             if (fe.settings.Get<bool>("Rendezvous: Vessel - Current Altitude", true)) GUILayout.Label("Current Altitude", fe.headingStyle);
             if (fe.settings.Get<bool>("Rendezvous: Vessel - Apoapsis Height", true)) GUILayout.Label("Apoapsis Height", fe.headingStyle);
             if (fe.settings.Get<bool>("Rendezvous: Vessel - Periapsis Height", true)) GUILayout.Label("Periapsis Height", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Orbital Period", true)) GUILayout.Label("Orbital Preiod", fe.headingStyle);
+            if (fe.settings.Get<bool>("Rendezvous: Vessel - Orbital Period", true)) GUILayout.Label("Orbital Period", fe.headingStyle);
 
             if (fe.settings.Get<bool>("Rendezvous: Vessel - Distance", true)) GUILayout.Label("Distance", fe.headingStyle);
             if (fe.settings.Get<bool>("Rendezvous: Vessel - Velocity", true)) GUILayout.Label("Velocity", fe.headingStyle);
