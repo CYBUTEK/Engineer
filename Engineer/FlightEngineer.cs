@@ -167,7 +167,7 @@ namespace Engineer
                             {
                                 windowPosition.height = 0;
                             }
-                            windowPosition = GUILayout.Window(windowID, windowPosition, Window, "Flight Engineer  -  Version " + Version.VERSION, windowStyle);
+                            windowPosition = GUILayout.Window(windowID, windowPosition, Window, "Flight Engineer  -  Version " + Version.VERSION + Version.SUFFIX, windowStyle);
                             CheckWindowMargin();
                             settings.Set("_SAVEONCHANGE_NOCHANGEUPDATE_WINDOW_POSITION", settings.ConvertToString(windowPosition));
                         }

@@ -25,7 +25,7 @@ namespace Engineer
         Rect windowPosition = new Rect(300, 70, 0, 0);
         int windowID = Guid.NewGuid().GetHashCode();
         int windowMargin = 25;
-        string windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
+        string windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION + Version.SUFFIX;
         string windowTitleCompact = "Kerbal Engineer Redux - Compact";
         bool isEditorLocked = false;
         CelestialBodies referenceBodies = new CelestialBodies();
@@ -75,11 +75,11 @@ namespace Engineer
 
                     if (this.part.Modules.Contains("FlightEngineer"))
                     {
-                        windowTitle = "Kerbal Engineer Redux - Build Engineer (inc. Flight Engineer) Version " + Version.VERSION;
+                        windowTitle = "Kerbal Engineer Redux - Build Engineer (inc. Flight Engineer) Version " + Version.VERSION + Version.SUFFIX;
                     }
                     else
                     {
-                        windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
+                        windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION + Version.SUFFIX;
                     }
                 }
             }
