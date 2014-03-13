@@ -62,7 +62,7 @@ namespace Engineer.VesselSimulator
             part = thePart;
             partId = id;
             name = part.partInfo.name;
-            //MonoBehaviour.print("Create PartSim for " + name);
+            MonoBehaviour.print("Create PartSim for " + name);
             
             parent = null;
             fuelCrossFeed = part.fuelCrossFeed;
@@ -83,7 +83,23 @@ namespace Engineer.VesselSimulator
             if (!part.Modules.Contains("LaunchClamp") && part.physicalSignificance == Part.PhysicalSignificance.FULL)
                 baseMass = part.mass;
 
-            startMass = baseMass + part.GetResourceMass();
+            foreach (PartResource resource in part.Resources)
+            {
+                // Make sure it isn't NaN as this messes up the part mass and hence most of the values
+                // This can happen if a resource capacity is 0 and tweakable
+                if (!Double.IsNaN(resource.amount))
+                {
+                    //MonoBehaviour.print(resource.resourceName + " = " + resource.amount);
+                    resources.Add(resource.info.id, resource.amount);
+                    resourceFlowStates.Add(resource.info.id, resource.flowState ? 1 : 0);
+                }
+                else
+                {
+                    MonoBehaviour.print(resource.resourceName + " is NaN. Skipping.");
+                }
+            }
+
+            startMass = GetMass();
 
             hasVessel = (part.vessel != null);
             isLanded = hasVessel && part.vessel.Landed;
@@ -93,12 +109,6 @@ namespace Engineer.VesselSimulator
             hasModuleEngines = part.HasModule<ModuleEngines>();
 
             isEngine = hasMultiModeEngine || hasModuleEnginesFX || hasModuleEngines;
-
-            foreach (PartResource resource in part.Resources)
-            {
-                resources.Add(resource.info.id, resource.amount);
-                resourceFlowStates.Add(resource.info.id, resource.flowState ? 1 : 0);
-            }
 
             SetupEngineMembers(atmosphere);
 
