@@ -36,6 +36,8 @@ namespace Engineer.VesselSimulator
 #endif
         private const double STD_GRAVITY = 9.81d;
 
+
+        
         public Simulation()
         {
 #if LOG
@@ -79,7 +81,7 @@ namespace Engineer.VesselSimulator
                 if (partSim.isFuelLine)
                     allFuelLines.Add(partSim);
                 if (partSim.isEngine)
-                    allEngines.Add(partSim);
+                    CreateEngineSims(partSim);
 
                 partId++;
             }
@@ -107,6 +109,15 @@ namespace Engineer.VesselSimulator
 #endif
             return true;
         }
+
+
+        public void CreateEngineSims(PartSim engine)
+        {
+            MonoBehaviour.print("CreateEngineSims started");
+
+
+        }
+
 
         public Stage[] RunSimulation()
         {

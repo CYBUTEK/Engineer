@@ -52,6 +52,7 @@
     <Compile Include="CelestialBodies.cs" />
     <Compile Include="FlightEngineer.cs" />
     <Compile Include="VesselSimulator\AttachNodeSim.cs" />
+    <Compile Include="VesselSimulator\EngineSim.cs" />
     <Compile Include="VesselSimulator\PartSim.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rendezvous.cs" />
