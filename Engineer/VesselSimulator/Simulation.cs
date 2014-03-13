@@ -227,7 +227,7 @@ namespace Engineer.VesselSimulator
                 }
 
                 stage.deltaV = stageDeltaV;
-                stage.time = stageTime;
+                stage.time = (stageTime < 9999) ? stageTime : 0d;
                 stage.number = currentStage;
                 stages[currentStage] = stage;
 
@@ -262,10 +262,10 @@ namespace Engineer.VesselSimulator
                     stages[i].inverseTotalDeltaV += stages[j].deltaV;
                 }
 
-                //if (stages[i].totalTime > 9999d)
-                //{
-                //    stages[i].totalTime = 0d;
-                //}
+                if (stages[i].totalTime > 9999d)
+                {
+                    stages[i].totalTime = 0d;
+                }
             }
 
             ResetPartRefs();
