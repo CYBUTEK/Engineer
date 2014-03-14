@@ -29,6 +29,7 @@ namespace Engineer.VesselSimulator
 
         public Stage[] Stages { get; private set; }
         public Stage LastStage { get; private set; }
+        public String failMessage { get; private set; }
 
         public double Gravity { get; set; }
         public double Atmosphere { get; set; }
@@ -82,6 +83,9 @@ namespace Engineer.VesselSimulator
             {
                 MonoBehaviour.print("Exception in StartSimulation: " + e);
                 Stages = null;
+                LastStage = null;
+                failMessage = e.ToString();
+                _simRunning = false;
             }
         }
 
@@ -100,6 +104,8 @@ namespace Engineer.VesselSimulator
             {
                 MonoBehaviour.print("Exception in RunSimulation: " + e);
                 Stages = null;
+                LastStage = null;
+                failMessage = e.ToString();
             }
 
             _timer.Stop();
