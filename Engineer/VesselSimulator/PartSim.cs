@@ -394,11 +394,14 @@ namespace Engineer.VesselSimulator
             return allSources;
         }
 
-        public void RemoveAttachedPart(PartSim partSim)
+
+        public void RemoveAttachedParts(HashSet<PartSim> partSims)
         {
+            // Loop through the attached parts
             foreach (AttachNodeSim attachSim in attachNodes)
             {
-                if (attachSim.attachedPartSim == partSim)
+                // If the part is in the set then "remove" it by clearing the PartSim reference
+                if (partSims.Contains(attachSim.attachedPartSim))
                     attachSim.attachedPartSim = null;
             }
         }
@@ -477,13 +480,6 @@ namespace Engineer.VesselSimulator
             {
                 return part.inverseStage;
             }
-        }
-
-        public void ClearRefs()
-        {
-            part = null;
-            parent = null;
-            attachNodes.Clear();
         }
 
 #if LOG
