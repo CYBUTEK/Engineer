@@ -22,9 +22,9 @@ namespace Engineer.VesselSimulator
 
         private List<PartSim> allParts;
         private List<PartSim> allFuelLines;
-        private List<PartSim> allEngines;
-        private List<PartSim> activeEngines;
         private List<PartSim> drainingParts;
+        private List<EngineSim> allEngines;
+        private List<EngineSim> activeEngines;
 
         private int lastStage = 0;
         private int currentStage = 0;
@@ -61,9 +61,9 @@ namespace Engineer.VesselSimulator
             // Create the lists for our simulation parts
             allParts = new List<PartSim>();
             allFuelLines = new List<PartSim>();
-            allEngines = new List<PartSim>();
-            activeEngines = new List<PartSim>();
             drainingParts = new List<PartSim>();
+            allEngines = new List<EngineSim>();
+            activeEngines = new List<EngineSim>();
 
             // A dictionary for fast lookup of Part->PartSim during the preparation phase
             Dictionary<Part, PartSim> partSimLookup = new Dictionary<Part, PartSim>();
@@ -81,7 +81,7 @@ namespace Engineer.VesselSimulator
                 if (partSim.isFuelLine)
                     allFuelLines.Add(partSim);
                 if (partSim.isEngine)
-                    CreateEngineSims(partSim);
+                    partSim.CreateEngineSims(allEngines, atmosphere);
 
                 partId++;
             }
@@ -110,14 +110,7 @@ namespace Engineer.VesselSimulator
             return true;
         }
 
-
-        public void CreateEngineSims(PartSim engine)
-        {
-            MonoBehaviour.print("CreateEngineSims started");
-
-
-        }
-
+        
 
         public Stage[] RunSimulation()
         {
@@ -147,7 +140,7 @@ namespace Engineer.VesselSimulator
                 double totalStageFlowRate = 0d;
                 double totalStageIspFlowRate = 0d;
 
-                foreach (PartSim engine in activeEngines)
+                foreach (EngineSim engine in activeEngines)
                 {
                     totalStageActualThrust += engine.actualThrust;
                     totalStageThrust += engine.thrust;
@@ -211,7 +204,7 @@ namespace Engineer.VesselSimulator
 
                     totalStageFlowRate = 0d;
                     totalStageIspFlowRate = 0d;
-                    foreach (PartSim engine in activeEngines)
+                    foreach (EngineSim engine in activeEngines)
                     {
                         totalStageFlowRate += engine.ResourceConsumptions.Mass;
                         totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
@@ -290,9 +283,9 @@ namespace Engineer.VesselSimulator
             foreach (PartSim partSim in allParts)
                 partSim.ResourceDrains.Reset();
 
-            foreach (PartSim engine in allEngines)
+            foreach (EngineSim engine in allEngines)
             {
-                if (engine.inverseStage >= currentStage)
+                if (engine.partSim.inverseStage >= currentStage)
                 {
                     if (engine.SetResourceDrains(allParts, allFuelLines))
                         activeEngines.Add(engine);
@@ -333,11 +326,14 @@ namespace Engineer.VesselSimulator
                         //MonoBehaviour.print(buffer);
                         return false;
                     }
-                    if (activeEngines.Contains(partSim))
+                    foreach (EngineSim engine in activeEngines)
                     {
-                        //buffer.Append("Decoupled part is active engine => false\n");
-                        //MonoBehaviour.print(buffer);
-                        return false;
+                        if (engine.partSim == partSim)
+                        {
+                            //buffer.Append("Decoupled part is active engine => false\n");
+                            //MonoBehaviour.print(buffer);
+                            return false;
+                        }
                     }
                 }
             }
@@ -376,7 +372,13 @@ namespace Engineer.VesselSimulator
             {
                 allParts.Remove(partSim);
                 if (partSim.isEngine)
-                    allEngines.Remove(partSim);
+                {
+                    for (int i = allEngines.Count - 1; i >= 0; i--)
+                    {
+                        if (allEngines[i].partSim == partSim)
+                            allEngines.RemoveAt(i);
+                    }
+                }
                 if (partSim.isFuelLine)
                     allFuelLines.Remove(partSim);
             }
@@ -395,9 +397,9 @@ namespace Engineer.VesselSimulator
         {
             get
             {
-                foreach (PartSim engine in activeEngines)
+                foreach (EngineSim engine in activeEngines)
                 {
-                    if (engine.isSolidMotor)
+                    if (engine.partSim.isSolidMotor)
                         return true;
                 }
 

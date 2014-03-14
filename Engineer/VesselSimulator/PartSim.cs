@@ -19,16 +19,16 @@ namespace Engineer.VesselSimulator
 {
     public class PartSim
     {
-        ResourceContainer resources = new ResourceContainer();
+        public ResourceContainer resources = new ResourceContainer();
+        public ResourceContainer resourceDrains = new ResourceContainer();
         ResourceContainer resourceFlowStates = new ResourceContainer();
         ResourceContainer resourceConsumptions = new ResourceContainer();
-        ResourceContainer resourceDrains = new ResourceContainer();
 
         Dictionary<int, bool> resourceCanSupply = new Dictionary<int, bool>();
 
         List<AttachNodeSim> attachNodes = new List<AttachNodeSim>();
 
-        private Part part;              // This is only set while the data structures are being initialised
+        public Part part;              // This is only set while the data structures are being initialised
         public int partId = 0;
         public String name;
         public PartSim parent;
@@ -110,178 +110,69 @@ namespace Engineer.VesselSimulator
 
             isEngine = hasMultiModeEngine || hasModuleEnginesFX || hasModuleEngines;
 
-            SetupEngineMembers(atmosphere);
-
             //MonoBehaviour.print("Created " + name + ". Decoupled in stage " + decoupledInStage);
         }
 
-        private void SetupEngineMembers(double atmosphere)
+        public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere)
         {
+            //MonoBehaviour.print("CreateEngineSims started");
+
             if (hasMultiModeEngine)
             {
+                // A multi-mode engine has multiple ModuleEnginesFX but only one is active at any point
+                // The mode of the engine is the engineID of the ModuleEnginesFX that is active
                 string mode = part.GetModule<MultiModeEngine>().mode;
 
                 foreach (ModuleEnginesFX engine in part.GetModules<ModuleEnginesFX>())
                 {
                     if (engine.engineID == mode)
                     {
-                        thrust = engine.maxThrust * (engine.thrustPercentage / 100f);
-
-                        double flowRate = 0d;
-                        if (hasVessel)
-                        {
-                            actualThrust = engine.requestedThrust;
-                            isp = engine.atmosphereCurve.Evaluate((float)part.staticPressureAtm);
-                            
-                            if (engine.throttleLocked)
-                            {
-                                flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                            }
-                            else
-                            {
-                                if (isLanded)
-                                {
-                                    flowRate = Math.Max(0.000001d, engine.maxThrust * (engine.thrustPercentage / 100f) * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
-                                }
-                                else
-                                {
-                                    if (engine.requestedThrust > 0)
-                                        flowRate = engine.requestedThrust / (isp * 9.81d);
-                                    else
-                                        flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            isp = engine.atmosphereCurve.Evaluate((float)atmosphere);
-                            flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                        }
-
-                        float flowMass = 0f;
-
-                        foreach (Propellant propellant in engine.propellants)
-                            flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
-
-                        foreach (Propellant propellant in engine.propellants)
-                        {
-                            if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
-                                continue;
-
-                            double consumptionRate = propellant.ratio * flowRate / flowMass;
-                            //MonoBehaviour.print("Add consumption(" + ResourceContainer.GetResourceName(propellant.id) + ", " + name + ":" + partId + ") = " + consumptionRate);
-                            resourceConsumptions.Add(propellant.id, consumptionRate);
-                        }
+                        EngineSim engineSim = new EngineSim(this, atmosphere,
+                                                            engine.maxThrust,
+                                                            engine.thrustPercentage,
+                                                            engine.requestedThrust,
+                                                            engine.atmosphereCurve,
+                                                            engine.throttleLocked,
+                                                            engine.propellants);
+                        allEngines.Add(engineSim);
                     }
                 }
             }
-            else if (hasModuleEnginesFX)
+            else
             {
-                foreach (ModuleEnginesFX engine in part.GetModules<ModuleEnginesFX>())
+
+                if (hasModuleEnginesFX)
                 {
-                    thrust = engine.maxThrust * (engine.thrustPercentage / 100f);
-                    
-                    double flowRate = 0d;
-                    if (hasVessel)
+                    foreach (ModuleEnginesFX engine in part.GetModules<ModuleEnginesFX>())
                     {
-                        actualThrust = engine.requestedThrust;
-                        isp = engine.atmosphereCurve.Evaluate((float)part.staticPressureAtm);
-
-                        if (engine.throttleLocked)
-                        {
-                            flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                        }
-                        else
-                        {
-                            if (isLanded)
-                            {
-                                flowRate = Math.Max(0.000001d, engine.maxThrust * (engine.thrustPercentage / 100f) * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
-                            }
-                            else
-                            {
-                                if (engine.requestedThrust > 0)
-                                    flowRate = engine.requestedThrust / (isp * 9.81d);
-                                else
-                                    flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        isp = engine.atmosphereCurve.Evaluate((float)atmosphere);
-                        flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                    }
-
-                    float flowMass = 0f;
-
-                    foreach (Propellant propellant in engine.propellants)
-                        flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
-
-                    foreach (Propellant propellant in engine.propellants)
-                    {
-                        if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
-                            continue;
-
-                        double consumptionRate = propellant.ratio * flowRate / flowMass;
-                        //MonoBehaviour.print("Add consumption(" + ResourceContainer.GetResourceName(propellant.id) + ", " + name + ":" + partId + ") = " + consumptionRate);
-                        resourceConsumptions.Add(propellant.id, consumptionRate);
+                        EngineSim engineSim = new EngineSim(this, atmosphere,
+                                                            engine.maxThrust,
+                                                            engine.thrustPercentage,
+                                                            engine.requestedThrust,
+                                                            engine.atmosphereCurve,
+                                                            engine.throttleLocked,
+                                                            engine.propellants);
+                        allEngines.Add(engineSim);
                     }
                 }
-            }
-            else if (hasModuleEngines)
-            {
-                foreach (ModuleEngines engine in part.GetModules<ModuleEngines>())
+
+                if (hasModuleEngines)
                 {
-                    thrust = engine.maxThrust * (engine.thrustPercentage / 100f);
-
-                    double flowRate = 0d;
-                    if (hasVessel)
+                    foreach (ModuleEngines engine in part.GetModules<ModuleEngines>())
                     {
-                        actualThrust = engine.requestedThrust;
-                        isp = engine.atmosphereCurve.Evaluate((float)part.staticPressureAtm);
-
-                        if (engine.throttleLocked)
-                        {
-                            flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                        }
-                        else
-                        {
-                            if (part.vessel.Landed)
-                            {
-                                flowRate = Math.Max(0.000001d, engine.maxThrust * (engine.thrustPercentage / 100f) * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
-                            }
-                            else
-                            {
-                                if (engine.requestedThrust > 0)
-                                    flowRate = engine.requestedThrust / (isp * 9.81d);
-                                else
-                                    flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        isp = engine.atmosphereCurve.Evaluate((float)atmosphere);
-                        flowRate = engine.maxThrust * (engine.thrustPercentage / 100f) / (isp * 9.81d);
-                    }
-
-                    float flowMass = 0f;
-
-                    foreach (Propellant propellant in engine.propellants)
-                        flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
-
-                    foreach (Propellant propellant in engine.propellants)
-                    {
-                        if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
-                            continue;
-
-                        double consumptionRate = propellant.ratio * flowRate / flowMass;
-                        //MonoBehaviour.print("Add consumption(" + ResourceContainer.GetResourceName(propellant.id) + ", " + name + ":" + partId + ") = " + consumptionRate);
-                        resourceConsumptions.Add(propellant.id, consumptionRate);
+                        EngineSim engineSim = new EngineSim(this, atmosphere,
+                                                            engine.maxThrust,
+                                                            engine.thrustPercentage,
+                                                            engine.requestedThrust,
+                                                            engine.atmosphereCurve,
+                                                            engine.throttleLocked,
+                                                            engine.propellants);
+                        allEngines.Add(engineSim);
                     }
                 }
             }
         }
+
 
         public void SetupAttachNodes(Dictionary<Part, PartSim> partSimLookup)
         {
@@ -397,79 +288,6 @@ namespace Engineer.VesselSimulator
 
         // All functions below this point must not rely on the part member (it may be null)
         //
-
-        public bool SetResourceDrains(List<PartSim> allParts, List<PartSim> allFuelLines)
-        {
-            if (!isEngine)
-                return false;
-
-            // A dictionary to hold a set of parts for each resource
-            Dictionary<int, HashSet<PartSim>> sourcePartSets = new Dictionary<int, HashSet<PartSim>>();
-
-            foreach (int type in resourceConsumptions.Types)
-            {
-                HashSet<PartSim> sourcePartSet = null;
-                switch (ResourceContainer.GetResourceFlowMode(type))
-                {
-                    case ResourceFlowMode.NO_FLOW:
-                        if (resources[type] > 1f)
-                        {
-                            sourcePartSet = new HashSet<PartSim>();
-                            //MonoBehaviour.print("SetResourceDrains(" + name + ":" + partId + ") setting sources to just this");
-                            sourcePartSet.Add(this);
-                        }
-                        break;
-
-                    case ResourceFlowMode.ALL_VESSEL:
-                        foreach (PartSim partSim in allParts)
-                        {
-                            if (partSim.resources[type] > 1f)
-                            {
-                                if (sourcePartSet == null)
-                                    sourcePartSet = new HashSet<PartSim>();
-
-                                sourcePartSet.Add(partSim);
-                            }
-                        }
-                        break;
-
-                    case ResourceFlowMode.STACK_PRIORITY_SEARCH:
-                        HashSet<PartSim> visited = new HashSet<PartSim>();
-                        sourcePartSet = GetSourceSet(type, allParts, allFuelLines, visited);
-                        break;
-
-                    default:
-                        MonoBehaviour.print("SetResourceDrains(" + name + ":" + partId + ") No flow type for " + ResourceContainer.GetResourceName(type) + ")");
-                        break;
-                }
-
-                if (sourcePartSet != null && sourcePartSet.Count > 0)
-                    sourcePartSets[type] = sourcePartSet;
-            }
-
-            // If we don't have sources for all the needed resources then return false without setting up any drains
-            foreach (int type in resourceConsumptions.Types)
-            {
-                if (!sourcePartSets.ContainsKey(type))
-                    return false;
-            }
-
-            // Now we set the drains on the members of the sets
-            foreach (int type in resourceConsumptions.Types)
-            {
-                HashSet<PartSim> sourcePartSet = sourcePartSets[type];
-                double amount = resourceConsumptions[type] / sourcePartSet.Count;
-                foreach (PartSim partSim in sourcePartSet)
-                {
-#if LOG
-                    MonoBehaviour.print("Adding drain of " + amount + " " + ResourceContainer.GetResourceName(type) + " to " + partSim.name + ":" + partSim.partId);
-#endif
-                    partSim.resourceDrains.Add(type, amount);
-                }
-            }
-
-            return true;
-        }
 
         public HashSet<PartSim> GetSourceSet(int type, List<PartSim> allParts, List<PartSim> allFuelLines, HashSet<PartSim> visited)
         {
