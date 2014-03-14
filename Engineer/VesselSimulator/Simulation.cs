@@ -411,25 +411,25 @@ namespace Engineer.VesselSimulator
             foreach (PartSim partSim in allParts)
             {
                 if (partSim.decoupledInStage >= currentStage)
-                {
-                    // Add it to the set of parts
                     decoupledParts.Add(partSim);
+            }
 
-                    // Remove it from the all parts list
-                    allParts.Remove(partSim);
-                    if (partSim.isEngine)
+            foreach (PartSim partSim in decoupledParts)
+            {
+                // Remove it from the all parts list
+                allParts.Remove(partSim);
+                if (partSim.isEngine)
+                {
+                    // If it is an engine then loop through all the engine modules and remove all the ones from this engine part
+                    for (int i = allEngines.Count - 1; i >= 0; i--)
                     {
-                        // If it is an engine then loop through all the engine modules and remove all the ones from this engine part
-                        for (int i = allEngines.Count - 1; i >= 0; i--)
-                        {
-                            if (allEngines[i].partSim == partSim)
-                                allEngines.RemoveAt(i);
-                        }
+                        if (allEngines[i].partSim == partSim)
+                            allEngines.RemoveAt(i);
                     }
-                    // If it is a fuel line then remove it from the list of all fuel lines
-                    if (partSim.isFuelLine)
-                        allFuelLines.Remove(partSim);
                 }
+                // If it is a fuel line then remove it from the list of all fuel lines
+                if (partSim.isFuelLine)
+                    allFuelLines.Remove(partSim);
             }
 
             // Loop through all the (remaining) parts
