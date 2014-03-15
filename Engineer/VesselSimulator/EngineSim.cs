@@ -46,27 +46,28 @@ namespace Engineer.VesselSimulator
 
                 if (throttleLocked)
                 {
-                    flowRate = maxThrust * (thrustPercentage / 100f) / (isp * 9.81d);
+                    flowRate = thrust / (isp * 9.81d);
                 }
                 else
                 {
                     if (partSim.isLanded)
                     {
-                        flowRate = Math.Max(0.000001d, maxThrust * (thrustPercentage / 100f) * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
+                        // Why does it force a non-zero flow rate when landed?
+                        flowRate = Math.Max(0.000001d, thrust * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
                     }
                     else
                     {
                         if (requestedThrust > 0)
                             flowRate = requestedThrust / (isp * 9.81d);
                         else
-                            flowRate = maxThrust * (thrustPercentage / 100f) / (isp * 9.81d);
+                            flowRate = thrust / (isp * 9.81d);
                     }
                 }
             }
             else
             {
                 isp = atmosphereCurve.Evaluate((float)atmosphere);
-                flowRate = maxThrust * (thrustPercentage / 100f) / (isp * 9.81d);
+                flowRate = thrust / (isp * 9.81d);
             }
 
             float flowMass = 0f;

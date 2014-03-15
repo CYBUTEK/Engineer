@@ -62,7 +62,7 @@ namespace Engineer.VesselSimulator
             part = thePart;
             partId = id;
             name = part.partInfo.name;
-            MonoBehaviour.print("Create PartSim for " + name);
+            //MonoBehaviour.print("Create PartSim for " + name);
             
             parent = null;
             fuelCrossFeed = part.fuelCrossFeed;
@@ -471,14 +471,6 @@ namespace Engineer.VesselSimulator
             get
             {
                 return resourceDrains;
-            }
-        }
-
-        public int InverseStage
-        {
-            get
-            {
-                return part.inverseStage;
             }
         }
 
