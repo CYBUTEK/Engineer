@@ -87,7 +87,7 @@ namespace Engineer.VesselSimulator
         }
 
 
-        public bool SetResourceDrains(List<PartSim> allParts, List<PartSim> allFuelLines)
+        public bool SetResourceDrains(List<PartSim> allParts, List<PartSim> allFuelLines, HashSet<PartSim> drainingParts)
         {
             // A dictionary to hold a set of parts for each resource
             Dictionary<int, HashSet<PartSim>> sourcePartSets = new Dictionary<int, HashSet<PartSim>>();
@@ -140,10 +140,11 @@ namespace Engineer.VesselSimulator
                     return false;
             }
 
-            // Now we set the drains on the members of the sets
+            // Now we set the drains on the members of the sets and update the draining parts set
             foreach (int type in resourceConsumptions.Types)
             {
                 HashSet<PartSim> sourcePartSet = sourcePartSets[type];
+                // Loop through the members of the set 
                 double amount = resourceConsumptions[type] / sourcePartSet.Count;
                 foreach (PartSim partSim in sourcePartSet)
                 {
@@ -151,6 +152,7 @@ namespace Engineer.VesselSimulator
                     MonoBehaviour.print("Adding drain of " + amount + " " + ResourceContainer.GetResourceName(type) + " to " + partSim.name + ":" + partSim.partId);
 #endif
                     partSim.resourceDrains.Add(type, amount);
+                    drainingParts.Add(partSim);
                 }
             }
 

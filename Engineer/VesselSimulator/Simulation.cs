@@ -22,7 +22,7 @@ namespace Engineer.VesselSimulator
 
         private List<PartSim> allParts;
         private List<PartSim> allFuelLines;
-        //private List<PartSim> drainingParts;      // TODOG: Finish this optimisation
+        private HashSet<PartSim> drainingParts;
         private List<EngineSim> allEngines;
         private List<EngineSim> activeEngines;
 
@@ -64,7 +64,7 @@ namespace Engineer.VesselSimulator
             // Create the lists for our simulation parts
             allParts = new List<PartSim>();
             allFuelLines = new List<PartSim>();
-            //drainingParts = new List<PartSim>();      // TODOG: Finish this optimisation
+            drainingParts = new HashSet<PartSim>();
             allEngines = new List<EngineSim>();
             activeEngines = new List<EngineSim>();
 
@@ -133,10 +133,6 @@ namespace Engineer.VesselSimulator
 
             // Create the array of stages that will be returned
             Stage[] stages = new Stage[currentStage + 1];
-
-            // Create a list to hold the parts that are currently being drained
-            // (future optimisation)
-            //List<PartSim> allDrains = new List<PartSim>();
 
             // Loop through the stages
             while (currentStage >= 0)
@@ -208,7 +204,7 @@ namespace Engineer.VesselSimulator
 
                     // Calculate how long each draining tank will take to drain and run for the minimum time
                     double resourceDrainTime = double.MaxValue;
-                    foreach (PartSim partSim in allParts)
+                    foreach (PartSim partSim in drainingParts)
                     {
                         double time = partSim.TimeToDrainResource();
                         if (time < resourceDrainTime)
@@ -217,7 +213,7 @@ namespace Engineer.VesselSimulator
 #if LOG
                     MonoBehaviour.print("Drain time = " + resourceDrainTime);
 #endif
-                    foreach (PartSim partSim in allParts)
+                    foreach (PartSim partSim in drainingParts)
                         partSim.DrainResources(resourceDrainTime);
 
                     // Get the mass after draining
@@ -325,11 +321,15 @@ namespace Engineer.VesselSimulator
         // and setting the drain rates
         private void UpdateResourceDrains()
         {
-            // First we empty the active engines list and reset the resource drains of all parts
-            // TODOG: optimise by using drainingParts list
+            // Empty the active engines list
             activeEngines.Clear();
-            foreach (PartSim partSim in allParts)
+
+            // Reset the resource drains of all draining parts
+            foreach (PartSim partSim in drainingParts)
                 partSim.ResourceDrains.Reset();
+
+            // Empty the draining parts set
+            drainingParts.Clear();
 
             // Loop through all the engine modules in the ship
             foreach (EngineSim engine in allEngines)
@@ -338,7 +338,7 @@ namespace Engineer.VesselSimulator
                 if (engine.partSim.inverseStage >= currentStage)
                 {
                     // Set the resource drains for this engine and add it to the active list if it is active
-                    if (engine.SetResourceDrains(allParts, allFuelLines))
+                    if (engine.SetResourceDrains(allParts, allFuelLines, drainingParts))
                         activeEngines.Add(engine);
                 }
             }
