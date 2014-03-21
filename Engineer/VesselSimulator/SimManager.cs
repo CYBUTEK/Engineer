@@ -9,96 +9,94 @@ namespace Engineer.VesselSimulator
 {
     public class SimManager
     {
-        private static SimManager _instance;
+        private static bool bRequested = false;
+        private static bool bRunning = false;
+        private static Stopwatch timer = new Stopwatch();
+        private static long delayBetweenSims = 0;
 
-        public static SimManager Instance
+        private static Stopwatch _func = new Stopwatch();
+
+        public static Stage[] Stages { get; private set; }
+        public static Stage LastStage { get; private set; }
+        public static String failMessage { get; private set; }
+
+        public static double Gravity { get; set; }
+        public static double Atmosphere { get; set; }
+
+        public static void RequestSimulation()
         {
-            get
+            bRequested = true;
+            if (!timer.IsRunning)
+                timer.Start();
+        }
+
+        public static void TryStartSimulation()
+        {
+            if (bRequested && !bRunning && (HighLogic.LoadedSceneIsEditor || FlightGlobals.ActiveVessel != null) && timer.ElapsedMilliseconds > delayBetweenSims)
             {
-                if (_instance == null) _instance = new SimManager();
-                return _instance;
+                bRequested = false;
+                timer.Reset();
+                StartSimulation();
             }
         }
 
-        private bool _simRequested = false;
-        private bool _simRunning = false;
-        private Stopwatch _timer = new Stopwatch();
-        private long _millisecondsBetweenSimulations = 0;
-
-        private Stopwatch _func = new Stopwatch();
-
-        public Stage[] Stages { get; private set; }
-        public Stage LastStage { get; private set; }
-        public String failMessage { get; private set; }
-
-        public double Gravity { get; set; }
-        public double Atmosphere { get; set; }
-
-        public void RequestSimulation()
+        public static bool ResultsReady()
         {
-            _simRequested = true;
-            if (!_timer.IsRunning)
-                _timer.Start();
+            return !bRunning;
         }
 
-        public void TryStartSimulation()
+        private static void ClearResults()
         {
-            if ((HighLogic.LoadedSceneIsEditor || FlightGlobals.ActiveVessel != null) && !_simRunning)
-            {
-                if (_timer.ElapsedMilliseconds > _millisecondsBetweenSimulations)
-                {
-                    if (_simRequested)
-                    {
-                        _simRequested = false;
-                        _timer.Reset();
-
-                        StartSimulation();
-                    }
-                }
-            }
+            failMessage = "";
+            Stages = null;
+            LastStage = null;
         }
 
-        private void StartSimulation()
+        private static void StartSimulation()
         {
             try
             {
-                _simRunning = true;
-                _timer.Start();
+                bRunning = true;
+                ClearResults();
+                timer.Start();
 
                 List<Part> parts = HighLogic.LoadedSceneIsEditor ? EditorLogic.SortedShipList : FlightGlobals.ActiveVessel.Parts;
 
                 // Create the Simulation object in this thread
                 Simulation sim = new Simulation();
 
-                if (sim.PrepareSimulation(parts, this.Gravity, this.Atmosphere))
+                // This call doesn't ever fail at the moment but we'll check and return a sensible error for display
+                if (sim.PrepareSimulation(parts, Gravity, Atmosphere))
                 {
                     ThreadPool.QueueUserWorkItem(RunSimulation, sim);
                 }
                 else
                 {
-                    Stages = null;
+                    failMessage = "PrepareSimulation failed";
+                    bRunning = false;
                 }
             }
             catch (Exception e)
             {
                 MonoBehaviour.print("Exception in StartSimulation: " + e);
-                Stages = null;
-                LastStage = null;
                 failMessage = e.ToString();
-                _simRunning = false;
+                bRunning = false;
             }
         }
 
-        private void RunSimulation(object simObject)
+        private static void RunSimulation(object simObject)
         {
             try
             {
                 Stages = (simObject as Simulation).RunSimulation();
+                if (Stages != null)
+                {
 #if LOG
-                foreach (Stage stage in Stages)
-                    stage.Dump();
+                    foreach (Stage stage in Stages)
+                        stage.Dump();
 #endif
-                LastStage = Stages.Last();
+                    LastStage = Stages.Last();
+                }
             }
             catch (Exception e)
             {
@@ -108,14 +106,14 @@ namespace Engineer.VesselSimulator
                 failMessage = e.ToString();
             }
 
-            _timer.Stop();
-            MonoBehaviour.print("RunSimulation took " + _timer.ElapsedMilliseconds + "ms");
-            _millisecondsBetweenSimulations = 10 * _timer.ElapsedMilliseconds;
+            timer.Stop();
+            MonoBehaviour.print("RunSimulation took " + timer.ElapsedMilliseconds + "ms");
+            delayBetweenSims = 10 * timer.ElapsedMilliseconds;
 
-            _timer.Reset();
-            _timer.Start();
+            timer.Reset();
+            timer.Start();
 
-            _simRunning = false;
+            bRunning = false;
         }
     }
 }

@@ -346,8 +346,8 @@ namespace Engineer.VesselSimulator
             StringBuilder buffer = new StringBuilder(1024);
             buffer.AppendFormat("Active engines = {0:d}\n", activeEngines.Count);
             int i = 0;
-            foreach (PartSim engine in activeEngines)
-                engine.DumpPartAndParentsToBuffer(buffer, "Engine " + (i++) + ":");
+            foreach (EngineSim engine in activeEngines)
+                engine.DumpEngineToBuffer(buffer, "Engine " + (i++) + ":");
             MonoBehaviour.print(buffer);
 #endif
         }

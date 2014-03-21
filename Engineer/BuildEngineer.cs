@@ -30,7 +30,8 @@ namespace Engineer
         bool isEditorLocked = false;
         CelestialBodies referenceBodies = new CelestialBodies();
         CelestialBodies.Body referenceBody;
-        Stage[] stages;
+        Stage[] stages = null;
+        String failMessage = "";
         int stageCount;
         int stageCountAll;
 
@@ -154,27 +155,27 @@ namespace Engineer
 
         private void Update()
         {
-            if (IsPrimary)
+            if (IsPrimary && SimManager.ResultsReady())
             {
-                if (SimManager.Instance.Stages != null)
-                {
-                    stages = SimManager.Instance.Stages;
-                }
-                SimManager.Instance.TryStartSimulation();
+                stages = SimManager.Stages;
+                failMessage = SimManager.failMessage;
+                
+                SimManager.TryStartSimulation();
                 isActive = true;
             }
         }
 
         private void DrawGUI()
         {         
-            if (!this.part.isAttached || !IsPrimary)
+            if (!part.isAttached || !IsPrimary)
             {
                 print("BuildEngineer: DrawGUI - Not Attached || Not Primary");
                 RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
                 return;
             }
 
-            if (!hasInitStyles) InitStyles();
+            if (!hasInitStyles)
+                InitStyles();
 
             if (isVisible)
             {
@@ -192,7 +193,6 @@ namespace Engineer
                     {
                         title = windowTitleCompact;
                     }
-
 
                     windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
                 }
@@ -222,23 +222,22 @@ namespace Engineer
             settings.Set("_SAVEONCHANGE_COMPACT", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_COMPACT", false), "Compact", buttonStyle));
             GUILayout.EndHorizontal();
 
-            SimManager.Instance.Gravity = referenceBody.gravity;
+            SimManager.Gravity = referenceBody.gravity;
 
             if (settings.Get<bool>("_SAVEONCHANGE_USE_ATMOSPHERE"))
             {
-                SimManager.Instance.Atmosphere = referenceBody.atmosphere;
+                SimManager.Atmosphere = referenceBody.atmosphere;
             }
             else
             {
-                SimManager.Instance.Atmosphere = 0d;
-
+                SimManager.Atmosphere = 0d;
             }
 
-            SimManager.Instance.RequestSimulation();
+            SimManager.RequestSimulation();
 
             if (stages == null)
             {
-                //print("BuildEngineer: Not drawing Window because stages == null");
+                DrawFailMessage();
                 return;
             }
 
@@ -267,7 +266,7 @@ namespace Engineer
 
             if (settings.Get<bool>("_SAVEONCHANGE_SHOW_REFERENCES") && !settings.Get<bool>("_SAVEONCHANGE_COMPACT"))
             {
-                DrawThrust();
+                DrawRefBodies();
             }
 
             if (version.Newer && showUpdate)
@@ -290,6 +289,18 @@ namespace Engineer
             }
 
             GUI.DragWindow();
+        }
+
+        private void DrawFailMessage()
+        {
+            GUILayout.BeginHorizontal(areaStyle);
+            GUILayout.BeginVertical();
+
+            GUILayout.Label("Simulation failed:", headingStyle);
+            GUILayout.TextArea(failMessage, dataStyle);
+
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
         }
 
         private void DrawStandard()
@@ -316,7 +327,7 @@ namespace Engineer
             GUILayout.EndHorizontal();
         }
 
-        private void DrawThrust()
+        private void DrawRefBodies()
         {
             GUILayout.BeginHorizontal(areaStyle);
 

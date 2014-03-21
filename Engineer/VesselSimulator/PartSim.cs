@@ -115,7 +115,13 @@ namespace Engineer.VesselSimulator
 
         public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere)
         {
-            //MonoBehaviour.print("CreateEngineSims started");
+            LogMsg log = new LogMsg();
+            log.buf.AppendLine("CreateEngineSims for " + name);
+
+            foreach (PartModule partMod in part.Modules)
+            {
+                log.buf.AppendLine("Module: " + partMod.moduleName);
+            }
 
             if (hasMultiModeEngine)
             {
@@ -171,6 +177,8 @@ namespace Engineer.VesselSimulator
                     }
                 }
             }
+
+            log.Flush();
         }
 
 

@@ -33,7 +33,8 @@ namespace Engineer
         public GUIStyle headingStyle, dataStyle, windowStyle, buttonStyle, areaStyle;
         bool hasInitStyles = false;
 
-        Stage[] stages = new Stage[0];
+        Stage[] stages = null;
+        String failMessage;
         double stageDeltaV = 0d;
         int numberOfStages = 0;
         int numberOfStagesUseful = 0;
@@ -57,13 +58,13 @@ namespace Engineer
         {
             get
             {
-                if (this.vessel != null)
+                if (vessel != null)
                 {
-                    foreach (Part part in this.vessel.parts)
+                    foreach (Part thePart in vessel.parts)
                     {
-                        if (part.Modules.Contains(this.ClassID))
+                        if (thePart.Modules.Contains(ClassID))
                         {
-                            if (this.part == part)
+                            if (thePart == part)
                             {
                                 return true;
                             }
@@ -133,16 +134,16 @@ namespace Engineer
 
         public void Update()
         {
-            if (this.vessel != null && this.vessel == FlightGlobals.ActiveVessel)
+            if (vessel != null && vessel == FlightGlobals.ActiveVessel)
             {
-                if (IsPrimary)
+                if (IsPrimary && SimManager.ResultsReady())
                 {
-                    if (SimManager.Instance.Stages != null)
-                    {
-                        stages = SimManager.Instance.Stages;
-                    }
-                    SimManager.Instance.Gravity = this.vessel.mainBody.gravParameter / Math.Pow(this.vessel.mainBody.Radius + this.vessel.mainBody.GetAltitude(this.vessel.CoM), 2);
-                    SimManager.Instance.TryStartSimulation();
+                    // Get the results into our members
+                    stages = SimManager.Stages;
+                    failMessage = SimManager.failMessage;
+
+                    SimManager.Gravity = vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius + vessel.mainBody.GetAltitude(vessel.CoM), 2);
+                    SimManager.TryStartSimulation();
                     isActive = true;
                 }
             }
@@ -150,7 +151,7 @@ namespace Engineer
 
         private void DrawGUI()
         {
-            if (this.vessel != null && this.vessel == FlightGlobals.ActiveVessel)
+            if (vessel != null && vessel == FlightGlobals.ActiveVessel)
             {
                 if (IsPrimary)
                 {
@@ -261,25 +262,25 @@ namespace Engineer
             GUILayout.BeginVertical();
             if (settings.Get<bool>("Orbital: Show Grouped Ap/Pe Readouts"))
             {
-                if (settings.Get<bool>("Orbital: Apoapsis Height")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.ApA, Tools.SIUnitType.Distance), dataStyle);
-                if (settings.Get<bool>("Orbital: Time to Apoapsis")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.timeToAp), dataStyle);
-                if (settings.Get<bool>("Orbital: Periapsis Height")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.PeA, Tools.SIUnitType.Distance), dataStyle);
-                if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.timeToPe), dataStyle);
+                if (settings.Get<bool>("Orbital: Apoapsis Height")) GUILayout.Label(Tools.FormatSI(vessel.orbit.ApA, Tools.SIUnitType.Distance), dataStyle);
+                if (settings.Get<bool>("Orbital: Time to Apoapsis")) GUILayout.Label(Tools.FormatTime(vessel.orbit.timeToAp), dataStyle);
+                if (settings.Get<bool>("Orbital: Periapsis Height")) GUILayout.Label(Tools.FormatSI(vessel.orbit.PeA, Tools.SIUnitType.Distance), dataStyle);
+                if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(vessel.orbit.timeToPe), dataStyle);
             }
             else
             {
-                if (settings.Get<bool>("Orbital: Apoapsis Height")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.ApA, Tools.SIUnitType.Distance), dataStyle);
-                if (settings.Get<bool>("Orbital: Periapsis Height")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.PeA, Tools.SIUnitType.Distance), dataStyle);
-                if (settings.Get<bool>("Orbital: Time to Apoapsis")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.timeToAp), dataStyle);
-                if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.timeToPe), dataStyle);
+                if (settings.Get<bool>("Orbital: Apoapsis Height")) GUILayout.Label(Tools.FormatSI(vessel.orbit.ApA, Tools.SIUnitType.Distance), dataStyle);
+                if (settings.Get<bool>("Orbital: Periapsis Height")) GUILayout.Label(Tools.FormatSI(vessel.orbit.PeA, Tools.SIUnitType.Distance), dataStyle);
+                if (settings.Get<bool>("Orbital: Time to Apoapsis")) GUILayout.Label(Tools.FormatTime(vessel.orbit.timeToAp), dataStyle);
+                if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(vessel.orbit.timeToPe), dataStyle);
             }
-            if (settings.Get<bool>("Orbital: Inclination")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.inclination, "°", 6), dataStyle);
-            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.eccentricity, "°", 6), dataStyle);
-            if (settings.Get<bool>("Orbital: Period")) GUILayout.Label(Tools.FormatTime(this.vessel.orbit.period), dataStyle);
-            if (settings.Get<bool>("Orbital: Longitude of AN")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.LAN, "°", 6), dataStyle);
-            if (settings.Get<bool>("Orbital: Longitude of Pe")) GUILayout.Label(Tools.FormatNumber(this.vessel.orbit.LAN + this.vessel.orbit.argumentOfPeriapsis, "°", 6), dataStyle);
-            if (settings.Get<bool>("Orbital: Semi-major Axis")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.semiMajorAxis, Tools.SIUnitType.Distance), dataStyle);
-            if (settings.Get<bool>("Orbital: Semi-minor Axis")) GUILayout.Label(Tools.FormatSI(this.vessel.orbit.semiMinorAxis, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Orbital: Inclination")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.inclination, "°", 6), dataStyle);
+            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.eccentricity, "°", 6), dataStyle);
+            if (settings.Get<bool>("Orbital: Period")) GUILayout.Label(Tools.FormatTime(vessel.orbit.period), dataStyle);
+            if (settings.Get<bool>("Orbital: Longitude of AN")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.LAN, "°", 6), dataStyle);
+            if (settings.Get<bool>("Orbital: Longitude of Pe")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.LAN + vessel.orbit.argumentOfPeriapsis, "°", 6), dataStyle);
+            if (settings.Get<bool>("Orbital: Semi-major Axis")) GUILayout.Label(Tools.FormatSI(vessel.orbit.semiMajorAxis, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Orbital: Semi-minor Axis")) GUILayout.Label(Tools.FormatSI(vessel.orbit.semiMinorAxis, Tools.SIUnitType.Distance), dataStyle);
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
         }
@@ -303,8 +304,8 @@ namespace Engineer
         private Vector3d radiusdirection(double theta)
         {
             theta = Math.PI * theta / 180;
-            double omega = Math.PI * this.vessel.orbit.argumentOfPeriapsis / 180;
-            double incl = Math.PI * this.vessel.orbit.inclination / 180;
+            double omega = Math.PI * vessel.orbit.argumentOfPeriapsis / 180;
+            double incl = Math.PI * vessel.orbit.inclination / 180;
 
             double costheta = Math.Cos(theta);
             double sintheta = Math.Sin(theta);
@@ -331,10 +332,10 @@ namespace Engineer
         // Code by: mic_e
         private double timetoperiapsis(double theta)
         {
-            double e = this.vessel.orbit.eccentricity;
-            double a = this.vessel.orbit.semiMajorAxis;
-            double rp = this.vessel.orbit.PeR;
-            double mu = this.vessel.mainBody.gravParameter;
+            double e = vessel.orbit.eccentricity;
+            double a = vessel.orbit.semiMajorAxis;
+            double rp = vessel.orbit.PeR;
+            double mu = vessel.mainBody.gravParameter;
 
             if (e == 1.0)
             {
@@ -379,9 +380,9 @@ namespace Engineer
                 impactlong = 0;
                 impactlat = 0;
                 impactalt = 0;
-                double e = this.vessel.orbit.eccentricity;
+                double e = vessel.orbit.eccentricity;
                 //get current position direction vector
-                Vector3d currentpos = radiusdirection(this.vessel.orbit.trueAnomaly);
+                Vector3d currentpos = radiusdirection(vessel.orbit.trueAnomaly);
                 //calculate longitude in inertial reference frame from that
                 double currentirflong = 180 * Math.Atan2(currentpos.x, currentpos.y) / Math.PI;
 
@@ -391,17 +392,17 @@ namespace Engineer
                 //do a few iterations of impact site calculations
                 for (int i = 0; i < impactiterations; i++)
                 {
-                    if (this.vessel.orbit.PeA >= impactalt)
+                    if (vessel.orbit.PeA >= impactalt)
                     {
                         //periapsis must be lower than impact alt
                         impacthappening = false;
                     }
-                    if ((this.vessel.orbit.eccentricity < 1) && (this.vessel.orbit.ApA <= impactalt))
+                    if ((vessel.orbit.eccentricity < 1) && (vessel.orbit.ApA <= impactalt))
                     {
                         //apoapsis must be higher than impact alt
                         impacthappening = false;
                     }
-                    if ((this.vessel.orbit.eccentricity >= 1) && (this.vessel.orbit.timeToPe <= 0))
+                    if ((vessel.orbit.eccentricity >= 1) && (vessel.orbit.timeToPe <= 0))
                     {
                         //if currently escaping, we still need to be before periapsis
                         impacthappening = false;
@@ -419,20 +420,20 @@ namespace Engineer
                     if (e > 0)
                     {
                         //in this step, we are using the calculated impact altitude of the last step, to refine the impact site position
-                        impacttheta = -180 * Math.Acos((this.vessel.orbit.PeR * (1 + e) / (this.vessel.mainBody.Radius + impactalt) - 1) / e) / Math.PI;
+                        impacttheta = -180 * Math.Acos((vessel.orbit.PeR * (1 + e) / (vessel.mainBody.Radius + impactalt) - 1) / e) / Math.PI;
                     }
 
                     //calculate time to impact
-                    impacttime = this.vessel.orbit.timeToPe - timetoperiapsis(impacttheta);
+                    impacttime = vessel.orbit.timeToPe - timetoperiapsis(impacttheta);
                     //calculate position vector of impact site
                     Vector3d impactpos = radiusdirection(impacttheta);
                     //calculate longitude of impact site in inertial reference frame
                     double impactirflong = 180 * Math.Atan2(impactpos.x, impactpos.y) / Math.PI;
                     double deltairflong = impactirflong - currentirflong;
                     //get body rotation until impact
-                    double bodyrot = 360 * impacttime / this.vessel.mainBody.rotationPeriod;
+                    double bodyrot = 360 * impacttime / vessel.mainBody.rotationPeriod;
                     //get current longitude in body coordinates
-                    double currentlong = this.vessel.longitude;
+                    double currentlong = vessel.longitude;
                     //finally, calculate the impact longitude in body coordinates
                     impactlong = normangle(currentlong - deltairflong - bodyrot);
                     //calculate impact latitude from impact position
@@ -440,15 +441,15 @@ namespace Engineer
                     //calculate the actual altitude of the impact site
                     //altitude for long/lat code stolen from some ISA MapSat forum post; who knows why this works, but it seems to.
                     Vector3d rad = QuaternionD.AngleAxis(impactlong, Vector3d.down) * QuaternionD.AngleAxis(impactlat, Vector3d.forward) * Vector3d.right;
-                    impactalt = this.vessel.mainBody.pqsController.GetSurfaceHeight(rad) - this.vessel.mainBody.pqsController.radius;
-                    if ((impactalt < 0) && (this.vessel.mainBody.ocean == true))
+                    impactalt = vessel.mainBody.pqsController.GetSurfaceHeight(rad) - vessel.mainBody.pqsController.radius;
+                    if ((impactalt < 0) && (vessel.mainBody.ocean == true))
                     {
                         impactalt = 0;
                     }
                 }
             }
 
-            if (this.vessel.geeForce > maxGForce) maxGForce = this.vessel.geeForce;
+            if (vessel.geeForce > maxGForce) maxGForce = vessel.geeForce;
 
             if (!hasCheckedForFAR)
             {
@@ -471,6 +472,12 @@ namespace Engineer
             settings.Set("*headingStyle_SURFACE", "SURFACE DISPLAY");
             if (settings.Get<bool>("Surface: Altitude (Sea Level)", true)) GUILayout.Label("Altitude (Sea Level)", headingStyle);
             if (settings.Get<bool>("Surface: Altitude (Terrain)", true)) GUILayout.Label("Altitude (Terrain)", headingStyle);
+#if TERRAINTEST
+            if (settings.Get<bool>("Surface: terrainAltitude", true)) GUILayout.Label("terrainAltitude", headingStyle);
+            if (settings.Get<bool>("Surface: heightFromSurface", true)) GUILayout.Label("heightFromSurface", headingStyle);
+            if (settings.Get<bool>("Surface: heightFromTerrain", true)) GUILayout.Label("heightFromTerrain", headingStyle);
+            if (settings.Get<bool>("Surface: pqsAltitude", true)) GUILayout.Label("pqsAltitude", headingStyle);
+#endif
             if (settings.Get<bool>("Surface: Vertical Speed", true)) GUILayout.Label("Vertical Speed", headingStyle);
             if (settings.Get<bool>("Surface: Horizontal Speed", true)) GUILayout.Label("Horizontal Speed", headingStyle);
             if (settings.Get<bool>("Surface: Longitude", true)) GUILayout.Label("Longitude", headingStyle);
@@ -496,13 +503,26 @@ namespace Engineer
             }
             GUILayout.EndVertical();
 
+            double altSL = vessel.mainBody.GetAltitude(vessel.CoM);
+            double altT = altSL - vessel.terrainAltitude;
+
             GUILayout.BeginVertical();
-            if (settings.Get<bool>("Surface: Altitude (Sea Level)")) GUILayout.Label(Tools.FormatSI(this.vessel.mainBody.GetAltitude(this.vessel.CoM), Tools.SIUnitType.Distance), dataStyle);
-            if (settings.Get<bool>("Surface: Altitude (Terrain)")) GUILayout.Label(Tools.FormatSI(this.vessel.mainBody.GetAltitude(this.vessel.CoM) - this.vessel.terrainAltitude, Tools.SIUnitType.Distance), dataStyle);
-            if (settings.Get<bool>("Surface: Vertical Speed")) GUILayout.Label(Tools.FormatSI(this.vessel.verticalSpeed, Tools.SIUnitType.Speed), dataStyle);
-            if (settings.Get<bool>("Surface: Horizontal Speed")) GUILayout.Label(Tools.FormatSI(this.vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), dataStyle);
-            if (settings.Get<bool>("Surface: Longitude")) GUILayout.Label(Tools.FormatNumber(this.vessel.longitude, "°", 6), dataStyle);
-            if (settings.Get<bool>("Surface: Latitude")) GUILayout.Label(Tools.FormatNumber(this.vessel.latitude, "°", 6), dataStyle);
+            if (settings.Get<bool>("Surface: Altitude (Sea Level)")) GUILayout.Label(Tools.FormatSI(altSL, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Surface: Altitude (Terrain)")) GUILayout.Label(Tools.FormatSI(altT, Tools.SIUnitType.Distance), dataStyle);
+#if TERRAINTEST
+            double terrainAltitude = vessel.terrainAltitude;
+            double heightFromSurface = vessel.heightFromSurface;
+            double heightFromTerrain = vessel.heightFromTerrain;
+            double pqsAltitude = vessel.pqsAltitude;
+            if (settings.Get<bool>("Surface: terrainAltitude")) GUILayout.Label(Tools.FormatSI(terrainAltitude, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Surface: heightFromSurface")) GUILayout.Label(Tools.FormatSI(heightFromSurface, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Surface: heightFromTerrain")) GUILayout.Label(Tools.FormatSI(heightFromTerrain, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Surface: pqsAltitude")) GUILayout.Label(Tools.FormatSI(pqsAltitude, Tools.SIUnitType.Distance), dataStyle);
+#endif
+            if (settings.Get<bool>("Surface: Vertical Speed")) GUILayout.Label(Tools.FormatSI(vessel.verticalSpeed, Tools.SIUnitType.Speed), dataStyle);
+            if (settings.Get<bool>("Surface: Horizontal Speed")) GUILayout.Label(Tools.FormatSI(vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), dataStyle);
+            if (settings.Get<bool>("Surface: Longitude")) GUILayout.Label(Tools.FormatNumber(vessel.longitude, "°", 6), dataStyle);
+            if (settings.Get<bool>("Surface: Latitude")) GUILayout.Label(Tools.FormatNumber(vessel.latitude, "°", 6), dataStyle);
 
             if (impacthappening)
             {
@@ -512,24 +532,24 @@ namespace Engineer
                 if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label(Tools.FormatSI(impactalt, Tools.SIUnitType.Distance), dataStyle);
             }
 
-            if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(this.vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
+            if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
 
             if (!hasInstalledFAR)
             {
                 double totalMass = 0d;
                 double massDrag = 0d;
-                foreach (Part part in this.vessel.parts)
+                foreach (Part thePart in vessel.parts)
                 {
-                    if (part.physicalSignificance != Part.PhysicalSignificance.NONE)
+                    if (thePart.physicalSignificance != Part.PhysicalSignificance.NONE)
                     {
-                        double partMass = part.mass + part.GetResourceMass();
+                        double partMass = thePart.mass + thePart.GetResourceMass();
                         totalMass += partMass;
-                        massDrag += partMass * part.maximum_drag;
+                        massDrag += partMass * thePart.maximum_drag;
                     }
                 }
 
-                double gravity = FlightGlobals.getGeeForceAtPosition(this.vessel.CoM).magnitude;
-                double atmosphere = this.vessel.atmDensity;
+                double gravity = FlightGlobals.getGeeForceAtPosition(vessel.CoM).magnitude;
+                double atmosphere = vessel.atmDensity;
 
                 double terminalVelocity = 0d;
                 if (atmosphere > 0)
@@ -548,8 +568,8 @@ namespace Engineer
                 if (settings.Get<bool>("Surface: Terminal Velocity")) GUILayout.Label(Tools.FormatSI(terminalVelocity, Tools.SIUnitType.Speed), dataStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Efficiency")) GUILayout.Label(Tools.FormatNumber(atmosphericEfficiency * 100, "%", 2), dataStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Drag")) GUILayout.Label(Tools.FormatSI(dragForce, Tools.SIUnitType.Force), dataStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Pressure")) GUILayout.Label(Tools.FormatSI(this.part.dynamicPressureAtm * 100, Tools.SIUnitType.Pressure), dataStyle);
-                if (settings.Get<bool>("Surface: Atmospheric Density")) GUILayout.Label(Tools.FormatSI(this.vessel.atmDensity, Tools.SIUnitType.Density), dataStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Pressure")) GUILayout.Label(Tools.FormatSI(part.dynamicPressureAtm * 100, Tools.SIUnitType.Pressure), dataStyle);
+                if (settings.Get<bool>("Surface: Atmospheric Density")) GUILayout.Label(Tools.FormatSI(vessel.atmDensity, Tools.SIUnitType.Density), dataStyle);
             }
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
@@ -559,7 +579,7 @@ namespace Engineer
         {
             double drag = 0d;
 
-            foreach (Part part in this.vessel.parts)
+            foreach (Part part in vessel.parts)
             {
                 drag += part.maximum_drag;
             }
@@ -571,10 +591,8 @@ namespace Engineer
         {
             if ((TimeWarp.WarpMode == TimeWarp.Modes.LOW) || (TimeWarp.CurrentRate <= TimeWarp.MaxPhysicsRate))
             {
-                SimManager.Instance.RequestSimulation();
+                SimManager.RequestSimulation();
             }
-
-            int stage = stages.Length - 1;
 
             GUILayout.Label("VESSEL DISPLAY", headingStyle);
             GUILayout.BeginHorizontal(areaStyle);
@@ -582,65 +600,74 @@ namespace Engineer
             settings.Set("*SPACER_VESSEL", "");
             settings.Set("*headingStyle_VESSEL", "VESSEL DISPLAY");
 
-            int stageCount = stages.Length;
-            int stageCountUseful = 0;
-            if (settings.Get<bool>("Vessel: Show All DeltaV Stages", true))
+            if (stages == null)
             {
-                for (int i = stageCount - 1; i >= 0; i--)
-                {
-                    stageDeltaV = stages[i].deltaV;
-                    if (stageDeltaV > 0)
-                    {
-                        if (settings.Get<bool>("Vessel: DeltaV (Stage)", true)) GUILayout.Label("DeltaV (S" + i + ")", headingStyle);
-                        stageCountUseful++;
-                    }
-                }
-
-                if (stageCount != numberOfStages || stageCountUseful != numberOfStagesUseful)
-                {
-                    numberOfStages = stageCount;
-                    numberOfStagesUseful = stageCountUseful;
-                    settings.Changed = true;
-                }
+                GUILayout.Label("Simulation failed:", headingStyle);
+                GUILayout.TextArea(failMessage, dataStyle);
             }
             else
             {
-                if (settings.Get<bool>("Vessel: DeltaV (Stage)", true)) GUILayout.Label("DeltaV (Stage)", headingStyle);
-            }
-            if (settings.Get<bool>("Vessel: DeltaV (Total)", true)) GUILayout.Label("DeltaV (Total)", headingStyle);
-            if (settings.Get<bool>("Vessel: Specific Impulse", true)) GUILayout.Label("Specific Impulse", headingStyle);
-            if (settings.Get<bool>("Vessel: Mass", true)) GUILayout.Label("Mass", headingStyle);
-            if (settings.Get<bool>("Vessel: Thrust (Maximum)", true)) GUILayout.Label("Thrust (Maximum)", headingStyle);
-            if (settings.Get<bool>("Vessel: Thrust (Throttle)", true)) GUILayout.Label("Thrust (Throttle)", headingStyle);
-            if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)", true)) GUILayout.Label("TWR (Throttle)", headingStyle);
-            if (settings.Get<bool>("Vessel: Thrust to Weight (Current)", true)) GUILayout.Label("TWR (Current)", headingStyle);
-            if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)", true)) GUILayout.Label("TWR (Surface)", headingStyle);
-            GUILayout.EndVertical();
-
-            GUILayout.BeginVertical();
-            if (settings.Get<bool>("Vessel: Show All DeltaV Stages"))
-            {
-                for (int i = stageCount - 1; i >= 0; i--)
+                int stageCount = stages.Length;
+                int stageCountUseful = 0;
+                if (settings.Get<bool>("Vessel: Show All DeltaV Stages", true))
                 {
-                    stageDeltaV = stages[i].deltaV;
-                    if (stageDeltaV > 0)
+                    for (int i = stageCount - 1; i >= 0; i--)
                     {
-                        if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(Tools.FormatNumber(stages[i].deltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[i].time) + ")", dataStyle);
+                        stageDeltaV = stages[i].deltaV;
+                        if (stageDeltaV > 0)
+                        {
+                            if (settings.Get<bool>("Vessel: DeltaV (Stage)", true)) GUILayout.Label("DeltaV (S" + i + ")", headingStyle);
+                            stageCountUseful++;
+                        }
+                    }
+
+                    if (stageCount != numberOfStages || stageCountUseful != numberOfStagesUseful)
+                    {
+                        numberOfStages = stageCount;
+                        numberOfStagesUseful = stageCountUseful;
+                        settings.Changed = true;
                     }
                 }
+                else
+                {
+                    if (settings.Get<bool>("Vessel: DeltaV (Stage)", true)) GUILayout.Label("DeltaV (Stage)", headingStyle);
+                }
+                if (settings.Get<bool>("Vessel: DeltaV (Total)", true)) GUILayout.Label("DeltaV (Total)", headingStyle);
+                if (settings.Get<bool>("Vessel: Specific Impulse", true)) GUILayout.Label("Specific Impulse", headingStyle);
+                if (settings.Get<bool>("Vessel: Mass", true)) GUILayout.Label("Mass", headingStyle);
+                if (settings.Get<bool>("Vessel: Thrust (Maximum)", true)) GUILayout.Label("Thrust (Maximum)", headingStyle);
+                if (settings.Get<bool>("Vessel: Thrust (Throttle)", true)) GUILayout.Label("Thrust (Throttle)", headingStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)", true)) GUILayout.Label("TWR (Throttle)", headingStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Current)", true)) GUILayout.Label("TWR (Current)", headingStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)", true)) GUILayout.Label("TWR (Surface)", headingStyle);
+                GUILayout.EndVertical();
+
+                GUILayout.BeginVertical();
+                if (settings.Get<bool>("Vessel: Show All DeltaV Stages"))
+                {
+                    for (int i = stageCount - 1; i >= 0; i--)
+                    {
+                        stageDeltaV = stages[i].deltaV;
+                        if (stageDeltaV > 0)
+                        {
+                            if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(Tools.FormatNumber(stages[i].deltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[i].time) + ")", dataStyle);
+                        }
+                    }
+                }
+                else
+                {
+                    if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].deltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[Staging.lastStage].time) + ")", dataStyle);
+                }
+                if (settings.Get<bool>("Vessel: DeltaV (Total)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].totalDeltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[Staging.lastStage].totalTime) + ")", dataStyle);
+                if (settings.Get<bool>("Vessel: Specific Impulse")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].isp, "s", 3), dataStyle);
+                if (settings.Get<bool>("Vessel: Mass")) GUILayout.Label(EngineerTools.WeightFormatter(stages[Staging.lastStage].mass, stages[Staging.lastStage].totalMass), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust (Maximum)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].thrust, Tools.SIUnitType.Force), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust (Throttle)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].actualThrust, Tools.SIUnitType.Force), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].actualThrustToWeight, 3), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Current)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].thrustToWeight, 3), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)", true)) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].thrust / (stages[Staging.lastStage].totalMass * (vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius, 2))), 3), dataStyle);
             }
-            else
-            {
-                if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].deltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[Staging.lastStage].time) + ")", dataStyle);
-            }
-            if (settings.Get<bool>("Vessel: DeltaV (Total)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].totalDeltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[Staging.lastStage].totalTime) + ")", dataStyle);
-            if (settings.Get<bool>("Vessel: Specific Impulse")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].isp, "s", 3), dataStyle);
-            if (settings.Get<bool>("Vessel: Mass")) GUILayout.Label(EngineerTools.WeightFormatter(stages[Staging.lastStage].mass, stages[Staging.lastStage].totalMass), dataStyle);
-            if (settings.Get<bool>("Vessel: Thrust (Maximum)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].thrust, Tools.SIUnitType.Force), dataStyle);
-            if (settings.Get<bool>("Vessel: Thrust (Throttle)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].actualThrust, Tools.SIUnitType.Force), dataStyle);
-            if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].actualThrustToWeight, 3), dataStyle);
-            if (settings.Get<bool>("Vessel: Thrust to Weight (Current)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].thrustToWeight, 3), dataStyle);
-            if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)", true)) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].thrust / (stages[Staging.lastStage].totalMass * (this.vessel.mainBody.gravParameter / Math.Pow(this.vessel.mainBody.Radius, 2))), 3), dataStyle);
+
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
         }

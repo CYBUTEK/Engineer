@@ -70,10 +70,15 @@ namespace Engineer.VesselSimulator
                 flowRate = thrust / (isp * 9.81d);
             }
 
+            StringBuilder buffer = new StringBuilder(1024);
+            buffer.AppendFormat("flowRate = {0:g6}\n", flowRate);
+
             float flowMass = 0f;
 
             foreach (Propellant propellant in propellants)
                 flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
+
+            buffer.AppendFormat("flowMass = {0:g6}\n", flowMass);
 
             foreach (Propellant propellant in propellants)
             {
@@ -81,9 +86,10 @@ namespace Engineer.VesselSimulator
                     continue;
 
                 double consumptionRate = propellant.ratio * flowRate / flowMass;
-                //MonoBehaviour.print("Add consumption(" + ResourceContainer.GetResourceName(propellant.id) + ", " + name + ":" + partId + ") = " + consumptionRate);
+                buffer.AppendFormat("Add consumption({0}, {1}:{2:d}) = {3:g6}\n", ResourceContainer.GetResourceName(propellant.id), theEngine.name, theEngine.partId, consumptionRate);
                 resourceConsumptions.Add(propellant.id, consumptionRate);
             }
+            MonoBehaviour.print(buffer);
         }
 
 
@@ -172,7 +178,7 @@ namespace Engineer.VesselSimulator
         public void DumpEngineToBuffer(StringBuilder buffer, String prefix)
         {
             buffer.Append(prefix);
-            buffer.AppendFormat("[thrust = {0:d}, actual = {1:d}, isp = {2:d}", thrust, actualThrust, isp);
+            buffer.AppendFormat("[thrust = {0:g6}, actual = {1:g6}, isp = {2:g6}\n", thrust, actualThrust, isp);
         }
 #endif
     }
