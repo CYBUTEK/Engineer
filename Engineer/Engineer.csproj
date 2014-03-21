@@ -46,6 +46,7 @@
     <Compile Include="BuildEngineer.cs" />
     <Compile Include="EngineerTools.cs" />
     <Compile Include="Extensions\PartExtensions.cs" />
+    <Compile Include="LogMsg.cs" />
     <Compile Include="TapeDriveAnimator.cs" />
     <Compile Include="Tools.cs" />
     <Compile Include="Version.cs" />
