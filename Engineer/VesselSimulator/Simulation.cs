@@ -264,7 +264,11 @@ namespace Engineer.VesselSimulator
 
                 // Store more values in the Stage object and stick it in the array
                 // Recalculate effective stage isp from the stageDeltaV (flip the standard deltaV calculation around)
-                stage.isp = stageDeltaV / (STD_GRAVITY * Math.Log(stageStartMass / ShipMass));
+                // Note: If the mass doesn't change then this is a divide by zero
+                if (stageStartMass != stepStartMass)
+                    stage.isp = stageDeltaV / (STD_GRAVITY * Math.Log(stageStartMass / stepStartMass));
+                else
+                    stage.isp = 0;
                 stage.deltaV = stageDeltaV;
                 // Zero stage time if more than a day (this should be moved into the window code)
                 stage.time = (stageTime < SECONDS_PER_DAY) ? stageTime : 0d;

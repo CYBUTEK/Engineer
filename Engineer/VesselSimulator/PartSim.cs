@@ -56,14 +56,16 @@ namespace Engineer.VesselSimulator
         public bool hasMultiModeEngine;
         public bool hasModuleEnginesFX;
         public bool hasModuleEngines;
+        public bool localCorrectThrust;
 
         public PartSim(Part thePart, int id, double atmosphere)
         {
             part = thePart;
             partId = id;
             name = part.partInfo.name;
-            //MonoBehaviour.print("Create PartSim for " + name);
-            
+#if LOG
+            MonoBehaviour.print("Create PartSim for " + name);
+#endif
             parent = null;
             fuelCrossFeed = part.fuelCrossFeed;
             noCrossFeedNodeKey = part.NoCrossFeedNodeKey;
@@ -89,7 +91,9 @@ namespace Engineer.VesselSimulator
                 // This can happen if a resource capacity is 0 and tweakable
                 if (!Double.IsNaN(resource.amount))
                 {
-                    //MonoBehaviour.print(resource.resourceName + " = " + resource.amount);
+#if LOG
+                    MonoBehaviour.print(resource.resourceName + " = " + resource.amount);
+#endif
                     resources.Add(resource.info.id, resource.amount);
                     resourceFlowStates.Add(resource.info.id, resource.flowState ? 1 : 0);
                 }
@@ -110,11 +114,14 @@ namespace Engineer.VesselSimulator
 
             isEngine = hasMultiModeEngine || hasModuleEnginesFX || hasModuleEngines;
 
-            //MonoBehaviour.print("Created " + name + ". Decoupled in stage " + decoupledInStage);
+#if LOG
+            MonoBehaviour.print("Created " + name + ". Decoupled in stage " + decoupledInStage);
+#endif
         }
 
         public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere)
         {
+#if LOG
             LogMsg log = new LogMsg();
             log.buf.AppendLine("CreateEngineSims for " + name);
 
@@ -122,7 +129,7 @@ namespace Engineer.VesselSimulator
             {
                 log.buf.AppendLine("Module: " + partMod.moduleName);
             }
-
+#endif
             if (hasMultiModeEngine)
             {
                 // A multi-mode engine has multiple ModuleEnginesFX but only one is active at any point
@@ -177,8 +184,9 @@ namespace Engineer.VesselSimulator
                     }
                 }
             }
-
+#if LOG
             log.Flush();
+#endif
         }
 
 
@@ -187,11 +195,14 @@ namespace Engineer.VesselSimulator
             attachNodes.Clear();
             foreach (AttachNode attachNode in part.attachNodes)
             {
-                if (attachNode.attachedPart != null)
+                if (attachNode.attachedPart != null && attachNode.id != "Strut")
                 {
                     PartSim attachedSim;
                     if (partSimLookup.TryGetValue(attachNode.attachedPart, out attachedSim))
                     {
+#if LOG
+                        MonoBehaviour.print("Adding attached node " + attachedSim.name + ":" + attachedSim.partId + "");
+#endif
                         attachNodes.Add(new AttachNodeSim(attachedSim, attachNode.id, attachNode.nodeType));
                     }
                     else
@@ -208,6 +219,9 @@ namespace Engineer.VesselSimulator
                     PartSim targetSim;
                     if (partSimLookup.TryGetValue((this.part as FuelLine).target, out targetSim))
                     {
+#if LOG
+                        MonoBehaviour.print("Fuel line target is " + targetSim.name + ":" + targetSim.partId + "");
+#endif
                         fuelLineTarget = targetSim;
                     }
                 }
@@ -299,19 +313,24 @@ namespace Engineer.VesselSimulator
 
         public HashSet<PartSim> GetSourceSet(int type, List<PartSim> allParts, List<PartSim> allFuelLines, HashSet<PartSim> visited)
         {
-            //MonoBehaviour.print("GetSourceSet(" + ResourceContainer.GetResourceName(type) + ") for " + name + ":" + partId);
-
+#if LOG
+            MonoBehaviour.print("GetSourceSet(" + ResourceContainer.GetResourceName(type) + ") for " + name + ":" + partId);
+#endif
             HashSet<PartSim> allSources = new HashSet<PartSim>();
             HashSet<PartSim> partSources = new HashSet<PartSim>();
 
             // Rule 1: Each part can be only visited once, If it is visited for second time in particular search it returns empty list.
             if (visited.Contains(this))
             {
-                //MonoBehaviour.print("Returning empty set, already visited (" + name + ":" + partId + ")");
+#if LOG
+                MonoBehaviour.print("Returning empty set, already visited (" + name + ":" + partId + ")");
+#endif
                 return allSources;
             }
 
-            //MonoBehaviour.print("Adding this to visited");
+#if LOG
+            MonoBehaviour.print("Adding this to visited");
+#endif
             visited.Add(this);
 
             // Rule 2: Part performs scan on start of every fuel pipe ending in it. This scan is done in order in which pipes were installed. Then it makes an union of fuel tank sets each pipe scan returned. If the resulting list is not empty, it is returned as result.
@@ -320,7 +339,9 @@ namespace Engineer.VesselSimulator
             {
                 if (partSim.fuelLineTarget == this)
                 {
-                    //MonoBehaviour.print("Adding fuel line as source (" + partSim.name + ":" + partSim.partId + ")");
+#if LOG
+                    MonoBehaviour.print("Adding fuel line as source (" + partSim.name + ":" + partSim.partId + ")");
+#endif
                     partSources = partSim.GetSourceSet(type, allParts, allFuelLines, visited);
                     if (partSources.Count > 0)
                     {
@@ -332,7 +353,9 @@ namespace Engineer.VesselSimulator
 
             if (allSources.Count > 0)
             {
-                //MonoBehaviour.print("Returning " + allSources.Count + " fuel line sources (" + name + ":" + partId + ")");
+#if LOG
+                MonoBehaviour.print("Returning " + allSources.Count + " fuel line sources (" + name + ":" + partId + ")");
+#endif
                 return allSources;
             }
 
@@ -340,7 +363,9 @@ namespace Engineer.VesselSimulator
             //MonoBehaviour.print("Test crossfeed");
             if (!fuelCrossFeed)
             {
-                //MonoBehaviour.print("Returning empty set, no cross feed (" + name + ":" + partId + ")");
+#if LOG
+                MonoBehaviour.print("Returning empty set, no cross feed (" + name + ":" + partId + ")");
+#endif
                 return allSources;
             }
 
@@ -357,7 +382,9 @@ namespace Engineer.VesselSimulator
                         (attachSim.attachedPartSim.fuelCrossFeed || attachSim.attachedPartSim.isFuelTank) &&
                         !(noCrossFeedNodeKey != null && noCrossFeedNodeKey.Length > 0 && attachSim.id.Contains(noCrossFeedNodeKey)))
                     {
-                        //MonoBehaviour.print("Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+#if LOG
+                        MonoBehaviour.print("Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+#endif
                         partSources = attachSim.attachedPartSim.GetSourceSet(type, allParts, allFuelLines, visited);
                         if (partSources.Count > 0)
                         {
@@ -370,19 +397,25 @@ namespace Engineer.VesselSimulator
 
             if (allSources.Count > 0)
             {
-                //MonoBehaviour.print("Returning " + allSources.Count + " attached sources (" + name + ":" + partId + ")");
+#if LOG
+                MonoBehaviour.print("Returning " + allSources.Count + " attached sources (" + name + ":" + partId + ")");
+#endif
                 return allSources;
             }
 
             // Rule 5: If the part is fuel container for searched type of fuel (i.e. it has capability to contain that type of fuel and the fuel type was not disabled [Experiment]) and it contains fuel, it returns itself.
             // Rule 6: If the part is fuel container for searched type of fuel (i.e. it has capability to contain that type of fuel and the fuel type was not disabled) but it does not contain the requested fuel, it returns empty list. [Experiment]
-            //MonoBehaviour.print("testing enabled container");
+#if LOG
+            MonoBehaviour.print("testing enabled container");
+#endif
             if (resources.HasType(type) && resourceFlowStates[type] != 0)
             {
                 if (resources[type] > 1f)
                     allSources.Add(this);
 
-                //MonoBehaviour.print("Returning this as only source (" + name + ":" + partId + ")");
+#if LOG
+                MonoBehaviour.print("Returning this as only source (" + name + ":" + partId + ")");
+#endif
                 return allSources;
             }
 
@@ -392,13 +425,17 @@ namespace Engineer.VesselSimulator
                 allSources = parent.GetSourceSet(type, allParts, allFuelLines, visited);
                 if (allSources.Count > 0)
                 {
-                    //MonoBehaviour.print("Returning " + allSources.Count + " parent sources (" + name + ":" + partId + ")");
+#if LOG
+                    MonoBehaviour.print("Returning " + allSources.Count + " parent sources (" + name + ":" + partId + ")");
+#endif
                     return allSources;
                 }
             }
 
             // Rule 8: If all preceding rules failed, part returns empty list.
-            //MonoBehaviour.print("Returning empty set, no sources found (" + name + ":" + partId + ")");
+#if LOG
+            MonoBehaviour.print("Returning empty set, no sources found (" + name + ":" + partId + ")");
+#endif
             return allSources;
         }
 
@@ -501,6 +538,12 @@ namespace Engineer.VesselSimulator
             buffer.Append(name);
             buffer.AppendFormat(":[id = {0:d}, decouple = {1:d}, invstage = {2:d}", partId, decoupledInStage, inverseStage);
 
+            buffer.AppendFormat(", fuelCF = {0}", fuelCrossFeed);
+            buffer.AppendFormat(", noCFNKey = '{0}'", noCrossFeedNodeKey);
+
+            if (isFuelLine)
+                buffer.AppendFormat(", fuelLineTarget = {0:d}", fuelLineTarget.partId);
+            
             buffer.AppendFormat(", isSep = {0}", isSepratron);
 
             foreach (int type in resources.Types)

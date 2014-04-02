@@ -23,8 +23,85 @@ namespace Engineer.VesselSimulator
         public static double Gravity { get; set; }
         public static double Atmosphere { get; set; }
 
+
+        private static bool hasCheckedForRealFuels = false;
+        private static bool hasInstalledRealFuels = false;
+
+        private static Type RF_ModuleEngineConfigs_Type = null;
+        private static Type RF_ModuleHybridEngine_Type = null;
+
+        private static System.Reflection.FieldInfo RF_ModuleEngineConfigs_locaCorrectThrust = null;
+        private static System.Reflection.FieldInfo RF_ModuleHybridEngine_locaCorrectThrust = null;
+
+        private static void GetRealFuelsTypes()
+        {
+			hasCheckedForRealFuels = true;
+
+			foreach (AssemblyLoader.LoadedAssembly assembly in AssemblyLoader.loadedAssemblies)
+            {
+                //MonoBehaviour.print("Assembly:" + assembly.assembly.ToString());
+
+                if (assembly.assembly.ToString().Split(',')[0] == "modularFuelTanks")
+                {
+                    MonoBehaviour.print("Found RealFuels mod (modularFuelTanks)");
+
+					RF_ModuleEngineConfigs_Type = assembly.assembly.GetType("ModularFuelTanks.ModuleEngineConfigs");
+                    if (RF_ModuleEngineConfigs_Type == null)
+                    {
+                        MonoBehaviour.print("Failed to find ModuleEngineConfigs type");
+                        break;
+                    }
+
+                    RF_ModuleEngineConfigs_locaCorrectThrust = RF_ModuleEngineConfigs_Type.GetField("localCorrectThrust");
+                    if (RF_ModuleEngineConfigs_locaCorrectThrust == null)
+                    {
+                        MonoBehaviour.print("Failed to find ModuleEngineConfigs.localCorrectThrust field");
+                        break;
+                    }
+
+					RF_ModuleHybridEngine_Type = assembly.assembly.GetType ("ModularFuelTanks.ModuleHybridEngine");
+                    if (RF_ModuleHybridEngine_Type == null)
+                    {
+                        MonoBehaviour.print("Failed to find ModuleHybridEngine type");
+                        break;
+                    }
+                    
+                    RF_ModuleHybridEngine_locaCorrectThrust = RF_ModuleHybridEngine_Type.GetField("localCorrectThrust");
+                    if (RF_ModuleHybridEngine_locaCorrectThrust == null)
+                    {
+                        MonoBehaviour.print("Failed to find ModuleHybridEngine.localCorrectThrust field");
+                        break;
+                    }
+                    
+					hasInstalledRealFuels = true;
+					break;
+				}
+
+			}
+
+		}
+
+        public static bool DoesEngineUseCorrectedThrust(Part theEngine)
+        {
+            if (!hasInstalledRealFuels)
+                return false;
+
+            // Look for either of the Real Fuels engine modules and call the relevant method to find out
+
+            
+            // Check the localCorrectThrust
+            // RF_ModuleEngineConfigs_locaCorrectThrust.GetValue(module)
+
+
+            return false;
+        }
+
+
         public static void RequestSimulation()
         {
+            if (!hasCheckedForRealFuels)
+                GetRealFuelsTypes();
+
             bRequested = true;
             if (!timer.IsRunning)
                 timer.Start();
@@ -108,7 +185,9 @@ namespace Engineer.VesselSimulator
 
             timer.Stop();
             MonoBehaviour.print("RunSimulation took " + timer.ElapsedMilliseconds + "ms");
-            delayBetweenSims = 10 * timer.ElapsedMilliseconds;
+            delayBetweenSims = 100 - timer.ElapsedMilliseconds;
+            if (delayBetweenSims < 0)
+                delayBetweenSims = 0;
 
             timer.Reset();
             timer.Start();
