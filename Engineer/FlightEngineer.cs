@@ -33,6 +33,10 @@ namespace Engineer
         public GUIStyle headingStyle, dataStyle, windowStyle, buttonStyle, areaStyle;
         bool hasInitStyles = false;
 
+        bool surfaceOpen = false;
+        double maxDiff = 0;
+        double heightMaxDiff = 0;
+
         Stage[] stages = null;
         String failMessage;
         double stageDeltaV = 0d;
@@ -197,7 +201,18 @@ namespace Engineer
 
             if (settings.Get<bool>("_SAVEONCHANGE_SHOW_SURFACE"))
             {
+                if (!surfaceOpen)
+                {
+                    // Reset any appropriate values
+                    maxDiff = 0;
+                    heightMaxDiff = 0;
+                }
+                surfaceOpen = true;
                 DrawSurface();
+            }
+            else
+            {
+                surfaceOpen = false;
             }
 
             if (settings.Get<bool>("_SAVEONCHANGE_SHOW_VESSEL"))
@@ -474,9 +489,12 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Altitude (Terrain)", true)) GUILayout.Label("Altitude (Terrain)", headingStyle);
 #if TERRAINTEST
             if (settings.Get<bool>("Surface: terrainAltitude", true)) GUILayout.Label("terrainAltitude", headingStyle);
-            if (settings.Get<bool>("Surface: heightFromSurface", true)) GUILayout.Label("heightFromSurface", headingStyle);
-            if (settings.Get<bool>("Surface: heightFromTerrain", true)) GUILayout.Label("heightFromTerrain", headingStyle);
             if (settings.Get<bool>("Surface: pqsAltitude", true)) GUILayout.Label("pqsAltitude", headingStyle);
+            if (settings.Get<bool>("Surface: diff", true)) GUILayout.Label("diff", headingStyle);
+            if (settings.Get<bool>("Surface: maxDiff", true)) GUILayout.Label("maxDiff", headingStyle);
+            if (settings.Get<bool>("Surface: heightFromTerrain", true)) GUILayout.Label("heightFromTerrain", headingStyle);
+            if (settings.Get<bool>("Surface: heightDiff", true)) GUILayout.Label("heightDiff", headingStyle);
+            if (settings.Get<bool>("Surface: heightMaxDiff", true)) GUILayout.Label("heightMaxDiff", headingStyle);
 #endif
             if (settings.Get<bool>("Surface: Vertical Speed", true)) GUILayout.Label("Vertical Speed", headingStyle);
             if (settings.Get<bool>("Surface: Horizontal Speed", true)) GUILayout.Label("Horizontal Speed", headingStyle);
@@ -511,13 +529,26 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Altitude (Terrain)")) GUILayout.Label(Tools.FormatSI(altT, Tools.SIUnitType.Distance), dataStyle);
 #if TERRAINTEST
             double terrainAltitude = vessel.terrainAltitude;
-            double heightFromSurface = vessel.heightFromSurface;
-            double heightFromTerrain = vessel.heightFromTerrain;
             double pqsAltitude = vessel.pqsAltitude;
+            //double heightFromSurface = vessel.heightFromSurface;
+            double heightFromTerrain = vessel.heightFromTerrain;
+            double diff = terrainAltitude - pqsAltitude;
+            if (Math.Abs(diff) > Math.Abs(maxDiff))
+                maxDiff = diff;
+            double heightDiff = 0;
+            if (heightFromTerrain != -1)
+            {
+                heightDiff = altT - heightFromTerrain;
+                if (Math.Abs(heightDiff) > Math.Abs(heightMaxDiff))
+                    maxDiff = diff;
+            }
             if (settings.Get<bool>("Surface: terrainAltitude")) GUILayout.Label(Tools.FormatSI(terrainAltitude, Tools.SIUnitType.Distance), dataStyle);
-            if (settings.Get<bool>("Surface: heightFromSurface")) GUILayout.Label(Tools.FormatSI(heightFromSurface, Tools.SIUnitType.Distance), dataStyle);
-            if (settings.Get<bool>("Surface: heightFromTerrain")) GUILayout.Label(Tools.FormatSI(heightFromTerrain, Tools.SIUnitType.Distance), dataStyle);
             if (settings.Get<bool>("Surface: pqsAltitude")) GUILayout.Label(Tools.FormatSI(pqsAltitude, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Surface: diff")) GUILayout.Label(Tools.FormatSI(diff, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Surface: maxDiff")) GUILayout.Label(Tools.FormatSI(maxDiff, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Surface: heightFromTerrain")) GUILayout.Label(Tools.FormatSI(heightFromTerrain, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Surface: heightDiff")) GUILayout.Label(Tools.FormatSI(heightDiff, Tools.SIUnitType.Distance), dataStyle);
+            if (settings.Get<bool>("Surface: heightMaxDiff")) GUILayout.Label(Tools.FormatSI(heightMaxDiff, Tools.SIUnitType.Distance), dataStyle);
 #endif
             if (settings.Get<bool>("Surface: Vertical Speed")) GUILayout.Label(Tools.FormatSI(vessel.verticalSpeed, Tools.SIUnitType.Speed), dataStyle);
             if (settings.Get<bool>("Surface: Horizontal Speed")) GUILayout.Label(Tools.FormatSI(vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), dataStyle);
@@ -603,7 +634,7 @@ namespace Engineer
             if (stages == null)
             {
                 GUILayout.Label("Simulation failed:", headingStyle);
-                GUILayout.TextArea(failMessage, dataStyle);
+                GUILayout.Label(failMessage == "" ? "No fail message" : failMessage, dataStyle);
             }
             else
             {

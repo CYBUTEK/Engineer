@@ -297,7 +297,7 @@ namespace Engineer
             GUILayout.BeginVertical();
 
             GUILayout.Label("Simulation failed:", headingStyle);
-            GUILayout.TextArea(failMessage, dataStyle);
+            GUILayout.Label(failMessage == "" ? "No fail message" : failMessage, dataStyle);
 
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
