@@ -69,27 +69,31 @@ namespace Engineer.VesselSimulator
                 isp = atmosphereCurve.Evaluate((float)atmosphere);
                 flowRate = thrust / (isp * 9.81d);
             }
-
+#if LOG
             StringBuilder buffer = new StringBuilder(1024);
             buffer.AppendFormat("flowRate = {0:g6}\n", flowRate);
-
+#endif
             float flowMass = 0f;
 
             foreach (Propellant propellant in propellants)
                 flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
-
+#if LOG
             buffer.AppendFormat("flowMass = {0:g6}\n", flowMass);
-
+#endif
             foreach (Propellant propellant in propellants)
             {
                 if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
                     continue;
 
                 double consumptionRate = propellant.ratio * flowRate / flowMass;
+#if LOG
                 buffer.AppendFormat("Add consumption({0}, {1}:{2:d}) = {3:g6}\n", ResourceContainer.GetResourceName(propellant.id), theEngine.name, theEngine.partId, consumptionRate);
+#endif
                 resourceConsumptions.Add(propellant.id, consumptionRate);
             }
+#if LOG
             MonoBehaviour.print(buffer);
+#endif
         }
 
 
