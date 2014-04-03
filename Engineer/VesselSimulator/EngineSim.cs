@@ -129,6 +129,46 @@ namespace Engineer.VesselSimulator
                         }
                         break;
 
+                    case ResourceFlowMode.STAGE_PRIORITY_FLOW:
+                        {
+                            Dictionary<int, HashSet<PartSim>> stagePartSets = new Dictionary<int, HashSet<PartSim>>();
+                            int maxStage = -1;
+                            foreach (PartSim aPartSim in allParts)
+                            {
+                                if (aPartSim.resources[type] > 1f)
+                                {
+                                    int stage = aPartSim.decoupledInStage;
+                                    if (stage > maxStage)
+                                        maxStage = stage;
+                                    if (stagePartSets.ContainsKey(stage))
+                                    {
+                                        sourcePartSet = stagePartSets[stage];
+                                    }
+                                    else
+                                    {
+                                        sourcePartSet = new HashSet<PartSim>();
+                                        stagePartSets.Add(stage, sourcePartSet);
+                                    }
+                                    
+                                    sourcePartSet.Add(aPartSim);
+                                }
+                            }
+
+                            while (maxStage >= 0)
+                            {
+                                if (stagePartSets.ContainsKey(maxStage))
+                                {
+                                    if (stagePartSets[maxStage].Count() > 0)
+                                    {
+                                        sourcePartSet = stagePartSets[maxStage];
+                                        break;
+                                    }
+                                }
+                                maxStage--;
+                            }
+                        }
+                        break;
+
                     case ResourceFlowMode.STACK_PRIORITY_SEARCH:
                         HashSet<PartSim> visited = new HashSet<PartSim>();
                         sourcePartSet = partSim.GetSourceSet(type, allParts, allFuelLines, visited);
