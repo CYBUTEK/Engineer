@@ -34,9 +34,10 @@ namespace Engineer
         bool hasInitStyles = false;
 
         bool surfaceOpen = false;
+#if TERRAINTEST
         double maxDiff = 0;
         double heightMaxDiff = 0;
-
+#endif
         Stage[] stages = null;
         String failMessage;
         double stageDeltaV = 0d;
@@ -204,8 +205,10 @@ namespace Engineer
                 if (!surfaceOpen)
                 {
                     // Reset any appropriate values
+#if TERRAINTEST
                     maxDiff = 0;
                     heightMaxDiff = 0;
+#endif
                 }
                 surfaceOpen = true;
                 DrawSurface();
