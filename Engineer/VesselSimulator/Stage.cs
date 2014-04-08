@@ -20,6 +20,7 @@ namespace Engineer.VesselSimulator
         public double thrust = 0f;
         public double actualThrust = 0f;
         public double thrustToWeight = 0f;
+        public double maxThrustToWeight = 0f;
         public double actualThrustToWeight = 0f;
         public double deltaV = 0f;
         public double totalDeltaV = 0f;
@@ -39,6 +40,7 @@ namespace Engineer.VesselSimulator
             str.AppendFormat("thrust        : {0:g6}\n", thrust);
             str.AppendFormat("actualThrust  : {0:g6}\n", actualThrust);
             str.AppendFormat("thrustToWeight: {0:g6}\n", thrustToWeight);
+            str.AppendFormat("maxTWR        : {0:g6}\n", maxThrustToWeight);
             str.AppendFormat("actualTWR     : {0:g6}\n", actualThrustToWeight);
             str.AppendFormat("deltaV        : {0:g6}\n", deltaV);
             str.AppendFormat("totalDeltaV   : {0:g6}\n", totalDeltaV);

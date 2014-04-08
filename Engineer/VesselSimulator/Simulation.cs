@@ -179,9 +179,13 @@ namespace Engineer.VesselSimulator
 
                 // Store various things in the Stage object
                 stage.thrust = totalStageThrust;
-                stage.thrustToWeight = (double)(totalStageThrust / (stageStartMass * gravity));
+                //MonoBehaviour.print("stage.thrust = " + stage.thrust);
+                stage.thrustToWeight = totalStageThrust / (stageStartMass * gravity);
+                stage.maxThrustToWeight = stage.thrustToWeight;
+                //MonoBehaviour.print("StageMass = " + stageStartMass);
+                //MonoBehaviour.print("Initial maxTWR = " + stage.maxThrustToWeight);
                 stage.actualThrust = totalStageActualThrust;
-                stage.actualThrustToWeight = (double)(totalStageActualThrust / (stageStartMass * gravity));
+                stage.actualThrustToWeight = totalStageActualThrust / (stageStartMass * gravity);
 
                 // Calculate the cost and mass of this stage
                 foreach (PartSim partSim in allParts)
@@ -220,6 +224,15 @@ namespace Engineer.VesselSimulator
                     stepEndMass = ShipMass;
                     stageTime += resourceDrainTime;
 
+                    double stepEndTWR = totalStageThrust / (stepEndMass * gravity);
+                    //MonoBehaviour.print("After drain mass = " + stepEndMass);
+                    //MonoBehaviour.print("currentThrust = " + totalStageThrust);
+                    //MonoBehaviour.print("currentTWR = " + stepEndTWR);
+                    if (stepEndTWR > stage.maxThrustToWeight)
+                        stage.maxThrustToWeight = stepEndTWR;
+
+                    //MonoBehaviour.print("newMaxTWR = " + stage.maxThrustToWeight);
+
                     // If we have drained anything and the masses make sense then add this step's deltaV to the stage total
                     if (resourceDrainTime > 0d && stepStartMass > stepEndMass && stepStartMass > 0d && stepEndMass > 0d)
                         stageDeltaV += (currentisp * STD_GRAVITY) * Math.Log(stepStartMass / stepEndMass);
@@ -227,14 +240,21 @@ namespace Engineer.VesselSimulator
                     // Update the active engines and resource drains for the next step
                     UpdateResourceDrains();
 
-                    // Recalculate the current isp for the next step
+                    // Recalculate the current thrust and isp for the next step
+                    totalStageThrust = 0d;
+                    totalStageActualThrust = 0d;
                     totalStageFlowRate = 0d;
                     totalStageIspFlowRate = 0d;
                     foreach (EngineSim engine in activeEngines)
                     {
+                        totalStageActualThrust += engine.actualThrust;
+                        totalStageThrust += engine.thrust;
+
                         totalStageFlowRate += engine.ResourceConsumptions.Mass;
                         totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
                     }
+
+                    //MonoBehaviour.print("next step thrust = " + totalStageThrust);
 
                     if (totalStageFlowRate > 0d && totalStageIspFlowRate > 0d)
                         currentisp = totalStageIspFlowRate / totalStageFlowRate;

@@ -209,7 +209,7 @@ namespace Engineer
         {
             if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
             {
-                GUILayout.BeginHorizontal(GUILayout.Width(700));
+                GUILayout.BeginHorizontal(GUILayout.Width(740));
                 settings.Set("_SAVEONCHANGE_SHOW_MAIN", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_MAIN", true), "Main Display", buttonStyle));
                 settings.Set("_SAVEONCHANGE_SHOW_REFERENCES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_REFERENCES", true), "Reference Bodies", buttonStyle));
                 settings.Set("_SAVEONCHANGE_USE_ATMOSPHERE", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_USE_ATMOSPHERE", false), "Atmospheric Stats", buttonStyle));
@@ -217,7 +217,7 @@ namespace Engineer
             }
             else
             {
-                GUILayout.BeginHorizontal(GUILayout.Width(215));
+                GUILayout.BeginHorizontal(GUILayout.Width(255));
             }
             settings.Set("_SAVEONCHANGE_COMPACT", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_COMPACT", false), "Compact", buttonStyle));
             GUILayout.EndHorizontal();
@@ -446,8 +446,8 @@ namespace Engineer
 
         private void DrawTWR(Stage[] stages)
         {
-            GUILayout.BeginVertical(GUILayout.Width(50));
-            GUILayout.Label("TWR", headingStyle);
+            GUILayout.BeginVertical(GUILayout.Width(90));
+            GUILayout.Label("TWR (Max)", headingStyle);
 
             for (int i = 0; i < stages.Length; i++)
             {
@@ -456,7 +456,7 @@ namespace Engineer
                     continue;
                 }
 
-                GUILayout.Label(EngineerTools.SimpleFormatter(stages[i].thrustToWeight, "", 2), dataStyle);
+                GUILayout.Label(EngineerTools.SimpleFormatter(stages[i].thrustToWeight, "", 2) + " (" + EngineerTools.SimpleFormatter(stages[i].maxThrustToWeight, "", 2) + ")", dataStyle);
             }
 
             GUILayout.EndVertical();
