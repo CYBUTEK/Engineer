@@ -56,6 +56,7 @@ namespace Engineer.VesselSimulator
         public bool hasMultiModeEngine;
         public bool hasModuleEnginesFX;
         public bool hasModuleEngines;
+        public bool isNoPhysics;
         public bool localCorrectThrust;
 
         public PartSim(Part thePart, int id, double atmosphere)
@@ -82,9 +83,17 @@ namespace Engineer.VesselSimulator
 
             cost = part.partInfo.cost;
 
-            if (!part.Modules.Contains("LaunchClamp") && part.physicalSignificance == Part.PhysicalSignificance.FULL)
-                baseMass = part.mass;
+            // Work out if the part should have no physical significance
+            isNoPhysics = part.HasModule<ModuleLandingGear>() ||
+                            part.HasModule<LaunchClamp>() ||
+                            part.physicalSignificance == Part.PhysicalSignificance.NONE ||
+                            part.PhysicsSignificance == 1;
 
+            if (!isNoPhysics)
+                baseMass = part.mass;
+#if LOG
+            MonoBehaviour.print((isNoPhysics ? "Ignoring" : "Using") + " part.mass of " + part.mass);
+#endif
             foreach (PartResource resource in part.Resources)
             {
                 // Make sure it isn't NaN as this messes up the part mass and hence most of the values
@@ -113,7 +122,6 @@ namespace Engineer.VesselSimulator
             hasModuleEngines = part.HasModule<ModuleEngines>();
 
             isEngine = hasMultiModeEngine || hasModuleEnginesFX || hasModuleEngines;
-
 #if LOG
             MonoBehaviour.print("Created " + name + ". Decoupled in stage " + decoupledInStage);
 #endif
