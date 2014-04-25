@@ -32,41 +32,62 @@ namespace Engineer.VesselSimulator
                             float requestedThrust,
                             FloatCurve atmosphereCurve,
                             bool throttleLocked,
-                            List<Propellant> propellants)
+                            List<Propellant> propellants,
+                            bool correctThrust)
         {
+            //MonoBehaviour.print("Create EngineSim for " + theEngine.name);
+            //MonoBehaviour.print("maxThrust = " + maxThrust);
+            //MonoBehaviour.print("thrustPercentage = " + thrustPercentage);
+            //MonoBehaviour.print("requestedThrust = " + requestedThrust);
+
             partSim = theEngine;
 
             thrust = maxThrust * (thrustPercentage / 100f);
+            //MonoBehaviour.print("thrust = " + thrust);
 
             double flowRate = 0d;
             if (partSim.hasVessel)
             {
+                //MonoBehaviour.print("hasVessel is true");
                 actualThrust = requestedThrust;
                 isp = atmosphereCurve.Evaluate((float)partSim.part.staticPressureAtm);
 
                 if (throttleLocked)
                 {
+                    //MonoBehaviour.print("throttleLocked is true");
                     flowRate = thrust / (isp * 9.81d);
                 }
                 else
                 {
                     if (partSim.isLanded)
                     {
-                        // Why does it force a non-zero flow rate when landed?
+                        //MonoBehaviour.print("partSim.isLanded is true, mainThrottle = " + FlightInputHandler.state.mainThrottle);
                         flowRate = Math.Max(0.000001d, thrust * FlightInputHandler.state.mainThrottle) / (isp * 9.81d);
                     }
                     else
                     {
                         if (requestedThrust > 0)
+                        {
+                            //MonoBehaviour.print("requestedThrust > 0");
                             flowRate = requestedThrust / (isp * 9.81d);
+                        }
                         else
+                        {
+                            //MonoBehaviour.print("requestedThrust <= 0");
                             flowRate = thrust / (isp * 9.81d);
+                        }
                     }
                 }
             }
             else
             {
+                //MonoBehaviour.print("hasVessel is false");
                 isp = atmosphereCurve.Evaluate((float)atmosphere);
+                if (correctThrust)
+                {
+                    thrust = thrust * isp / atmosphereCurve.Evaluate(0);
+                    //MonoBehaviour.print("corrected thrust = " + thrust);
+                }
                 flowRate = thrust / (isp * 9.81d);
             }
 #if LOG

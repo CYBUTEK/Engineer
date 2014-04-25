@@ -129,6 +129,8 @@ namespace Engineer.VesselSimulator
 
         public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere)
         {
+            bool correctThrust = SimManager.DoesEngineUseCorrectedThrust(part);
+            //MonoBehaviour.print("Engine " + name + " correctThrust = " + correctThrust);
 #if LOG
             LogMsg log = new LogMsg();
             log.buf.AppendLine("CreateEngineSims for " + name);
@@ -137,7 +139,10 @@ namespace Engineer.VesselSimulator
             {
                 log.buf.AppendLine("Module: " + partMod.moduleName);
             }
+
+            log.buf.AppendLine("correctThrust = " + correctThrust);
 #endif
+
             if (hasMultiModeEngine)
             {
                 // A multi-mode engine has multiple ModuleEnginesFX but only one is active at any point
@@ -154,7 +159,8 @@ namespace Engineer.VesselSimulator
                                                             engine.requestedThrust,
                                                             engine.atmosphereCurve,
                                                             engine.throttleLocked,
-                                                            engine.propellants);
+                                                            engine.propellants,
+                                                            correctThrust);
                         allEngines.Add(engineSim);
                     }
                 }
@@ -172,7 +178,8 @@ namespace Engineer.VesselSimulator
                                                             engine.requestedThrust,
                                                             engine.atmosphereCurve,
                                                             engine.throttleLocked,
-                                                            engine.propellants);
+                                                            engine.propellants,
+                                                            correctThrust);
                         allEngines.Add(engineSim);
                     }
                 }
@@ -187,7 +194,8 @@ namespace Engineer.VesselSimulator
                                                             engine.requestedThrust,
                                                             engine.atmosphereCurve,
                                                             engine.throttleLocked,
-                                                            engine.propellants);
+                                                            engine.propellants,
+                                                            correctThrust);
                         allEngines.Add(engineSim);
                     }
                 }
@@ -325,7 +333,7 @@ namespace Engineer.VesselSimulator
             MonoBehaviour.print("GetSourceSet(" + ResourceContainer.GetResourceName(type) + ") for " + name + ":" + partId);
 #endif
             HashSet<PartSim> allSources = new HashSet<PartSim>();
-            HashSet<PartSim> partSources = new HashSet<PartSim>();
+            HashSet<PartSim> partSources = null;
 
             // Rule 1: Each part can be only visited once, If it is visited for second time in particular search it returns empty list.
             if (visited.Contains(this))
