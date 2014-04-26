@@ -30,6 +30,7 @@ namespace Engineer.VesselSimulator
                             float maxThrust,
                             float thrustPercentage,
                             float requestedThrust,
+                            float realIsp,
                             FloatCurve atmosphereCurve,
                             bool throttleLocked,
                             List<Propellant> propellants,
@@ -51,6 +52,12 @@ namespace Engineer.VesselSimulator
                 //MonoBehaviour.print("hasVessel is true");
                 actualThrust = requestedThrust;
                 isp = atmosphereCurve.Evaluate((float)partSim.part.staticPressureAtm);
+
+                if (correctThrust && realIsp == 0)
+                {
+                    thrust = thrust * isp / atmosphereCurve.Evaluate(0);
+                    //MonoBehaviour.print("corrected thrust = " + thrust);
+                }
 
                 if (throttleLocked)
                 {
