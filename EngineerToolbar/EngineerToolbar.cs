@@ -44,20 +44,6 @@ namespace EngineerToolbar
             }
         }
 
-        private void LateUpdate()
-        {
-            if (HighLogic.LoadedSceneIsEditor)
-            {
-                SetButtonVisibility(BuildEngineer.isActive);
-                BuildEngineer.isActive = false;
-            }
-            else if (HighLogic.LoadedSceneIsFlight)
-            {
-                SetButtonVisibility(FlightEngineer.isActive);
-                FlightEngineer.isActive = false;
-            }
-        }
-
         private void OnDestroy()
         {
             if (button != null)

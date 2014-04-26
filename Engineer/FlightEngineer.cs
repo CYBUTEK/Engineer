@@ -15,7 +15,6 @@ namespace Engineer
     public class FlightEngineer : PartModule
     {
         public static bool isVisible = true;
-        public static bool isActive = false;
 
         public Settings settings = new Settings();
         Version version = new Version();
@@ -149,7 +148,6 @@ namespace Engineer
 
                     SimManager.Gravity = vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius + vessel.mainBody.GetAltitude(vessel.CoM), 2);
                     SimManager.TryStartSimulation();
-                    isActive = true;
                 }
             }
         }

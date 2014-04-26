@@ -14,7 +14,6 @@ namespace Engineer
     public class BuildEngineer : PartModule
     {
         public static bool isVisible = true;
-        public static bool isActive = false;
 
         Version version = new Version();
         Settings settings = new Settings();
@@ -161,7 +160,6 @@ namespace Engineer
                 failMessage = SimManager.failMessage;
                 
                 SimManager.TryStartSimulation();
-                isActive = true;
             }
         }
 
