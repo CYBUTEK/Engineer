@@ -13,6 +13,10 @@ namespace Engineer
 {
     public class BuildEngineer : PartModule
     {
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Pressure %"),
+         UI_FloatRange(minValue = 0.0f, maxValue = 100.0f, stepIncrement = 1.0f, scene = UI_Scene.Editor)]
+        public float percentASP = 100.0f;      // The percentage of sea-level pressure to use for "atmospheric stats"
+
         public static bool isVisible = true;
 
         Version version = new Version();
@@ -224,7 +228,7 @@ namespace Engineer
 
             if (settings.Get<bool>("_SAVEONCHANGE_USE_ATMOSPHERE"))
             {
-                SimManager.Atmosphere = referenceBody.atmosphere;
+                SimManager.Atmosphere = referenceBody.atmosphere * percentASP / 100.0;
             }
             else
             {
