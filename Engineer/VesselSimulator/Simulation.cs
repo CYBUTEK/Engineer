@@ -464,21 +464,6 @@ namespace Engineer.VesselSimulator
             }
         }
 
-
-        private bool StageHasSolids
-        {
-            get
-            {
-                foreach (EngineSim engine in activeEngines)
-                {
-                    if (engine.partSim.isSolidMotor)
-                        return true;
-                }
-
-                return false;
-            }
-        }
-
         private double ShipStartMass
         {
             get

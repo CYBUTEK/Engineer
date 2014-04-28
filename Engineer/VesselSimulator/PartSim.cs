@@ -49,9 +49,6 @@ namespace Engineer.VesselSimulator
         public bool isFuelLine;
         public bool isFuelTank;
         public bool isDecoupler;
-        public bool isDockingNode;
-        public bool isStrutOrFuelLine;
-        public bool isSolidMotor;
         public bool isSepratron;
         public bool hasMultiModeEngine;
         public bool hasModuleEnginesFX;
@@ -72,11 +69,8 @@ namespace Engineer.VesselSimulator
             noCrossFeedNodeKey = part.NoCrossFeedNodeKey;
             decoupledInStage = DecoupledInStage(part);
             isDecoupler = IsDecoupler(part);
-            isDockingNode = IsDockingNode();
             isFuelLine = part is FuelLine;
             isFuelTank = part is FuelTank;
-            isStrutOrFuelLine = IsStrutOrFuelLine();
-            isSolidMotor = IsSolidMotor();
             isSepratron = IsSepratron();
             inverseStage = part.inverseStage;
             //MonoBehaviour.print("inverseStage = " + inverseStage);
@@ -168,7 +162,6 @@ namespace Engineer.VesselSimulator
             }
             else
             {
-
                 if (hasModuleEnginesFX)
                 {
                     foreach (ModuleEnginesFX engine in part.GetModules<ModuleEnginesFX>())
@@ -260,7 +253,7 @@ namespace Engineer.VesselSimulator
             }
         }
 
-        public int DecoupledInStage(Part thePart, int stage = -1)
+        private int DecoupledInStage(Part thePart, int stage = -1)
         {
             if (IsDecoupler(thePart))
             {
@@ -280,28 +273,13 @@ namespace Engineer.VesselSimulator
 
         private bool IsDecoupler(Part thePart)
         {
-            return thePart is Decoupler || thePart is RadialDecoupler || thePart.Modules.OfType<ModuleDecouple>().Count() > 0 || thePart.Modules.OfType<ModuleAnchoredDecoupler>().Count() > 0;
+            return thePart.HasModule<ModuleDecouple>() || thePart.HasModule<ModuleAnchoredDecoupler>();
         }
 
-        private bool IsDockingNode()
+        private bool IsActiveDecoupler(Part thePart)
         {
-            return part.Modules.OfType<ModuleDockingNode>().Count() > 0;
-        }
-
-        private bool IsStrutOrFuelLine()
-        {
-            return (part is StrutConnector || part is FuelLine) ? true : false;
-        }
-
-        private bool IsSolidMotor()
-        {
-            foreach (ModuleEngines engine in part.Modules.OfType<ModuleEngines>())
-            {
-                if (engine.throttleLocked)
-                    return true;
-            }
-
-            return false;
+            return thePart.FindModulesImplementing<ModuleDecouple>().Any(m => !m.isDecoupled) ||
+                    thePart.FindModulesImplementing<ModuleAnchoredDecoupler>().Any(m => !m.isDecoupled);
         }
 
         private bool IsSepratron()
@@ -312,10 +290,11 @@ namespace Engineer.VesselSimulator
             if (part is SolidRocket)
                 return true;
 
-            if (part.Modules.OfType<ModuleEngines>().Count() == 0)
+            var modList = part.Modules.OfType<ModuleEngines>();
+            if (modList.Count() == 0)
                 return false;
 
-            if (part.Modules.OfType<ModuleEngines>().First().throttleLocked == true)
+            if (modList.First().throttleLocked == true)
                 return true;
 
             return false;
