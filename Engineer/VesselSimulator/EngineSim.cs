@@ -203,7 +203,7 @@ namespace Engineer.VesselSimulator
                         break;
 
                     default:
-                        MonoBehaviour.print("SetResourceDrains(" + partSim.name + ":" + partSim.partId + ") No flow type for " + ResourceContainer.GetResourceName(type) + ")");
+                        MonoBehaviour.print("SetResourceDrains(" + partSim.name + ":" + partSim.partId + ") Unexpected flow type for " + ResourceContainer.GetResourceName(type) + ")");
                         break;
                 }
 
