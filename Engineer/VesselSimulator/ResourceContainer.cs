@@ -17,24 +17,16 @@ namespace Engineer.VesselSimulator
             get
             {
                 if (resources.ContainsKey(type))
-                {
                     return (double)resources[type];
-                }
-                else
-                {
-                    return 0d;
-                }
+
+                return 0d;
             }
             set
             {
                 if (resources.ContainsKey(type))
-                {
                     resources[type] = value;
-                }
                 else
-                {
                     resources.Add(type, value);
-                }
             }
         }
 
@@ -50,9 +42,7 @@ namespace Engineer.VesselSimulator
                 List<int> types = new List<int>();
 
                 foreach (int key in resources.Keys)
-                {
                     types.Add(key);
-                }
 
                 return types;
             }
@@ -65,9 +55,7 @@ namespace Engineer.VesselSimulator
                 double mass = 0d;
 
                 foreach (double resource in resources.Values)
-                {
                     mass += resource;
-                }
 
                 return mass;
             }
@@ -79,10 +67,8 @@ namespace Engineer.VesselSimulator
             {
                 foreach (int type in resources.Keys)
                 {
-                    if ((double)resources[type] > 1d)
-                    {
+                    if ((double)resources[type] > SimManager.RESOURCE_MIN)
                         return false;
-                    }
                 }
 
                 return true;
@@ -92,13 +78,9 @@ namespace Engineer.VesselSimulator
         public void Add(int type, double amount)
         {
             if (resources.ContainsKey(type))
-            {
                 resources[type] = (double)resources[type] + amount;
-            }
             else
-            {
                 resources.Add(type, amount);
-            }
         }
 
         public void Reset()
@@ -116,7 +98,8 @@ namespace Engineer.VesselSimulator
 
         public double GetResourceMass(int type)
         {
-            return (double)resources[type] * GetResourceDensity(type);
+            double density = GetResourceDensity(type);
+            return density == 0f ? 0d : (double)resources[type] * density;
         }
 
         public static ResourceFlowMode GetResourceFlowMode(int type)

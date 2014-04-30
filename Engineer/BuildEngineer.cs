@@ -13,6 +13,10 @@ namespace Engineer
 {
     public class BuildEngineer : PartModule
     {
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Sim time limit"),
+         UI_FloatRange(minValue = 0.0f, maxValue = 1000.0f, stepIncrement = 10.0f, scene = UI_Scene.Editor)]
+        public float minBESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
+
         [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Pressure %"),
          UI_FloatRange(minValue = 0.0f, maxValue = 100.0f, stepIncrement = 1.0f, scene = UI_Scene.Editor)]
         public float percentASP = 100.0f;      // The percentage of sea-level pressure to use for "atmospheric stats"
@@ -158,12 +162,19 @@ namespace Engineer
 
         private void Update()
         {
-            if (IsPrimary && SimManager.ResultsReady())
+            if (IsPrimary)
             {
-                stages = SimManager.Stages;
-                failMessage = SimManager.failMessage;
-                
-                SimManager.TryStartSimulation();
+                // Update the simulation timing from the tweakable
+                SimManager.minSimTime = (long)minBESimTime;
+
+                // If the results are ready then read them and start the simulation again (will be delayed by minSimTime)
+                if (SimManager.ResultsReady())
+                {
+                    stages = SimManager.Stages;
+                    failMessage = SimManager.failMessage;
+
+                    SimManager.TryStartSimulation();
+                }
             }
         }
 
@@ -209,17 +220,17 @@ namespace Engineer
 
         private void Window(int windowID)
         {
-            if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
+            if (settings.Get("_SAVEONCHANGE_COMPACT", false))
+            {
+                GUILayout.BeginHorizontal(GUILayout.Width(255));
+            }
+            else
             {
                 GUILayout.BeginHorizontal(GUILayout.Width(740));
                 settings.Set("_SAVEONCHANGE_SHOW_MAIN", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_MAIN", true), "Main Display", buttonStyle));
                 settings.Set("_SAVEONCHANGE_SHOW_REFERENCES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_REFERENCES", true), "Reference Bodies", buttonStyle));
                 settings.Set("_SAVEONCHANGE_USE_ATMOSPHERE", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_USE_ATMOSPHERE", false), "Atmospheric Stats", buttonStyle));
                 settings.Set("_SAVEONCHANGE_SHOW_ALL_STAGES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_ALL_STAGES", false), "Show All Stages", buttonStyle));
-            }
-            else
-            {
-                GUILayout.BeginHorizontal(GUILayout.Width(255));
             }
             settings.Set("_SAVEONCHANGE_COMPACT", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_COMPACT", false), "Compact", buttonStyle));
             GUILayout.EndHorizontal();

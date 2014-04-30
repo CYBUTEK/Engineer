@@ -31,7 +31,7 @@ namespace Engineer.VesselSimulator
 
         private double gravity = 0;
         private double atmosphere = 0;
-#if LOG
+#if LOG || TIMERS
         private Stopwatch _timer = new Stopwatch();
 #endif
         private const double STD_GRAVITY = 9.81d;
@@ -52,6 +52,8 @@ namespace Engineer.VesselSimulator
         {
 #if LOG
             MonoBehaviour.print("PrepareSimulation started");
+#endif
+#if LOG || TIMERS
             _timer.Start();
 #endif
             // Store the parameters in members for ease of access in other functions
@@ -112,9 +114,12 @@ namespace Engineer.VesselSimulator
 
             // And dereference the core's part list
             partList = null;
-#if LOG
+
+#if LOG || TIMERS
             _timer.Stop();
-            MonoBehaviour.print("PrepareSimulation took " + _timer.ElapsedMilliseconds + "ms");
+            MonoBehaviour.print("PrepareSimulation: " + _timer.ElapsedMilliseconds + "ms");
+#endif
+#if LOG
             Dump();
 #endif
             return true;
@@ -126,6 +131,9 @@ namespace Engineer.VesselSimulator
         {
 #if LOG
             MonoBehaviour.print("RunSimulation started");
+#endif
+#if LOG || TIMERS
+            _timer.Start();
 #endif
             // Start with the last stage to simulate
             // (this is in a member variable so it can be accessed by AllowedToStage and ActiveStage)
@@ -336,7 +344,10 @@ namespace Engineer.VesselSimulator
                 if (stages[i].totalTime > SECONDS_PER_DAY)
                     stages[i].totalTime = 0d;
             }
-
+#if LOG || TIMERS
+            _timer.Stop();
+            MonoBehaviour.print("RunSimulation: " + _timer.ElapsedMilliseconds + "ms");
+#endif
             return stages;
         }
 

@@ -48,7 +48,6 @@ namespace Engineer.VesselSimulator
         public bool isEngine;
         public bool isFuelLine;
         public bool isFuelTank;
-        public bool isDecoupler;
         public bool isSepratron;
         public bool hasMultiModeEngine;
         public bool hasModuleEnginesFX;
@@ -68,7 +67,6 @@ namespace Engineer.VesselSimulator
             fuelCrossFeed = part.fuelCrossFeed;
             noCrossFeedNodeKey = part.NoCrossFeedNodeKey;
             decoupledInStage = DecoupledInStage(part);
-            isDecoupler = IsDecoupler(part);
             isFuelLine = part is FuelLine;
             isFuelTank = part is FuelTank;
             isSepratron = IsSepratron();
@@ -255,7 +253,7 @@ namespace Engineer.VesselSimulator
 
         private int DecoupledInStage(Part thePart, int stage = -1)
         {
-            if (IsDecoupler(thePart))
+            if (IsActiveDecoupler(thePart))
             {
                 if (thePart.inverseStage > stage)
                 {
@@ -271,15 +269,10 @@ namespace Engineer.VesselSimulator
             return stage;
         }
 
-        private bool IsDecoupler(Part thePart)
-        {
-            return thePart.HasModule<ModuleDecouple>() || thePart.HasModule<ModuleAnchoredDecoupler>();
-        }
-
         private bool IsActiveDecoupler(Part thePart)
         {
-            return thePart.FindModulesImplementing<ModuleDecouple>().Any(m => !m.isDecoupled) ||
-                    thePart.FindModulesImplementing<ModuleAnchoredDecoupler>().Any(m => !m.isDecoupled);
+            return thePart.FindModulesImplementing<ModuleDecouple>().Any(mod => !mod.isDecoupled) ||
+                    thePart.FindModulesImplementing<ModuleAnchoredDecoupler>().Any(mod => !mod.isDecoupled);
         }
 
         private bool IsSepratron()
@@ -408,7 +401,7 @@ namespace Engineer.VesselSimulator
 #endif
             if (resources.HasType(type) && resourceFlowStates[type] != 0)
             {
-                if (resources[type] > 1f)
+                if (resources[type] > SimManager.RESOURCE_MIN)
                     allSources.Add(this);
 
 #if LOG

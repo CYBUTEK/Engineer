@@ -9,17 +9,18 @@ namespace Engineer.VesselSimulator
 {
     public class SimManager
     {
+        public const double RESOURCE_MIN = 0.00001;
+        
         private static bool bRequested = false;
         private static bool bRunning = false;
         private static Stopwatch timer = new Stopwatch();
         private static long delayBetweenSims = 0;
 
-        private static Stopwatch _func = new Stopwatch();
-
         public static Stage[] Stages { get; private set; }
         public static Stage LastStage { get; private set; }
         public static String failMessage { get; private set; }
 
+        public static long minSimTime = 150;
         public static double Gravity { get; set; }
         public static double Atmosphere { get; set; }
 
@@ -194,8 +195,8 @@ namespace Engineer.VesselSimulator
             }
 
             timer.Stop();
-            MonoBehaviour.print("RunSimulation took " + timer.ElapsedMilliseconds + "ms");
-            delayBetweenSims = 100 - timer.ElapsedMilliseconds;
+            MonoBehaviour.print("Total simulation time: " + timer.ElapsedMilliseconds + "ms");
+            delayBetweenSims = minSimTime - timer.ElapsedMilliseconds;
             if (delayBetweenSims < 0)
                 delayBetweenSims = 0;
 

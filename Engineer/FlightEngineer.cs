@@ -14,6 +14,10 @@ namespace Engineer
 {
     public class FlightEngineer : PartModule
     {
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = false, guiName = "Sim time limit"),
+         UI_FloatRange(minValue = 0.0f, maxValue = 1000.0f, stepIncrement = 10.0f, scene = UI_Scene.Flight)]
+        public float minFESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
+
         public static bool isVisible = true;
 
         public Settings settings = new Settings();
@@ -140,14 +144,21 @@ namespace Engineer
         {
             if (vessel != null && vessel == FlightGlobals.ActiveVessel)
             {
-                if (IsPrimary && SimManager.ResultsReady())
+                if (IsPrimary)
                 {
-                    // Get the results into our members
-                    stages = SimManager.Stages;
-                    failMessage = SimManager.failMessage;
+                    // Update the simulation timing from the tweakable
+                    SimManager.minSimTime = (long)minFESimTime;
 
-                    SimManager.Gravity = vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius + vessel.mainBody.GetAltitude(vessel.CoM), 2);
-                    SimManager.TryStartSimulation();
+                    // If the results are ready then read them and start the simulation again (will be delayed by minSimTime)
+                    if (SimManager.ResultsReady())
+                    {
+                        // Get the results into our members
+                        stages = SimManager.Stages;
+                        failMessage = SimManager.failMessage;
+
+                        SimManager.Gravity = vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius + vessel.mainBody.GetAltitude(vessel.CoM), 2);
+                        SimManager.TryStartSimulation();
+                    }
                 }
             }
         }

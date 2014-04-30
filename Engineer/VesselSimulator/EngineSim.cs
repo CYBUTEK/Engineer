@@ -136,7 +136,7 @@ namespace Engineer.VesselSimulator
                 switch (ResourceContainer.GetResourceFlowMode(type))
                 {
                     case ResourceFlowMode.NO_FLOW:
-                        if (partSim.resources[type] > 1f)
+                        if (partSim.resources[type] > SimManager.RESOURCE_MIN)
                         {
                             sourcePartSet = new HashSet<PartSim>();
                             //MonoBehaviour.print("SetResourceDrains(" + name + ":" + partId + ") setting sources to just this");
@@ -147,7 +147,7 @@ namespace Engineer.VesselSimulator
                     case ResourceFlowMode.ALL_VESSEL:
                         foreach (PartSim aPartSim in allParts)
                         {
-                            if (aPartSim.resources[type] > 1f)
+                            if (aPartSim.resources[type] > SimManager.RESOURCE_MIN)
                             {
                                 if (sourcePartSet == null)
                                     sourcePartSet = new HashSet<PartSim>();
@@ -163,7 +163,7 @@ namespace Engineer.VesselSimulator
                             int maxStage = -1;
                             foreach (PartSim aPartSim in allParts)
                             {
-                                if (aPartSim.resources[type] > 1f)
+                                if (aPartSim.resources[type] > SimManager.RESOURCE_MIN)
                                 {
                                     int stage = aPartSim.decoupledInStage;
                                     if (stage > maxStage)
