@@ -1,0 +1,10 @@
+{
+  "NAME": "Kerbal Engineer Redux",
+  "URL": "https://raw.githubusercontent.com/CYBUTEK/Engineer/master/Output/Engineer/Engineer.version",
+  "VERSION": {
+    "MAJOR": 0,
+    "MINOR": 6,
+    "PATCH": 2,
+    "BUILD": 3
+  }
+}
