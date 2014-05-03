@@ -103,10 +103,10 @@ namespace Engineer.VesselSimulator
                         MonoBehaviour.print(resource.resourceName + " is NaN. Skipping.");
                     }
                 }
-                else
-                {
-                    MonoBehaviour.print(resource.resourceName + " is 0 density. Skipping.");
-                }
+                //else
+                //{
+                    //MonoBehaviour.print(resource.resourceName + " is 0 density. Skipping.");
+                //}
             }
 
             startMass = GetMass();
@@ -510,9 +510,11 @@ namespace Engineer.VesselSimulator
 
             foreach (int type in resourceDrains.Types)
             {
-                //MonoBehaviour.print("type = " + ResourceContainer.GetResourceName(type) + "  amount = " + resources[type] + "  rate = " + resourceDrains[type]);
                 if (resourceDrains[type] > 0)
+                {
                     time = Math.Min(time, resources[type] / resourceDrains[type]);
+                    //MonoBehaviour.print("type = " + ResourceContainer.GetResourceName(type) + "  amount = " + resources[type] + "  rate = " + resourceDrains[type] + "  time = " + time);
+                }
             }
 
             //if (time < double.MaxValue)

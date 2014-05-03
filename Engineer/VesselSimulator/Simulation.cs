@@ -216,14 +216,18 @@ namespace Engineer.VesselSimulator
 
                     // Calculate how long each draining tank will take to drain and run for the minimum time
                     double resourceDrainTime = double.MaxValue;
+                    PartSim partMinDrain = null;
                     foreach (PartSim partSim in drainingParts)
                     {
                         double time = partSim.TimeToDrainResource();
                         if (time < resourceDrainTime)
+                        {
                             resourceDrainTime = time;
+                            partMinDrain = partSim;
+                        }
                     }
 #if LOG
-                    MonoBehaviour.print("Drain time = " + resourceDrainTime);
+                    MonoBehaviour.print("Drain time = " + resourceDrainTime + " (" + partMinDrain.name + ":" + partMinDrain.partId + ")");
 #endif
                     foreach (PartSim partSim in drainingParts)
                         partSim.DrainResources(resourceDrainTime);
@@ -390,14 +394,17 @@ namespace Engineer.VesselSimulator
         // This function works out if it is time to stage
         private bool AllowedToStage()
         {
+#if LOG
             StringBuilder buffer = new StringBuilder(1024);
             buffer.AppendLine("AllowedToStage");
             buffer.AppendFormat("currentStage = {0:d}\n", currentStage);
-
+#endif
             if (activeEngines.Count == 0)
             {
+#if LOG
                 buffer.AppendLine("No active engines => true");
                 MonoBehaviour.print(buffer);
+#endif
                 return true;
             }
 
@@ -409,16 +416,20 @@ namespace Engineer.VesselSimulator
                 {
                     if (!partSim.Resources.Empty)
                     {
+#if LOG
                         partSim.DumpPartToBuffer(buffer, "Decoupled part not empty => false: ");
                         MonoBehaviour.print(buffer);
+#endif
                         return false;
                     }
                     foreach (EngineSim engine in activeEngines)
                     {
                         if (engine.partSim == partSim)
                         {
+#if LOG
                             partSim.DumpPartToBuffer(buffer, "Decoupled part is active engine => false: ");
                             MonoBehaviour.print(buffer);
+#endif
                             return false;
                         }
                     }
@@ -427,13 +438,17 @@ namespace Engineer.VesselSimulator
 
             if (currentStage > 0)
             {
+#if LOG
                 buffer.AppendLine("Current stage > 0 => true");
                 MonoBehaviour.print(buffer);
+#endif
                 return true;
             }
 
+#if LOG
             buffer.AppendLine("Returning false");
             MonoBehaviour.print(buffer);
+#endif
             return false;
         }
 
