@@ -25,6 +25,7 @@ namespace Engineer.VesselSimulator
         private HashSet<PartSim> drainingParts;
         private List<EngineSim> allEngines;
         private List<EngineSim> activeEngines;
+        private HashSet<int> drainingResources;
 
         private int lastStage = 0;
         private int currentStage = 0;
@@ -69,6 +70,7 @@ namespace Engineer.VesselSimulator
             drainingParts = new HashSet<PartSim>();
             allEngines = new List<EngineSim>();
             activeEngines = new List<EngineSim>();
+            drainingResources = new HashSet<int>();
 
             // A dictionary for fast lookup of Part->PartSim during the preparation phase
             Dictionary<Part, PartSim> partSimLookup = new Dictionary<Part, PartSim>();
@@ -360,8 +362,9 @@ namespace Engineer.VesselSimulator
         // and setting the drain rates
         private void UpdateResourceDrains()
         {
-            // Empty the active engines list
+            // Empty the active engines list and the draining resources set
             activeEngines.Clear();
+            drainingResources.Clear();
 
             // Reset the resource drains of all draining parts
             foreach (PartSim partSim in drainingParts)
@@ -378,7 +381,11 @@ namespace Engineer.VesselSimulator
                 {
                     // Set the resource drains for this engine and add it to the active list if it is active
                     if (engine.SetResourceDrains(allParts, allFuelLines, drainingParts))
+                    {
                         activeEngines.Add(engine);
+                        foreach (int type in engine.ResourceConsumptions.Types)
+                            drainingResources.Add(type);
+                    }
                 }
             }
 #if LOG
@@ -414,7 +421,7 @@ namespace Engineer.VesselSimulator
                 //buffer.AppendFormat("isSepratron = {0}\n", partSim.isSepratron ? "true" : "false");
                 if (partSim.decoupledInStage == (currentStage - 1) && (!partSim.isSepratron || partSim.decoupledInStage < partSim.inverseStage))
                 {
-                    if (!partSim.Resources.Empty)
+                    if (!partSim.Resources.EmptyOf(drainingResources))
                     {
 #if LOG
                         partSim.DumpPartToBuffer(buffer, "Decoupled part not empty => false: ");

@@ -75,6 +75,17 @@ namespace Engineer.VesselSimulator
             }
         }
 
+        public bool EmptyOf(HashSet<int> types)
+        {
+            foreach (int type in types)
+            {
+                if (HasType(type) && (double)resources[type] > SimManager.RESOURCE_MIN)
+                    return false;
+            }
+
+            return true;
+        }
+
         public void Add(int type, double amount)
         {
             if (resources.ContainsKey(type))

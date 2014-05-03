@@ -22,9 +22,9 @@ namespace Engineer.VesselSimulator
         public ResourceContainer resources = new ResourceContainer();
         public ResourceContainer resourceDrains = new ResourceContainer();
         ResourceContainer resourceFlowStates = new ResourceContainer();
-        ResourceContainer resourceConsumptions = new ResourceContainer();
+        //ResourceContainer resourceConsumptions = new ResourceContainer();
 
-        Dictionary<int, bool> resourceCanSupply = new Dictionary<int, bool>();
+        //Dictionary<int, bool> resourceCanSupply = new Dictionary<int, bool>();
 
         List<AttachNodeSim> attachNodes = new List<AttachNodeSim>();
 
@@ -86,27 +86,20 @@ namespace Engineer.VesselSimulator
 #endif
             foreach (PartResource resource in part.Resources)
             {
-                if (resource.info.density > 0f)
+                // Make sure it isn't NaN as this messes up the part mass and hence most of the values
+                // This can happen if a resource capacity is 0 and tweakable
+                if (!Double.IsNaN(resource.amount))
                 {
-                    // Make sure it isn't NaN as this messes up the part mass and hence most of the values
-                    // This can happen if a resource capacity is 0 and tweakable
-                    if (!Double.IsNaN(resource.amount))
-                    {
 #if LOG
-                        MonoBehaviour.print(resource.resourceName + " = " + resource.amount);
+                    MonoBehaviour.print(resource.resourceName + " = " + resource.amount);
 #endif
-                        resources.Add(resource.info.id, resource.amount);
-                        resourceFlowStates.Add(resource.info.id, resource.flowState ? 1 : 0);
-                    }
-                    else
-                    {
-                        MonoBehaviour.print(resource.resourceName + " is NaN. Skipping.");
-                    }
+                    resources.Add(resource.info.id, resource.amount);
+                    resourceFlowStates.Add(resource.info.id, resource.flowState ? 1 : 0);
                 }
-                //else
-                //{
-                    //MonoBehaviour.print(resource.resourceName + " is 0 density. Skipping.");
-                //}
+                else
+                {
+                    MonoBehaviour.print(resource.resourceName + " is NaN. Skipping.");
+                }
             }
 
             startMass = GetMass();
@@ -558,7 +551,7 @@ namespace Engineer.VesselSimulator
                 return resources;
             }
         }
-
+#if false
         public ResourceContainer ResourceConsumptions
         {
             get
@@ -566,7 +559,7 @@ namespace Engineer.VesselSimulator
                 return resourceConsumptions;
             }
         }
-
+#endif
         public ResourceContainer ResourceDrains
         {
             get
