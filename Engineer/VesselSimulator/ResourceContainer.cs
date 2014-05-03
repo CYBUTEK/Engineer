@@ -99,7 +99,7 @@ namespace Engineer.VesselSimulator
         public double GetResourceMass(int type)
         {
             double density = GetResourceDensity(type);
-            return density == 0f ? 0d : (double)resources[type] * density;
+            return density == 0d ? 0d : (double)resources[type] * density;
         }
 
         public static ResourceFlowMode GetResourceFlowMode(int type)

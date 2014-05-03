@@ -9,7 +9,7 @@ namespace Engineer.VesselSimulator
 {
     public class SimManager
     {
-        public const double RESOURCE_MIN = 0.00001;
+        public const double RESOURCE_MIN = 0.0001;
         
         private static bool bRequested = false;
         private static bool bRunning = false;

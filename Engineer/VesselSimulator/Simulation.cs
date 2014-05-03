@@ -390,35 +390,35 @@ namespace Engineer.VesselSimulator
         // This function works out if it is time to stage
         private bool AllowedToStage()
         {
-            //StringBuilder buffer = new StringBuilder(1024);
-            //buffer.Append("AllowedToStage\n");
-            //buffer.AppendFormat("currentStage = {0:d}\n", currentStage);
+            StringBuilder buffer = new StringBuilder(1024);
+            buffer.AppendLine("AllowedToStage");
+            buffer.AppendFormat("currentStage = {0:d}\n", currentStage);
 
             if (activeEngines.Count == 0)
             {
-                //buffer.Append("No active engines => true\n");
-                //MonoBehaviour.print(buffer);
+                buffer.AppendLine("No active engines => true");
+                MonoBehaviour.print(buffer);
                 return true;
             }
 
             foreach (PartSim partSim in allParts)
             {
-                //partSim.DumpPartToBuffer(buffer, "Testing: ");
+                //partSim.DumpPartToBuffer(buffer, "Testing: ", allParts);
                 //buffer.AppendFormat("isSepratron = {0}\n", partSim.isSepratron ? "true" : "false");
                 if (partSim.decoupledInStage == (currentStage - 1) && (!partSim.isSepratron || partSim.decoupledInStage < partSim.inverseStage))
                 {
                     if (!partSim.Resources.Empty)
                     {
-                        //buffer.Append("Decoupled part not empty => false\n");
-                        //MonoBehaviour.print(buffer);
+                        partSim.DumpPartToBuffer(buffer, "Decoupled part not empty => false: ");
+                        MonoBehaviour.print(buffer);
                         return false;
                     }
                     foreach (EngineSim engine in activeEngines)
                     {
                         if (engine.partSim == partSim)
                         {
-                            //buffer.Append("Decoupled part is active engine => false\n");
-                            //MonoBehaviour.print(buffer);
+                            partSim.DumpPartToBuffer(buffer, "Decoupled part is active engine => false: ");
+                            MonoBehaviour.print(buffer);
                             return false;
                         }
                     }
@@ -427,13 +427,13 @@ namespace Engineer.VesselSimulator
 
             if (currentStage > 0)
             {
-                //buffer.Append("Current stage > 0 => true\n");
-                //MonoBehaviour.print(buffer);
+                buffer.AppendLine("Current stage > 0 => true");
+                MonoBehaviour.print(buffer);
                 return true;
             }
 
-            //buffer.Append("Returning false\n");
-            //MonoBehaviour.print(buffer);
+            buffer.AppendLine("Returning false");
+            MonoBehaviour.print(buffer);
             return false;
         }
 

@@ -165,7 +165,8 @@ namespace Engineer.VesselSimulator
                             {
                                 if (aPartSim.resources[type] > SimManager.RESOURCE_MIN)
                                 {
-                                    int stage = aPartSim.decoupledInStage;
+                                    //int stage = aPartSim.decoupledInStage;            // Use the number of the stage the tank is decoupled in
+                                    int stage = aPartSim.DecouplerCount();              // Use the count of decouplers between tank and root
                                     if (stage > maxStage)
                                         maxStage = stage;
                                     if (stagePartSets.ContainsKey(stage))
@@ -199,7 +200,16 @@ namespace Engineer.VesselSimulator
 
                     case ResourceFlowMode.STACK_PRIORITY_SEARCH:
                         HashSet<PartSim> visited = new HashSet<PartSim>();
-                        sourcePartSet = partSim.GetSourceSet(type, allParts, allFuelLines, visited);
+#if LOG
+                        LogMsg log = new LogMsg();
+                        log.buf.AppendLine("Find " + ResourceContainer.GetResourceName(type) + " sources for " + partSim.name + ":" + partSim.partId);
+#else
+                        LogMsg log = null;
+#endif
+                        sourcePartSet = partSim.GetSourceSet(type, allParts, allFuelLines, visited, log, "");
+#if LOG
+                        MonoBehaviour.print(log.buf);
+#endif
                         break;
 
                     default:
@@ -208,14 +218,30 @@ namespace Engineer.VesselSimulator
                 }
 
                 if (sourcePartSet != null && sourcePartSet.Count > 0)
+                {
                     sourcePartSets[type] = sourcePartSet;
+#if LOG
+                    LogMsg log = new LogMsg();
+                    log.buf.AppendLine("Source parts for " + ResourceContainer.GetResourceName(type) + ":");
+                    foreach (PartSim partSim in sourcePartSet)
+                    {
+                        log.buf.AppendLine(partSim.name + ":" + partSim.partId);
+                    }
+                    MonoBehaviour.print(log.buf);
+#endif
+                }
             }
 
             // If we don't have sources for all the needed resources then return false without setting up any drains
             foreach (int type in resourceConsumptions.Types)
             {
                 if (!sourcePartSets.ContainsKey(type))
+                {
+#if LOG
+                    MonoBehaviour.print("No source of " + ResourceContainer.GetResourceName(type));
+#endif
                     return false;
+                }
             }
 
             // Now we set the drains on the members of the sets and update the draining parts set
