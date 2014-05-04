@@ -28,21 +28,43 @@
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\Output\Engineer\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Logging|AnyCPU'">
+    <OutputPath>..\Logging\</OutputPath>
+    <DefineConstants>LOG</DefineConstants>
+    <Optimize>true</Optimize>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Timers|AnyCPU'">
+    <OutputPath>..\Timers\</OutputPath>
+    <DefineConstants>TIMERS</DefineConstants>
+    <Optimize>true</Optimize>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="BuildEngineer.cs" />
     <Compile Include="EngineerTools.cs" />
     <Compile Include="Extensions\PartExtensions.cs" />
+    <Compile Include="LogMsg.cs" />
     <Compile Include="TapeDriveAnimator.cs" />
     <Compile Include="Tools.cs" />
     <Compile Include="Version.cs" />
     <Compile Include="CelestialBodies.cs" />
     <Compile Include="FlightEngineer.cs" />
+    <Compile Include="VesselSimulator\AttachNodeSim.cs" />
+    <Compile Include="VesselSimulator\EngineSim.cs" />
     <Compile Include="VesselSimulator\PartSim.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Rendezvous.cs" />
@@ -57,18 +79,19 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\Game\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEngine">
-      <HintPath>..\Game\KSP_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(SolutionDir)Output\*" "$(SolutionDir)Game\GameData\*" /D /E /C /R /I /K /Y</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -13,8 +13,15 @@ namespace Engineer
 {
     public class BuildEngineer : PartModule
     {
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Sim time limit"),
+         UI_FloatRange(minValue = 0.0f, maxValue = 1000.0f, stepIncrement = 10.0f, scene = UI_Scene.Editor)]
+        public float minBESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
+
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Pressure %"),
+         UI_FloatRange(minValue = 0.0f, maxValue = 100.0f, stepIncrement = 1.0f, scene = UI_Scene.Editor)]
+        public float percentASP = 100.0f;      // The percentage of sea-level pressure to use for "atmospheric stats"
+
         public static bool isVisible = true;
-        public static bool isActive = false;
 
         Version version = new Version();
         Settings settings = new Settings();
@@ -25,12 +32,13 @@ namespace Engineer
         Rect windowPosition = new Rect(300, 70, 0, 0);
         int windowID = Guid.NewGuid().GetHashCode();
         int windowMargin = 25;
-        string windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
+        string windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION + Version.SUFFIX;
         string windowTitleCompact = "Kerbal Engineer Redux - Compact";
         bool isEditorLocked = false;
         CelestialBodies referenceBodies = new CelestialBodies();
         CelestialBodies.Body referenceBody;
-        Stage[] stages;
+        Stage[] stages = null;
+        String failMessage = "";
         int stageCount;
         int stageCountAll;
 
@@ -61,25 +69,31 @@ namespace Engineer
 
         public override void OnStart(StartState state)
         {
-            if (state == StartState.Editor)
+            try
             {
-                this.part.OnEditorAttach += OnEditorAttach;
-                this.part.OnEditorDetach += OnEditorDetach;
-                this.part.OnEditorDestroy += OnEditorDestroy;
-
-                referenceBody = referenceBodies["Kerbin"];
-                OnEditorAttach();
-
-                if (this.part.Modules.Contains("FlightEngineer"))
+                print("BuildEngineer: OnStart (" + state + ")");
+                if (state == StartState.Editor)
                 {
-                    windowTitle = "Kerbal Engineer Redux - Build Engineer (inc. Flight Engineer) Version " + Version.VERSION;
-                }
-                else
-                {
-                    windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION;
-                }
+                    this.part.OnEditorAttach += OnEditorAttach;
+                    this.part.OnEditorDetach += OnEditorDetach;
+                    this.part.OnEditorDestroy += OnEditorDestroy;
 
-                print("BuildEngineer: Start (" + state + ")");
+                    referenceBody = referenceBodies["Kerbin"];
+                    OnEditorAttach();
+
+                    if (this.part.Modules.Contains("FlightEngineer"))
+                    {
+                        windowTitle = "Kerbal Engineer Redux - Build Engineer (inc. Flight Engineer) Version " + Version.VERSION + Version.SUFFIX;
+                    }
+                    else
+                    {
+                        windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION + Version.SUFFIX;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                print("Exception in BuildEng.OnStart: " + e);
             }
         }
 
@@ -89,12 +103,15 @@ namespace Engineer
             {
                 if (IsPrimary)
                 {
+                    print("BuildEngineer: OnSave");
                     settings.Set("_WINDOW_POSITION", settings.ConvertToString(windowPosition));
                     settings.Save(settingsFile);
-                    print("BuildEngineer: OnSave");
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                print("Exception in BuildEng.OnSave: " + e);
+            }
         }
 
         public override void OnLoad(ConfigNode node)
@@ -103,21 +120,24 @@ namespace Engineer
             {
                 if (IsPrimary)
                 {
+                    print("BuildEngineer: OnLoad");
                     settings.Load(settingsFile);
                     windowPosition = settings.ConvertToRect(settings.Get("_WINDOW_POSITION", settings.ConvertToString(windowPosition)));
-                    print("BuildEngineer: OnLoad");
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                print("Exception in BuildEng.OnLoad: " + e);
+            }
         }
 
         private void OnEditorAttach()
         {
             if (IsPrimary && (this.part.parent != null || this.part.HasModule("ModuleCommand")))
             {
+                print("BuildEngineer: OnEditorAttach");
                 OnLoad(null);
                 RenderingManager.AddToPostDrawQueue(0, DrawGUI);
-                print("BuildEngineer: OnEditorAttach");
             }
         }
 
@@ -125,9 +145,9 @@ namespace Engineer
         {
             if (IsPrimary)
             {
+                print("BuildEngineer: OnEditorDetach");
                 OnSave(null);
                 RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
-                print("BuildEngineer: OnEditorDetach");
             }
         }
 
@@ -135,8 +155,8 @@ namespace Engineer
         {
             if (IsPrimary)
             {
-                RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
                 print("BuildEngineer: OnEditorDestroy");
+                RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
             }
         }
 
@@ -144,25 +164,31 @@ namespace Engineer
         {
             if (IsPrimary)
             {
-                if (SimManager.Instance.Stages != null)
+                // Update the simulation timing from the tweakable
+                SimManager.minSimTime = (long)minBESimTime;
+
+                // If the results are ready then read them and start the simulation again (will be delayed by minSimTime)
+                if (SimManager.ResultsReady())
                 {
-                    stages = SimManager.Instance.Stages;
+                    stages = SimManager.Stages;
+                    failMessage = SimManager.failMessage;
+
+                    SimManager.TryStartSimulation();
                 }
-                SimManager.Instance.TryStartSimulation();
-                isActive = true;
             }
         }
 
         private void DrawGUI()
         {         
-            if (!this.part.isAttached || !IsPrimary)
+            if (!part.isAttached || !IsPrimary)
             {
+                print("BuildEngineer: DrawGUI - Not Attached || Not Primary");
                 RenderingManager.RemoveFromPostDrawQueue(0, DrawGUI);
-                print("BuildEngineer: OnUpdate - Not Attached || Not Primary");
                 return;
             }
 
-            if (!hasInitStyles) InitStyles();
+            if (!hasInitStyles)
+                InitStyles();
 
             if (isVisible)
             {
@@ -181,7 +207,6 @@ namespace Engineer
                         title = windowTitleCompact;
                     }
 
-
                     windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
                 }
                 else
@@ -195,38 +220,37 @@ namespace Engineer
 
         private void Window(int windowID)
         {
-            if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
+            if (settings.Get("_SAVEONCHANGE_COMPACT", false))
             {
-                GUILayout.BeginHorizontal(GUILayout.Width(700));
+                GUILayout.BeginHorizontal(GUILayout.Width(255));
+            }
+            else
+            {
+                GUILayout.BeginHorizontal(GUILayout.Width(740));
                 settings.Set("_SAVEONCHANGE_SHOW_MAIN", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_MAIN", true), "Main Display", buttonStyle));
                 settings.Set("_SAVEONCHANGE_SHOW_REFERENCES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_REFERENCES", true), "Reference Bodies", buttonStyle));
                 settings.Set("_SAVEONCHANGE_USE_ATMOSPHERE", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_USE_ATMOSPHERE", false), "Atmospheric Stats", buttonStyle));
                 settings.Set("_SAVEONCHANGE_SHOW_ALL_STAGES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_ALL_STAGES", false), "Show All Stages", buttonStyle));
             }
-            else
-            {
-                GUILayout.BeginHorizontal(GUILayout.Width(215));
-            }
             settings.Set("_SAVEONCHANGE_COMPACT", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_COMPACT", false), "Compact", buttonStyle));
             GUILayout.EndHorizontal();
 
-            SimManager.Instance.Gravity = referenceBody.gravity;
+            SimManager.Gravity = referenceBody.gravity;
 
             if (settings.Get<bool>("_SAVEONCHANGE_USE_ATMOSPHERE"))
             {
-                SimManager.Instance.Atmosphere = referenceBody.atmosphere;
+                SimManager.Atmosphere = referenceBody.atmosphere * percentASP / 100.0;
             }
             else
             {
-                SimManager.Instance.Atmosphere = 0d;
-
+                SimManager.Atmosphere = 0d;
             }
 
-            SimManager.Instance.RequestSimulation();
+            SimManager.RequestSimulation();
 
             if (stages == null)
             {
-                //print("BuildEngineer: Not drawing Window because stages == null");
+                DrawFailMessage();
                 return;
             }
 
@@ -255,7 +279,7 @@ namespace Engineer
 
             if (settings.Get<bool>("_SAVEONCHANGE_SHOW_REFERENCES") && !settings.Get<bool>("_SAVEONCHANGE_COMPACT"))
             {
-                DrawThrust();
+                DrawRefBodies();
             }
 
             if (version.Newer && showUpdate)
@@ -278,6 +302,18 @@ namespace Engineer
             }
 
             GUI.DragWindow();
+        }
+
+        private void DrawFailMessage()
+        {
+            GUILayout.BeginHorizontal(areaStyle);
+            GUILayout.BeginVertical();
+
+            GUILayout.Label("Simulation failed:", headingStyle);
+            GUILayout.Label(failMessage == "" ? "No fail message" : failMessage, dataStyle);
+
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
         }
 
         private void DrawStandard()
@@ -304,7 +340,7 @@ namespace Engineer
             GUILayout.EndHorizontal();
         }
 
-        private void DrawThrust()
+        private void DrawRefBodies()
         {
             GUILayout.BeginHorizontal(areaStyle);
 
@@ -423,8 +459,8 @@ namespace Engineer
 
         private void DrawTWR(Stage[] stages)
         {
-            GUILayout.BeginVertical(GUILayout.Width(50));
-            GUILayout.Label("TWR", headingStyle);
+            GUILayout.BeginVertical(GUILayout.Width(90));
+            GUILayout.Label("TWR (Max)", headingStyle);
 
             for (int i = 0; i < stages.Length; i++)
             {
@@ -433,7 +469,7 @@ namespace Engineer
                     continue;
                 }
 
-                GUILayout.Label(EngineerTools.SimpleFormatter(stages[i].thrustToWeight, "", 2), dataStyle);
+                GUILayout.Label(EngineerTools.SimpleFormatter(stages[i].thrustToWeight, "", 2) + " (" + EngineerTools.SimpleFormatter(stages[i].maxThrustToWeight, "", 2) + ")", dataStyle);
             }
 
             GUILayout.EndVertical();
