@@ -151,6 +151,7 @@ namespace Engineer.VesselSimulator
                                                             engine.atmosphereCurve,
                                                             engine.throttleLocked,
                                                             engine.propellants,
+                                                            engine.isOperational,
                                                             correctThrust);
                         allEngines.Add(engineSim);
                     }
@@ -170,6 +171,7 @@ namespace Engineer.VesselSimulator
                                                             engine.atmosphereCurve,
                                                             engine.throttleLocked,
                                                             engine.propellants,
+                                                            engine.isOperational,
                                                             correctThrust);
                         allEngines.Add(engineSim);
                     }
@@ -187,6 +189,7 @@ namespace Engineer.VesselSimulator
                                                             engine.atmosphereCurve,
                                                             engine.throttleLocked,
                                                             engine.propellants,
+                                                            engine.isOperational,
                                                             correctThrust);
                         allEngines.Add(engineSim);
                     }

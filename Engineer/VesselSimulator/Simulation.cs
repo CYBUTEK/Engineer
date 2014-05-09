@@ -29,6 +29,7 @@ namespace Engineer.VesselSimulator
 
         private int lastStage = 0;
         private int currentStage = 0;
+        private bool doingCurrent = false;
 
         private double gravity = 0;
         private double atmosphere = 0;
@@ -100,6 +101,8 @@ namespace Engineer.VesselSimulator
                 partId++;
             }
 
+            UpdateActiveEngines();
+
             // Now that all the PartSims have been created we can do any set up that needs access to other parts
             //MonoBehaviour.print("SetupAttachNodes and count stages");
             foreach (PartSim partSim in allParts)
@@ -138,9 +141,52 @@ namespace Engineer.VesselSimulator
             _timer.Start();
 #endif
             // Start with the last stage to simulate
-            // (this is in a member variable so it can be accessed by AllowedToStage and ActiveStage)
+            // (this is in a member variable so it can be accessed by AllowedToStage and ActivateStage)
             currentStage = lastStage;
 
+#if LOG
+            LogMsg log = new LogMsg();
+#endif
+            // Work out which engines would be active if just doing the staging and if this is different to the 
+            // currently active engines then generate an extra stage
+            // Loop through all the engines
+            foreach (EngineSim engine in allEngines)
+            {
+#if LOG
+                log.buf.AppendLine("Testing engine mod of " + engine.partSim.name + ":" + engine.partSim.partId);
+#endif
+                bool bActive = engine.isActive;
+                bool bStage = (engine.partSim.inverseStage >= currentStage);
+#if LOG
+                log.buf.AppendLine("bActive = " + bActive + "   bStage = " + bStage);
+#endif
+                if (HighLogic.LoadedSceneIsFlight)
+                {
+                    if (bActive != bStage)
+                    {
+                        // If the active state is different to the state due to staging
+#if LOG
+                        log.buf.AppendLine("Need to do current active engines first");
+#endif
+                        doingCurrent = true;
+                        currentStage++;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (bStage)
+                    {
+#if LOG
+                        log.buf.AppendLine("Marking as active");
+#endif
+                        engine.isActive = true;
+                    }
+                }
+            }
+#if LOG
+            MonoBehaviour.print(log.buf);
+#endif
             // Create the array of stages that will be returned
             Stage[] stages = new Stage[currentStage + 1];
 
@@ -306,11 +352,12 @@ namespace Engineer.VesselSimulator
                 stage.deltaV = stageDeltaV;
                 // Zero stage time if more than a day (this should be moved into the window code)
                 stage.time = (stageTime < SECONDS_PER_DAY) ? stageTime : 0d;
-                stage.number = currentStage;
+                stage.number = doingCurrent ? -1 : currentStage;                // Set the stage number to -1 if doing current engines
                 stages[currentStage] = stage;
 
                 // Now activate the next stage
                 currentStage--;
+                doingCurrent = false;
 #if LOG
                 // Log how long the stage took
                 _timer.Stop();
@@ -357,13 +404,25 @@ namespace Engineer.VesselSimulator
             return stages;
         }
 
+        // This function simply rebuilds the active engines by testing the isActive flag of all the engines
+        private void UpdateActiveEngines()
+        {
+            activeEngines.Clear();
+            foreach (EngineSim engine in allEngines)
+            {
+                if (engine.isActive)
+                    activeEngines.Add(engine);
+            }
+        }
 
         // This function does all the hard work of working out which engines are burning, which tanks are being drained 
         // and setting the drain rates
         private void UpdateResourceDrains()
         {
-            // Empty the active engines list and the draining resources set
-            activeEngines.Clear();
+            // Update the active engines
+            UpdateActiveEngines();
+            
+            // Empty the draining resources set
             drainingResources.Clear();
 
             // Reset the resource drains of all draining parts
@@ -373,21 +432,21 @@ namespace Engineer.VesselSimulator
             // Empty the draining parts set
             drainingParts.Clear();
 
-            // Loop through all the engine modules in the ship
-            foreach (EngineSim engine in allEngines)
+            // Loop through all the active engine modules
+            foreach (EngineSim engine in activeEngines)
             {
-                // If the engine is active in the current stage
-                if (engine.partSim.inverseStage >= currentStage)
+                // Set the resource drains for this engine
+                if (engine.SetResourceDrains(allParts, allFuelLines, drainingParts))
                 {
-                    // Set the resource drains for this engine and add it to the active list if it is active
-                    if (engine.SetResourceDrains(allParts, allFuelLines, drainingParts))
-                    {
-                        activeEngines.Add(engine);
-                        foreach (int type in engine.ResourceConsumptions.Types)
-                            drainingResources.Add(type);
-                    }
+                    // If it is active then add the consumed resource types to the set
+                    foreach (int type in engine.ResourceConsumptions.Types)
+                        drainingResources.Add(type);
                 }
             }
+
+            // Update the active engines again to remove any engines that have no fuel supply
+            UpdateActiveEngines();
+
 #if LOG
             StringBuilder buffer = new StringBuilder(1024);
             buffer.AppendFormat("Active engines = {0:d}\n", activeEngines.Count);
@@ -443,10 +502,10 @@ namespace Engineer.VesselSimulator
                 }
             }
 
-            if (currentStage > 0)
+            if (currentStage > 0 && !doingCurrent)
             {
 #if LOG
-                buffer.AppendLine("Current stage > 0 => true");
+                buffer.AppendLine("Current stage > 0 && !doingCurrent => true");
                 MonoBehaviour.print(buffer);
 #endif
                 return true;
@@ -494,6 +553,13 @@ namespace Engineer.VesselSimulator
             {
                 // Ask the part to remove all the parts that are decoupled
                 partSim.RemoveAttachedParts(decoupledParts);
+            }
+
+            // Now we loop through all the engines and activate those that are ignited in this stage
+            foreach(EngineSim engine in allEngines)
+            {
+                if (engine.partSim.inverseStage == currentStage)
+                    engine.isActive = true;
             }
         }
 

@@ -22,6 +22,7 @@ namespace Engineer.VesselSimulator
         public double thrust = 0;
         public double actualThrust = 0;
         public double isp = 0;
+        public bool isActive = false;
 
         // Add thrust vector to account for directional losses
         //public Vector3d thrustVec;
@@ -34,6 +35,7 @@ namespace Engineer.VesselSimulator
                             FloatCurve atmosphereCurve,
                             bool throttleLocked,
                             List<Propellant> propellants,
+                            bool active,
                             bool correctThrust)
         {
             //MonoBehaviour.print("Create EngineSim for " + theEngine.name);
@@ -43,6 +45,7 @@ namespace Engineer.VesselSimulator
 
             partSim = theEngine;
 
+            isActive = active;
             thrust = maxThrust * (thrustPercentage / 100f);
             //MonoBehaviour.print("thrust = " + thrust);
 
@@ -240,6 +243,7 @@ namespace Engineer.VesselSimulator
 #if LOG
                     MonoBehaviour.print("No source of " + ResourceContainer.GetResourceName(type));
 #endif
+                    isActive = false;
                     return false;
                 }
             }

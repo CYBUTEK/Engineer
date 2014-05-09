@@ -652,6 +652,7 @@ namespace Engineer
             {
                 int stageCount = stages.Length;
                 int stageCountUseful = 0;
+                int currentStage = FlightGlobals.ActiveVessel.currentStage;
                 if (settings.Get<bool>("Vessel: Show All DeltaV Stages", true))
                 {
                     for (int i = stageCount - 1; i >= 0; i--)
@@ -659,7 +660,13 @@ namespace Engineer
                         stageDeltaV = stages[i].deltaV;
                         if (stageDeltaV > 0)
                         {
-                            if (settings.Get<bool>("Vessel: DeltaV (Stage)", true)) GUILayout.Label("DeltaV (S" + i + ")", headingStyle);
+                            if (settings.Get<bool>("Vessel: DeltaV (Stage)", true))
+                            {
+                                if (stages[i].number == -1)
+                                    GUILayout.Label("DeltaV (active)", headingStyle);
+                                else
+                                    GUILayout.Label("DeltaV (S" + i + ")", headingStyle);
+                            }
                             stageCountUseful++;
                         }
                     }
