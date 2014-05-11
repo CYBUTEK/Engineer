@@ -50,10 +50,11 @@ namespace Engineer.VesselSimulator
         // need during the simulation.  All required data is copied from the core game data structures 
         // so that the simulation itself can be run in a background thread without having issues with 
         // the core game changing the data while the simulation is running.
-        public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0)
+        public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0, bool dumpTree = false)
         {
 #if LOG
             MonoBehaviour.print("PrepareSimulation started");
+            dumpTree = true;
 #endif
 #if LOG || TIMERS
             _timer.Start();
@@ -124,9 +125,9 @@ namespace Engineer.VesselSimulator
             _timer.Stop();
             MonoBehaviour.print("PrepareSimulation: " + _timer.ElapsedMilliseconds + "ms");
 #endif
-#if LOG
-            Dump();
-#endif
+            if (dumpTree)
+                Dump();
+
             return true;
         }
 
@@ -592,7 +593,7 @@ namespace Engineer.VesselSimulator
                 return mass;
             }
         }
-#if LOG
+
         public void Dump()
         {
             StringBuilder buffer = new StringBuilder(1024);
@@ -605,11 +606,12 @@ namespace Engineer.VesselSimulator
                 while (root.parent != null)
                     root = root.parent;
 
+                if (root.hasVessel)
+
                 root.DumpPartToBuffer(buffer, "", allParts);
             }
 
             MonoBehaviour.print(buffer);
         }
-#endif
     }
 }

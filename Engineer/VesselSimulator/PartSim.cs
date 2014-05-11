@@ -22,9 +22,6 @@ namespace Engineer.VesselSimulator
         public ResourceContainer resources = new ResourceContainer();
         public ResourceContainer resourceDrains = new ResourceContainer();
         ResourceContainer resourceFlowStates = new ResourceContainer();
-        //ResourceContainer resourceConsumptions = new ResourceContainer();
-
-        //Dictionary<int, bool> resourceCanSupply = new Dictionary<int, bool>();
 
         List<AttachNodeSim> attachNodes = new List<AttachNodeSim>();
 
@@ -34,6 +31,9 @@ namespace Engineer.VesselSimulator
         public PartSim parent;
         public PartSim fuelLineTarget;
         public bool hasVessel;
+        public String vesselName;
+        public VesselType vesselType;
+        public String initialVesselName;
         public bool isLanded;
         public bool isDecoupler;
         public int decoupledInStage;
@@ -106,6 +106,12 @@ namespace Engineer.VesselSimulator
 
             hasVessel = (part.vessel != null);
             isLanded = hasVessel && part.vessel.Landed;
+            if (hasVessel)
+            {
+                vesselName = part.vessel.vesselName;
+                vesselType = part.vesselType;
+            }
+            initialVesselName = part.initialVesselName;
 
             hasMultiModeEngine = part.HasModule<MultiModeEngine>();
             hasModuleEnginesFX = part.HasModule<ModuleEnginesFX>();
@@ -554,15 +560,7 @@ namespace Engineer.VesselSimulator
                 return resources;
             }
         }
-#if false
-        public ResourceContainer ResourceConsumptions
-        {
-            get
-            {
-                return resourceConsumptions;
-            }
-        }
-#endif
+
         public ResourceContainer ResourceDrains
         {
             get
@@ -571,7 +569,36 @@ namespace Engineer.VesselSimulator
             }
         }
 
-#if LOG || true
+        private String GetVesselTypeString(VesselType vesselType)
+        {
+            switch (vesselType)
+            {
+                case VesselType.Debris:
+                    return "Debris";
+                case VesselType.SpaceObject:
+                    return "SpaceObject";
+                case VesselType.Unknown:
+                    return "Unknown";
+                case VesselType.Probe:
+                    return "Probe";
+                case VesselType.Rover:
+                    return "Rover";
+                case VesselType.Lander:
+                    return "Lander";
+                case VesselType.Ship:
+                    return "Ship";
+                case VesselType.Station:
+                    return "Station";
+                case VesselType.Base:
+                    return "Base";
+                case VesselType.EVA:
+                    return "EVA";
+                case VesselType.Flag:
+                    return "Flag";
+            }
+            return "Undefined";
+        }
+
         public String DumpPartAndParentsToBuffer(StringBuilder buffer, String prefix)
         {
             if (parent != null)
@@ -589,6 +616,10 @@ namespace Engineer.VesselSimulator
             buffer.Append(prefix);
             buffer.Append(name);
             buffer.AppendFormat(":[id = {0:d}, decouple = {1:d}, invstage = {2:d}", partId, decoupledInStage, inverseStage);
+
+            buffer.AppendFormat(", vesselName = {0}", vesselName);
+            buffer.AppendFormat(", vesselType = {0}", GetVesselTypeString(vesselType));
+            buffer.AppendFormat(", initialVesselName = {0}", initialVesselName);
 
             buffer.AppendFormat(", fuelCF = {0}", fuelCrossFeed);
             buffer.AppendFormat(", noCFNKey = '{0}'", noCrossFeedNodeKey);
@@ -627,6 +658,5 @@ namespace Engineer.VesselSimulator
                 }
             }
         }
-#endif
     }
 }

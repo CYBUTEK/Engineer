@@ -20,6 +20,7 @@ namespace Engineer.VesselSimulator
         public static Stage LastStage { get; private set; }
         public static String failMessage { get; private set; }
 
+        public static bool dumpTree = false;
         public static long minSimTime = 150;
         public static double Gravity { get; set; }
         public static double Atmosphere { get; set; }
@@ -154,7 +155,7 @@ namespace Engineer.VesselSimulator
                 Simulation sim = new Simulation();
 
                 // This call doesn't ever fail at the moment but we'll check and return a sensible error for display
-                if (sim.PrepareSimulation(parts, Gravity, Atmosphere))
+                if (sim.PrepareSimulation(parts, Gravity, Atmosphere, dumpTree))
                 {
                     ThreadPool.QueueUserWorkItem(RunSimulation, sim);
                 }
@@ -170,6 +171,7 @@ namespace Engineer.VesselSimulator
                 failMessage = e.ToString();
                 bRunning = false;
             }
+            dumpTree = false;
         }
 
         private static void RunSimulation(object simObject)
