@@ -31,6 +31,9 @@ namespace Engineer.VesselSimulator
         private int currentStage = 0;
         private bool doingCurrent = false;
 
+        public String vesselName;
+        public VesselType vesselType;
+
         private double gravity = 0;
         private double atmosphere = 0;
 #if LOG || TIMERS
@@ -76,6 +79,12 @@ namespace Engineer.VesselSimulator
 
             // A dictionary for fast lookup of Part->PartSim during the preparation phase
             Dictionary<Part, PartSim> partSimLookup = new Dictionary<Part, PartSim>();
+
+            if (partList.Count > 0 && partList[0].vessel != null)
+            {
+                vesselName = partList[0].vessel.vesselName;
+                vesselType = partList[0].vessel.vesselType;
+            }
 
             // First we create a PartSim for each Part (giving each a unique id)
             int partId = 1;
@@ -605,6 +614,9 @@ namespace Engineer.VesselSimulator
                 PartSim root = allParts[0];
                 while (root.parent != null)
                     root = root.parent;
+
+                if (root.hasVessel)
+                    buffer.AppendFormat("vesselName = '{0}'  vesselType = {1}\n", vesselName, SimManager.GetVesselTypeString(vesselType));
 
                 root.DumpPartToBuffer(buffer, "", allParts);
             }

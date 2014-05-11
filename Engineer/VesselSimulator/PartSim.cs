@@ -569,36 +569,6 @@ namespace Engineer.VesselSimulator
             }
         }
 
-        private String GetVesselTypeString(VesselType vesselType)
-        {
-            switch (vesselType)
-            {
-                case VesselType.Debris:
-                    return "Debris";
-                case VesselType.SpaceObject:
-                    return "SpaceObject";
-                case VesselType.Unknown:
-                    return "Unknown";
-                case VesselType.Probe:
-                    return "Probe";
-                case VesselType.Rover:
-                    return "Rover";
-                case VesselType.Lander:
-                    return "Lander";
-                case VesselType.Ship:
-                    return "Ship";
-                case VesselType.Station:
-                    return "Station";
-                case VesselType.Base:
-                    return "Base";
-                case VesselType.EVA:
-                    return "EVA";
-                case VesselType.Flag:
-                    return "Flag";
-            }
-            return "Undefined";
-        }
-
         public String DumpPartAndParentsToBuffer(StringBuilder buffer, String prefix)
         {
             if (parent != null)
@@ -618,7 +588,7 @@ namespace Engineer.VesselSimulator
             buffer.AppendFormat(":[id = {0:d}, decouple = {1:d}, invstage = {2:d}", partId, decoupledInStage, inverseStage);
 
             buffer.AppendFormat(", vesselName = '{0}'", vesselName);
-            buffer.AppendFormat(", vesselType = {0}", GetVesselTypeString(vesselType));
+            buffer.AppendFormat(", vesselType = {0}", SimManager.GetVesselTypeString(vesselType));
             buffer.AppendFormat(", initialVesselName = '{0}'", initialVesselName);
 
             buffer.AppendFormat(", fuelCF = {0}", fuelCrossFeed);

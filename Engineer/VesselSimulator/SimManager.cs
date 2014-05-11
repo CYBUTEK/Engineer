@@ -207,5 +207,35 @@ namespace Engineer.VesselSimulator
 
             bRunning = false;
         }
+
+        public static String GetVesselTypeString(VesselType vesselType)
+        {
+            switch (vesselType)
+            {
+                case VesselType.Debris:
+                    return "Debris";
+                case VesselType.SpaceObject:
+                    return "SpaceObject";
+                case VesselType.Unknown:
+                    return "Unknown";
+                case VesselType.Probe:
+                    return "Probe";
+                case VesselType.Rover:
+                    return "Rover";
+                case VesselType.Lander:
+                    return "Lander";
+                case VesselType.Ship:
+                    return "Ship";
+                case VesselType.Station:
+                    return "Station";
+                case VesselType.Base:
+                    return "Base";
+                case VesselType.EVA:
+                    return "EVA";
+                case VesselType.Flag:
+                    return "Flag";
+            }
+            return "Undefined";
+        }
     }
 }
