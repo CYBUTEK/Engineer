@@ -606,8 +606,6 @@ namespace Engineer.VesselSimulator
                 while (root.parent != null)
                     root = root.parent;
 
-                if (root.hasVessel)
-
                 root.DumpPartToBuffer(buffer, "", allParts);
             }
 
