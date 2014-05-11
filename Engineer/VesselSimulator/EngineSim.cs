@@ -55,10 +55,20 @@ namespace Engineer.VesselSimulator
                 //MonoBehaviour.print("hasVessel is true");
                 actualThrust = requestedThrust;
                 isp = atmosphereCurve.Evaluate((float)partSim.part.staticPressureAtm);
+                if (isp == 0d)
+                    MonoBehaviour.print("Isp at " + partSim.part.staticPressureAtm + " is zero. Flow rate will be NaN");
 
                 if (correctThrust && realIsp == 0)
                 {
-                    thrust = thrust * isp / atmosphereCurve.Evaluate(0);
+                    float ispsl = atmosphereCurve.Evaluate(0);
+                    if (ispsl != 0)
+                    {
+                        thrust = thrust * isp / ispsl;
+                    }
+                    else
+                    {
+                        MonoBehaviour.print("Isp at sea level is zero. Unable to correct thrust.");
+                    }
                     //MonoBehaviour.print("corrected thrust = " + thrust);
                 }
 
@@ -93,9 +103,19 @@ namespace Engineer.VesselSimulator
             {
                 //MonoBehaviour.print("hasVessel is false");
                 isp = atmosphereCurve.Evaluate((float)atmosphere);
+                if (isp == 0d)
+                    MonoBehaviour.print("Isp at " + atmosphere + " is zero. Flow rate will be NaN");
                 if (correctThrust)
                 {
-                    thrust = thrust * isp / atmosphereCurve.Evaluate(0);
+                    float ispsl = atmosphereCurve.Evaluate(0);
+                    if (ispsl != 0)
+                    {
+                        thrust = thrust * isp / ispsl;
+                    }
+                    else
+                    {
+                        MonoBehaviour.print("Isp at sea level is zero. Unable to correct thrust.");
+                    }
                     //MonoBehaviour.print("corrected thrust = " + thrust);
                 }
                 flowRate = thrust / (isp * 9.81d);
