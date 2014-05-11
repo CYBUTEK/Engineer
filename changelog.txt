@@ -1,0 +1,4 @@
+11/05/2014 21:28 GMT   Added button to flight engineer tweakable that causes the next run of the simulation to dump the part tree to output_log.txt
+                       Tweaked RealFuels thrust correction to detect and log some potential causes of blank outputs
+
+09/05/2014 22:31 GMT   Added extra stage to in-flight simulation that uses the currently active engines
