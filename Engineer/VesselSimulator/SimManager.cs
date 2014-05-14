@@ -29,11 +29,9 @@ namespace Engineer.VesselSimulator
         private static bool hasCheckedForRealFuels = false;
         private static bool hasInstalledRealFuels = false;
 
-        private static Type RF_ModuleEngineConfigs_Type = null;
-        private static Type RF_ModuleHybridEngine_Type = null;
-
         private static System.Reflection.FieldInfo RF_ModuleEngineConfigs_locaCorrectThrust = null;
         private static System.Reflection.FieldInfo RF_ModuleHybridEngine_locaCorrectThrust = null;
+        private static System.Reflection.FieldInfo RF_ModuleHybridEngines_locaCorrectThrust = null;
 
         private static void GetRealFuelsTypes()
         {
@@ -47,34 +45,18 @@ namespace Engineer.VesselSimulator
                 {
                     MonoBehaviour.print("Found RealFuels mod");
 
-                    RF_ModuleEngineConfigs_Type = assembly.assembly.GetType("RealFuels.ModuleEngineConfigs");
-                    if (RF_ModuleEngineConfigs_Type == null)
-                    {
-                        MonoBehaviour.print("Failed to find ModuleEngineConfigs type");
-                        break;
-                    }
+                    Type RF_ModuleEngineConfigs_Type = assembly.assembly.GetType("RealFuels.ModuleEngineConfigs");
+                    if (RF_ModuleEngineConfigs_Type != null)
+                        RF_ModuleEngineConfigs_locaCorrectThrust = RF_ModuleEngineConfigs_Type.GetField("localCorrectThrust");
 
-                    RF_ModuleEngineConfigs_locaCorrectThrust = RF_ModuleEngineConfigs_Type.GetField("localCorrectThrust");
-                    if (RF_ModuleEngineConfigs_locaCorrectThrust == null)
-                    {
-                        MonoBehaviour.print("Failed to find ModuleEngineConfigs.localCorrectThrust field");
-                        break;
-                    }
+                    Type RF_ModuleHybridEngine_Type = assembly.assembly.GetType("RealFuels.ModuleHybridEngine");
+                    if (RF_ModuleHybridEngine_Type != null)
+                        RF_ModuleHybridEngine_locaCorrectThrust = RF_ModuleHybridEngine_Type.GetField("localCorrectThrust");
 
-                    RF_ModuleHybridEngine_Type = assembly.assembly.GetType("RealFuels.ModuleHybridEngine");
-                    if (RF_ModuleHybridEngine_Type == null)
-                    {
-                        MonoBehaviour.print("Failed to find ModuleHybridEngine type");
-                        break;
-                    }
-                    
-                    RF_ModuleHybridEngine_locaCorrectThrust = RF_ModuleHybridEngine_Type.GetField("localCorrectThrust");
-                    if (RF_ModuleHybridEngine_locaCorrectThrust == null)
-                    {
-                        MonoBehaviour.print("Failed to find ModuleHybridEngine.localCorrectThrust field");
-                        break;
-                    }
-                    
+                    Type RF_ModuleHybridEngines_Type = assembly.assembly.GetType("RealFuels.ModuleHybridEngines");
+                    if (RF_ModuleHybridEngines_Type != null)
+                        RF_ModuleHybridEngines_locaCorrectThrust = RF_ModuleHybridEngines_Type.GetField("localCorrectThrust");
+
 					hasInstalledRealFuels = true;
 					break;
 				}
@@ -88,21 +70,38 @@ namespace Engineer.VesselSimulator
             if (!hasInstalledRealFuels /*|| HighLogic.LoadedSceneIsFlight*/)
                 return false;
 
-            // Look for either of the Real Fuels engine modules and call the relevant method to find out
-            PartModule modEngineConfigs = theEngine.Modules["ModuleEngineConfigs"];
-            if (modEngineConfigs != null)
+            // Look for any of the Real Fuels engine modules and call the relevant method to find out
+            if (RF_ModuleEngineConfigs_locaCorrectThrust != null)
             {
-                // Check the localCorrectThrust
-                if ((bool)RF_ModuleEngineConfigs_locaCorrectThrust.GetValue(modEngineConfigs))
-                    return true;
+                PartModule modEngineConfigs = theEngine.Modules["ModuleEngineConfigs"];
+                if (modEngineConfigs != null)
+                {
+                    // Check the localCorrectThrust
+                    if ((bool)RF_ModuleEngineConfigs_locaCorrectThrust.GetValue(modEngineConfigs))
+                        return true;
+                }
             }
 
-            PartModule modHybridEngine = theEngine.Modules["ModuleHybridEngine"];
-            if (modHybridEngine != null)
+            if (RF_ModuleHybridEngine_locaCorrectThrust != null)
             {
-                // Check the localCorrectThrust
-                if ((bool)RF_ModuleHybridEngine_locaCorrectThrust.GetValue(modHybridEngine))
-                    return true;
+                PartModule modHybridEngine = theEngine.Modules["ModuleHybridEngine"];
+                if (modHybridEngine != null)
+                {
+                    // Check the localCorrectThrust
+                    if ((bool)RF_ModuleHybridEngine_locaCorrectThrust.GetValue(modHybridEngine))
+                        return true;
+                }
+            }
+
+            if (RF_ModuleHybridEngines_locaCorrectThrust != null)
+            {
+                PartModule modHybridEngines = theEngine.Modules["ModuleHybridEngines"];
+                if (modHybridEngines != null)
+                {
+                    // Check the localCorrectThrust
+                    if ((bool)RF_ModuleHybridEngines_locaCorrectThrust.GetValue(modHybridEngines))
+                        return true;
+                }
             }
 
             return false;
