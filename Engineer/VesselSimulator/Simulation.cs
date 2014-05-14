@@ -484,12 +484,16 @@ namespace Engineer.VesselSimulator
                 return true;
             }
 
+            bool nothingDecoupled = true;
+
             foreach (PartSim partSim in allParts)
             {
                 //partSim.DumpPartToBuffer(buffer, "Testing: ", allParts);
                 //buffer.AppendFormat("isSepratron = {0}\n", partSim.isSepratron ? "true" : "false");
                 if (partSim.decoupledInStage == (currentStage - 1) && (!partSim.isSepratron || partSim.decoupledInStage < partSim.inverseStage))
                 {
+                    nothingDecoupled = false;
+                    
                     if (!partSim.Resources.EmptyOf(drainingResources))
                     {
 #if LOG
@@ -510,6 +514,15 @@ namespace Engineer.VesselSimulator
                         }
                     }
                 }
+            }
+
+            if (nothingDecoupled)
+            {
+#if LOG
+                buffer.AppendLine("Nothing decoupled => false");
+                MonoBehaviour.print(buffer);
+#endif
+                return false;
             }
 
             if (currentStage > 0 && !doingCurrent)
