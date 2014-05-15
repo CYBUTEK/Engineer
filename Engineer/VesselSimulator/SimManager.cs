@@ -71,7 +71,7 @@ namespace Engineer.VesselSimulator
                 return false;
 
             // Look for any of the Real Fuels engine modules and call the relevant method to find out
-            if (RF_ModuleEngineConfigs_locaCorrectThrust != null)
+            if (RF_ModuleEngineConfigs_locaCorrectThrust != null && theEngine.Modules.Contains("ModuleEngineConfigs"))
             {
                 PartModule modEngineConfigs = theEngine.Modules["ModuleEngineConfigs"];
                 if (modEngineConfigs != null)
@@ -82,7 +82,7 @@ namespace Engineer.VesselSimulator
                 }
             }
 
-            if (RF_ModuleHybridEngine_locaCorrectThrust != null)
+            if (RF_ModuleHybridEngine_locaCorrectThrust != null && theEngine.Modules.Contains("ModuleHybridEngine"))
             {
                 PartModule modHybridEngine = theEngine.Modules["ModuleHybridEngine"];
                 if (modHybridEngine != null)
@@ -93,7 +93,7 @@ namespace Engineer.VesselSimulator
                 }
             }
 
-            if (RF_ModuleHybridEngines_locaCorrectThrust != null)
+            if (RF_ModuleHybridEngines_locaCorrectThrust != null && theEngine.Modules.Contains("ModuleHybridEngines"))
             {
                 PartModule modHybridEngines = theEngine.Modules["ModuleHybridEngines"];
                 if (modHybridEngines != null)
@@ -196,7 +196,9 @@ namespace Engineer.VesselSimulator
             }
 
             timer.Stop();
+#if LOG || TIMERS
             MonoBehaviour.print("Total simulation time: " + timer.ElapsedMilliseconds + "ms");
+#endif
             delayBetweenSims = minSimTime - timer.ElapsedMilliseconds;
             if (delayBetweenSims < 0)
                 delayBetweenSims = 0;
