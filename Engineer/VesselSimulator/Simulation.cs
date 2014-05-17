@@ -36,6 +36,7 @@ namespace Engineer.VesselSimulator
 
         private double gravity = 0;
         private double atmosphere = 0;
+        private double velocity = 0;
 #if LOG || TIMERS
         private Stopwatch _timer = new Stopwatch();
 #endif
@@ -53,7 +54,7 @@ namespace Engineer.VesselSimulator
         // need during the simulation.  All required data is copied from the core game data structures 
         // so that the simulation itself can be run in a background thread without having issues with 
         // the core game changing the data while the simulation is running.
-        public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0, bool dumpTree = false)
+        public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0, double theVelocity = 0, bool dumpTree = false)
         {
 #if LOG
             MonoBehaviour.print("PrepareSimulation started");
@@ -66,6 +67,7 @@ namespace Engineer.VesselSimulator
             partList = parts;
             gravity = theGravity;
             atmosphere = theAtmosphere;
+            velocity = theVelocity;
             lastStage = Staging.lastStage;
             //MonoBehaviour.print("lastStage = " + lastStage);
 
@@ -106,7 +108,7 @@ namespace Engineer.VesselSimulator
                 if (partSim.isFuelLine)
                     allFuelLines.Add(partSim);
                 if (partSim.isEngine)
-                    partSim.CreateEngineSims(allEngines, atmosphere);
+                    partSim.CreateEngineSims(allEngines, atmosphere, velocity);
 
                 partId++;
             }
@@ -334,7 +336,7 @@ namespace Engineer.VesselSimulator
                     // Check if we actually changed anything
                     if (stepStartMass == stepEndMass)
                     {
-                        MonoBehaviour.print("No change in mass");
+                        //MonoBehaviour.print("No change in mass");
                         break;
                     }
 

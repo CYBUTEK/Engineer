@@ -24,6 +24,7 @@ namespace Engineer.VesselSimulator
         public static long minSimTime = 150;
         public static double Gravity { get; set; }
         public static double Atmosphere { get; set; }
+        public static double Velocity { get; set; }
 
         // Support for RealFuels using reflection to check localCorrectThrust without dependency
         private static bool hasCheckedForRealFuels = false;
@@ -154,7 +155,7 @@ namespace Engineer.VesselSimulator
                 Simulation sim = new Simulation();
 
                 // This call doesn't ever fail at the moment but we'll check and return a sensible error for display
-                if (sim.PrepareSimulation(parts, Gravity, Atmosphere, dumpTree))
+                if (sim.PrepareSimulation(parts, Gravity, Atmosphere, Velocity, dumpTree))
                 {
                     ThreadPool.QueueUserWorkItem(RunSimulation, sim);
                 }

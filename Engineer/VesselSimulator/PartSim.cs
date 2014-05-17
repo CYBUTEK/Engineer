@@ -123,7 +123,7 @@ namespace Engineer.VesselSimulator
 #endif
         }
 
-        public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere)
+        public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere, double velocity)
         {
             bool correctThrust = SimManager.DoesEngineUseCorrectedThrust(part);
             //MonoBehaviour.print("Engine " + name + " correctThrust = " + correctThrust);
@@ -149,12 +149,15 @@ namespace Engineer.VesselSimulator
                 {
                     if (engine.engineID == mode)
                     {
-                        EngineSim engineSim = new EngineSim(this, atmosphere,
+                        EngineSim engineSim = new EngineSim(this,
+                                                            atmosphere,
+                                                            velocity,
                                                             engine.maxThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
                                                             engine.realIsp,
                                                             engine.atmosphereCurve,
+                                                            engine.useVelocityCurve ? engine.velocityCurve : null,
                                                             engine.throttleLocked,
                                                             engine.propellants,
                                                             engine.isOperational,
@@ -169,12 +172,15 @@ namespace Engineer.VesselSimulator
                 {
                     foreach (ModuleEnginesFX engine in part.GetModules<ModuleEnginesFX>())
                     {
-                        EngineSim engineSim = new EngineSim(this, atmosphere,
+                        EngineSim engineSim = new EngineSim(this,
+                                                            atmosphere,
+                                                            velocity,
                                                             engine.maxThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
                                                             engine.realIsp,
                                                             engine.atmosphereCurve,
+                                                            engine.useVelocityCurve ? engine.velocityCurve : null,
                                                             engine.throttleLocked,
                                                             engine.propellants,
                                                             engine.isOperational,
@@ -187,12 +193,15 @@ namespace Engineer.VesselSimulator
                 {
                     foreach (ModuleEngines engine in part.GetModules<ModuleEngines>())
                     {
-                        EngineSim engineSim = new EngineSim(this, atmosphere,
+                        EngineSim engineSim = new EngineSim(this,
+                                                            atmosphere,
+                                                            velocity,
                                                             engine.maxThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
                                                             engine.realIsp,
                                                             engine.atmosphereCurve,
+                                                            engine.useVelocityCurve ? engine.velocityCurve : null,
                                                             engine.throttleLocked,
                                                             engine.propellants,
                                                             engine.isOperational,

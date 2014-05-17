@@ -163,6 +163,7 @@ namespace Engineer
                         failMessage = SimManager.failMessage;
 
                         SimManager.Gravity = vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius + vessel.mainBody.GetAltitude(vessel.CoM), 2);
+                        SimManager.Velocity = vessel.srfSpeed;
                         SimManager.TryStartSimulation();
                     }
                 }

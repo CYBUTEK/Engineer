@@ -27,12 +27,15 @@ namespace Engineer.VesselSimulator
         // Add thrust vector to account for directional losses
         //public Vector3d thrustVec;
 
-        public EngineSim(PartSim theEngine, double atmosphere,
+        public EngineSim(PartSim theEngine,
+                            double atmosphere,
+                            double velocity,
                             float maxThrust,
                             float thrustPercentage,
                             float requestedThrust,
                             float realIsp,
                             FloatCurve atmosphereCurve,
+                            FloatCurve velocityCurve,
                             bool throttleLocked,
                             List<Propellant> propellants,
                             bool active,
@@ -42,6 +45,7 @@ namespace Engineer.VesselSimulator
             //MonoBehaviour.print("maxThrust = " + maxThrust);
             //MonoBehaviour.print("thrustPercentage = " + thrustPercentage);
             //MonoBehaviour.print("requestedThrust = " + requestedThrust);
+            //MonoBehaviour.print("velocity = " + velocity);
 
             partSim = theEngine;
 
@@ -54,6 +58,12 @@ namespace Engineer.VesselSimulator
             {
                 //MonoBehaviour.print("hasVessel is true");
                 actualThrust = requestedThrust;
+                if (velocityCurve != null)
+                {
+                    actualThrust *= velocityCurve.Evaluate((float)velocity);
+                    //MonoBehaviour.print("actualThrust at velocity = " + actualThrust);
+                }
+
                 isp = atmosphereCurve.Evaluate((float)partSim.part.staticPressureAtm);
                 if (isp == 0d)
                     MonoBehaviour.print("Isp at " + partSim.part.staticPressureAtm + " is zero. Flow rate will be NaN");
@@ -72,6 +82,12 @@ namespace Engineer.VesselSimulator
                     //MonoBehaviour.print("corrected thrust = " + thrust);
                 }
 
+                if (velocityCurve != null)
+                {
+                    thrust *= velocityCurve.Evaluate((float)velocity);
+                    //MonoBehaviour.print("thrust at velocity = " + thrust);
+                }
+
                 if (throttleLocked)
                 {
                     //MonoBehaviour.print("throttleLocked is true");
@@ -88,6 +104,12 @@ namespace Engineer.VesselSimulator
                     {
                         if (requestedThrust > 0)
                         {
+                            if (velocityCurve != null)
+                            {
+                                requestedThrust *= velocityCurve.Evaluate((float)velocity);
+                                //MonoBehaviour.print("requestedThrust at velocity = " + requestedThrust);
+                            }
+
                             //MonoBehaviour.print("requestedThrust > 0");
                             flowRate = requestedThrust / (isp * 9.81d);
                         }
@@ -118,6 +140,13 @@ namespace Engineer.VesselSimulator
                     }
                     //MonoBehaviour.print("corrected thrust = " + thrust);
                 }
+
+                if (velocityCurve != null)
+                {
+                    thrust *= velocityCurve.Evaluate((float)velocity);
+                    //MonoBehaviour.print("thrust at velocity = " + thrust);
+                }
+
                 flowRate = thrust / (isp * 9.81d);
             }
 #if LOG
