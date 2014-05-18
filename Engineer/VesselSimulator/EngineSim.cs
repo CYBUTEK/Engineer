@@ -25,7 +25,7 @@ namespace Engineer.VesselSimulator
         public bool isActive = false;
 
         // Add thrust vector to account for directional losses
-        //public Vector3d thrustVec;
+        public Vector3 thrustVec;
 
         public EngineSim(PartSim theEngine,
                             double atmosphere,
@@ -33,6 +33,7 @@ namespace Engineer.VesselSimulator
                             float maxThrust,
                             float thrustPercentage,
                             float requestedThrust,
+                            Vector3 vecThrust,
                             float realIsp,
                             FloatCurve atmosphereCurve,
                             FloatCurve velocityCurve,
@@ -52,6 +53,8 @@ namespace Engineer.VesselSimulator
             isActive = active;
             thrust = maxThrust * (thrustPercentage / 100f);
             //MonoBehaviour.print("thrust = " + thrust);
+
+            thrustVec = vecThrust;
 
             double flowRate = 0d;
             if (partSim.hasVessel)

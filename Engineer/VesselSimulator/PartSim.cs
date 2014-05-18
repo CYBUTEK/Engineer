@@ -123,12 +123,13 @@ namespace Engineer.VesselSimulator
 #endif
         }
 
-        public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere, double velocity)
+        public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere, double velocity, bool vectoredThrust)
         {
             bool correctThrust = SimManager.DoesEngineUseCorrectedThrust(part);
             //MonoBehaviour.print("Engine " + name + " correctThrust = " + correctThrust);
-#if LOG || true
-            LogMsg log = new LogMsg();
+            LogMsg log = null;
+#if LOG
+            log = new LogMsg();
             log.buf.AppendLine("CreateEngineSims for " + name);
 
             foreach (PartModule partMod in part.Modules)
@@ -149,12 +150,18 @@ namespace Engineer.VesselSimulator
                 {
                     if (engine.engineID == mode)
                     {
+#if LOG
+                        log.buf.AppendLine("Module: " + engine.moduleName);
+#endif
+                        Vector3 thrustvec = CalculateThrustVector(vectoredThrust ? engine.thrustTransforms : null, log);
+
                         EngineSim engineSim = new EngineSim(this,
                                                             atmosphere,
                                                             velocity,
                                                             engine.maxThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
+                                                            thrustvec,
                                                             engine.realIsp,
                                                             engine.atmosphereCurve,
                                                             engine.useVelocityCurve ? engine.velocityCurve : null,
@@ -172,17 +179,10 @@ namespace Engineer.VesselSimulator
                 {
                     foreach (ModuleEnginesFX engine in part.GetModules<ModuleEnginesFX>())
                     {
+#if LOG
                         log.buf.AppendLine("Module: " + engine.moduleName);
-
-                        Vector3 thrustvec = Vector3.zero;
-                        foreach (Transform trans in engine.thrustTransforms)
-                        {
-                            log.buf.AppendFormat("Transform = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", trans.forward.x, trans.forward.y, trans.forward.z, trans.forward.magnitude);
-                            thrustvec -= trans.forward;
-                        }
-                        log.buf.AppendFormat("ThrustVec  = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
-                        thrustvec.Normalize();
-                        log.buf.AppendFormat("ThrustVecN = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
+#endif
+                        Vector3 thrustvec = CalculateThrustVector(vectoredThrust ? engine.thrustTransforms : null, log);
                         
                         EngineSim engineSim = new EngineSim(this,
                                                             atmosphere,
@@ -190,6 +190,7 @@ namespace Engineer.VesselSimulator
                                                             engine.maxThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
+                                                            thrustvec,
                                                             engine.realIsp,
                                                             engine.atmosphereCurve,
                                                             engine.useVelocityCurve ? engine.velocityCurve : null,
@@ -205,17 +206,10 @@ namespace Engineer.VesselSimulator
                 {
                     foreach (ModuleEngines engine in part.GetModules<ModuleEngines>())
                     {
+#if LOG
                         log.buf.AppendLine("Module: " + engine.moduleName);
-
-                        Vector3 thrustvec = Vector3.zero;
-                        foreach (Transform trans in engine.thrustTransforms)
-                        {
-                            log.buf.AppendFormat("Transform = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", trans.forward.x, trans.forward.y, trans.forward.z, trans.forward.magnitude);
-                            thrustvec -= trans.forward;
-                        }
-                        log.buf.AppendFormat("ThrustVec  = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
-                        thrustvec.Normalize();
-                        log.buf.AppendFormat("ThrustVecN = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
+#endif
+                        Vector3 thrustvec = CalculateThrustVector(vectoredThrust ? engine.thrustTransforms : null, log);
 
                         EngineSim engineSim = new EngineSim(this,
                                                             atmosphere,
@@ -223,6 +217,7 @@ namespace Engineer.VesselSimulator
                                                             engine.maxThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
+                                                            thrustvec,
                                                             engine.realIsp,
                                                             engine.atmosphereCurve,
                                                             engine.useVelocityCurve ? engine.velocityCurve : null,
@@ -234,11 +229,33 @@ namespace Engineer.VesselSimulator
                     }
                 }
             }
-#if LOG || true
+#if LOG
             log.Flush();
 #endif
         }
 
+        private Vector3 CalculateThrustVector(List<Transform> thrustTransforms, LogMsg log)
+        {
+            if (thrustTransforms == null)
+                return Vector3.forward;
+            
+            Vector3 thrustvec = Vector3.zero;
+            foreach (Transform trans in thrustTransforms)
+            {
+#if LOG
+                log.buf.AppendFormat("Transform = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", trans.forward.x, trans.forward.y, trans.forward.z, trans.forward.magnitude);
+#endif
+                thrustvec -= trans.forward;
+            }
+#if LOG
+            log.buf.AppendFormat("ThrustVec  = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
+#endif
+            thrustvec.Normalize();
+#if LOG
+            log.buf.AppendFormat("ThrustVecN = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
+#endif
+            return thrustvec;
+        }
 
         public void SetupAttachNodes(Dictionary<Part, PartSim> partSimLookup)
         {

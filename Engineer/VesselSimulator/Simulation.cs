@@ -34,14 +34,28 @@ namespace Engineer.VesselSimulator
         public String vesselName;
         public VesselType vesselType;
 
-        private double gravity = 0;
-        private double atmosphere = 0;
-        private double velocity = 0;
+        private double stageTime = 0d;
+        private Vector3 vecStageDeltaV;
+        private double simpleTotalThrust = 0d;
+        private double totalStageThrust = 0d;
+        private double totalStageActualThrust = 0d;
+        private Vector3 vecThrust;
+        private Vector3 vecActualThrust;
+        private double totalStageFlowRate = 0d;
+        private double totalStageIspFlowRate = 0d;
+        private double currentisp = 0d;
+        private double stageStartMass = 0d;
+        private double stepStartMass = 0d;
+        private double stepEndMass = 0d;
+
+        private double gravity = 0d;
+        private double atmosphere = 0d;
+        private double velocity = 0d;
 #if LOG || TIMERS
         private Stopwatch _timer = new Stopwatch();
 #endif
         private const double STD_GRAVITY = 9.81d;
-        private const double SECONDS_PER_DAY = 86400;
+        private const double SECONDS_PER_DAY = 86400d;
         
         public Simulation()
         {
@@ -54,7 +68,7 @@ namespace Engineer.VesselSimulator
         // need during the simulation.  All required data is copied from the core game data structures 
         // so that the simulation itself can be run in a background thread without having issues with 
         // the core game changing the data while the simulation is running.
-        public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0, double theVelocity = 0, bool dumpTree = false)
+        public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0, double theVelocity = 0, bool dumpTree = false, bool vectoredThrust = false)
         {
 #if LOG
             MonoBehaviour.print("PrepareSimulation started");
@@ -108,7 +122,7 @@ namespace Engineer.VesselSimulator
                 if (partSim.isFuelLine)
                     allFuelLines.Add(partSim);
                 if (partSim.isEngine)
-                    partSim.CreateEngineSims(allEngines, atmosphere, velocity);
+                    partSim.CreateEngineSims(allEngines, atmosphere, velocity, vectoredThrust);
 
                 partId++;
             }
@@ -217,33 +231,13 @@ namespace Engineer.VesselSimulator
                 // Create the Stage object for this stage
                 Stage stage = new Stage();
 
-                double stageTime = 0d;
-                double stageDeltaV = 0d;            
-                double totalStageThrust = 0d;
-                double totalStageActualThrust = 0d;
+                stageTime = 0d;
+                vecStageDeltaV = Vector3.zero;
+                stageStartMass = ShipMass;
+                stepStartMass = stageStartMass;
+                stepEndMass = 0;
 
-                double totalStageFlowRate = 0d;
-                double totalStageIspFlowRate = 0d;
-                double currentisp = 0;
-                double stageStartMass = ShipMass;
-                double stepStartMass = stageStartMass;
-                double stepEndMass = 0;
-
-                // Loop through all the active engines totalling the thrust, actual thrust and mass flow rates
-                foreach (EngineSim engine in activeEngines)
-                {
-                    totalStageActualThrust += engine.actualThrust;
-                    totalStageThrust += engine.thrust;
-
-                    totalStageFlowRate += engine.ResourceConsumptions.Mass;
-                    totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
-                }
-
-                // Calculate the effective isp at this point
-                if (totalStageFlowRate > 0d && totalStageIspFlowRate > 0d)
-                    currentisp = totalStageIspFlowRate / totalStageFlowRate;
-                else
-                    currentisp = 0;
+                CalculateThrustAndISP();
 
                 // Store various things in the Stage object
                 stage.thrust = totalStageThrust;
@@ -307,31 +301,13 @@ namespace Engineer.VesselSimulator
 
                     // If we have drained anything and the masses make sense then add this step's deltaV to the stage total
                     if (resourceDrainTime > 0d && stepStartMass > stepEndMass && stepStartMass > 0d && stepEndMass > 0d)
-                        stageDeltaV += (currentisp * STD_GRAVITY) * Math.Log(stepStartMass / stepEndMass);
+                        vecStageDeltaV += vecThrust * (float)((currentisp * STD_GRAVITY * Math.Log(stepStartMass / stepEndMass)) / simpleTotalThrust);
 
                     // Update the active engines and resource drains for the next step
                     UpdateResourceDrains();
 
                     // Recalculate the current thrust and isp for the next step
-                    totalStageThrust = 0d;
-                    totalStageActualThrust = 0d;
-                    totalStageFlowRate = 0d;
-                    totalStageIspFlowRate = 0d;
-                    foreach (EngineSim engine in activeEngines)
-                    {
-                        totalStageActualThrust += engine.actualThrust;
-                        totalStageThrust += engine.thrust;
-
-                        totalStageFlowRate += engine.ResourceConsumptions.Mass;
-                        totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
-                    }
-
-                    //MonoBehaviour.print("next step thrust = " + totalStageThrust);
-
-                    if (totalStageFlowRate > 0d && totalStageIspFlowRate > 0d)
-                        currentisp = totalStageIspFlowRate / totalStageFlowRate;
-                    else
-                        currentisp = 0;
+                    CalculateThrustAndISP();
 
                     // Check if we actually changed anything
                     if (stepStartMass == stepEndMass)
@@ -355,13 +331,17 @@ namespace Engineer.VesselSimulator
                 }
 
                 // Store more values in the Stage object and stick it in the array
-                // Recalculate effective stage isp from the stageDeltaV (flip the standard deltaV calculation around)
+
+                // Store the magnitude of the deltaV vector
+                stage.deltaV = vecStageDeltaV.magnitude;
+                
+                // Recalculate effective stage isp from the stage deltaV (flip the standard deltaV calculation around)
                 // Note: If the mass doesn't change then this is a divide by zero
                 if (stageStartMass != stepStartMass)
-                    stage.isp = stageDeltaV / (STD_GRAVITY * Math.Log(stageStartMass / stepStartMass));
+                    stage.isp = stage.deltaV / (STD_GRAVITY * Math.Log(stageStartMass / stepStartMass));
                 else
                     stage.isp = 0;
-                stage.deltaV = stageDeltaV;
+
                 // Zero stage time if more than a day (this should be moved into the window code)
                 stage.time = (stageTime < SECONDS_PER_DAY) ? stageTime : 0d;
                 stage.number = doingCurrent ? -1 : currentStage;                // Set the stage number to -1 if doing current engines
@@ -425,6 +405,41 @@ namespace Engineer.VesselSimulator
                 if (engine.isActive)
                     activeEngines.Add(engine);
             }
+        }
+
+        private void CalculateThrustAndISP()
+        {
+            // Reset all the values
+            vecThrust = Vector3.zero;
+            vecActualThrust = Vector3.zero;
+            simpleTotalThrust = 0d;
+            totalStageThrust = 0d;
+            totalStageActualThrust = 0d;
+            totalStageFlowRate = 0d;
+            totalStageIspFlowRate = 0d;
+
+            // Loop through all the active engines totalling the thrust, actual thrust and mass flow rates
+            // The thrust is totalled as vectors
+            foreach (EngineSim engine in activeEngines)
+            {
+                simpleTotalThrust += engine.thrust;
+                vecThrust += ((float)engine.thrust * engine.thrustVec);
+                vecActualThrust += ((float)engine.actualThrust * engine.thrustVec);
+
+                totalStageFlowRate += engine.ResourceConsumptions.Mass;
+                totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
+            }
+
+            //MonoBehaviour.print("vecThrust = " + vecThrust.ToString() + "   magnitude = " + vecThrust.magnitude);
+
+            totalStageThrust = vecThrust.magnitude;
+            totalStageActualThrust = vecActualThrust.magnitude;
+
+            // Calculate the effective isp at this point
+            if (totalStageFlowRate > 0d && totalStageIspFlowRate > 0d)
+                currentisp = totalStageIspFlowRate / totalStageFlowRate;
+            else
+                currentisp = 0;
         }
 
         // This function does all the hard work of working out which engines are burning, which tanks are being drained 

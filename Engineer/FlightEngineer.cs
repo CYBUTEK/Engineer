@@ -14,9 +14,13 @@ namespace Engineer
 {
     public class FlightEngineer : PartModule
     {
-        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = false, guiName = "Sim time limit"),
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = false, guiName = "Sim Timing"),
          UI_FloatRange(minValue = 0.0f, maxValue = 1000.0f, stepIncrement = 10.0f, scene = UI_Scene.Flight)]
         public float minFESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
+
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = false, guiName = "Thrust: "),
+            UI_Toggle(disabledText = "Scalar", enabledText = "Vector", scene = UI_Scene.Flight)]
+        public bool vectoredThrust = false;
 
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Dump Tree")]
         public void DumpTree()
@@ -164,6 +168,7 @@ namespace Engineer
 
                         SimManager.Gravity = vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius + vessel.mainBody.GetAltitude(vessel.CoM), 2);
                         SimManager.Velocity = vessel.srfSpeed;
+                        SimManager.vectoredThrust = vectoredThrust;
                         SimManager.TryStartSimulation();
                     }
                 }
