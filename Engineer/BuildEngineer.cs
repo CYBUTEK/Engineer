@@ -29,6 +29,12 @@ namespace Engineer
             UI_Toggle(disabledText = "Scalar", enabledText = "Vector", scene = UI_Scene.Editor)]
         public bool vectoredThrust = false;
 
+        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Dump Tree")]
+        public void DumpTree()
+        {
+            SimManager.dumpTree = true;
+        }
+
         public static bool isVisible = true;
 
         Version version = new Version();
