@@ -302,7 +302,7 @@ namespace Engineer
                 if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(vessel.orbit.timeToPe), dataStyle);
             }
             if (settings.Get<bool>("Orbital: Inclination")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.inclination, "°", 6), dataStyle);
-            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.eccentricity, "°", 6), dataStyle);
+            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.eccentricity, 6), dataStyle);
             if (settings.Get<bool>("Orbital: Period")) GUILayout.Label(Tools.FormatTime(vessel.orbit.period), dataStyle);
             if (settings.Get<bool>("Orbital: Longitude of AN")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.LAN, "°", 6), dataStyle);
             if (settings.Get<bool>("Orbital: Longitude of Pe")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.LAN + vessel.orbit.argumentOfPeriapsis, "°", 6), dataStyle);
