@@ -415,7 +415,7 @@ namespace Engineer.VesselSimulator
             }
 
 #if LOG
-            log.buf.AppendLine("Adding this to visited");
+            log.buf.AppendLine(indent + "Adding this to visited");
 #endif
             visited.Add(this);
 
@@ -426,53 +426,18 @@ namespace Engineer.VesselSimulator
             {
                 if (partSim.fuelLineTarget == this)
                 {
-#if LOG
-                    log.buf.AppendLine(indent + "Adding fuel line as source (" + partSim.name + ":" + partSim.partId + ")");
-#endif
-                    partSources = partSim.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
-                    if (partSources.Count > 0)
+                    if (visited.Contains(partSim.parent))
                     {
-                        allSources.UnionWith(partSources);
-                        partSources.Clear();
+#if LOG
+                        log.buf.AppendLine(indent + "Fuel line parent already visited, skipping (" + partSim.parent.name + ":" + partSim.parent.partId + ")");
+#endif
                     }
-                }
-            }
-
-            if (allSources.Count > 0)
-            {
-#if LOG
-                log.buf.AppendLine(indent + "Returning " + allSources.Count + " fuel line sources (" + name + ":" + partId + ")");
-#endif
-                return allSources;
-            }
-
-            // Rule 3: If the part is not crossfeed capable, it returns empty list.
-            //MonoBehaviour.print("Test crossfeed");
-            if (!fuelCrossFeed)
-            {
-#if LOG
-                log.buf.AppendLine(indent + "Returning empty set, no cross feed (" + name + ":" + partId + ")");
-#endif
-                return allSources;
-            }
-
-            // Rule 4: Part performs scan on each of its axially mounted neighbors. 
-            //  Couplers (bicoupler, tricoupler, ...) are an exception, they only scan one attach point on the single attachment side, skip the points on the side where multiple points are. [Experiment]
-            //  Again, the part creates union of scan lists from each of its neighbor and if it is not empty, returns this list. 
-            //  The order in which mount points of a part are scanned appears to be fixed and defined by the part specification file. [Experiment]
-            //MonoBehaviour.print("foreach attach node");
-            foreach (AttachNodeSim attachSim in attachNodes)
-            {
-                if (attachSim.attachedPartSim != null)
-                {
-                    if (attachSim.nodeType == AttachNode.NodeType.Stack &&
-                        (attachSim.attachedPartSim.fuelCrossFeed || attachSim.attachedPartSim.isFuelTank) &&
-                        !(noCrossFeedNodeKey != null && noCrossFeedNodeKey.Length > 0 && attachSim.id.Contains(noCrossFeedNodeKey)))
+                    else
                     {
 #if LOG
-                        log.buf.AppendLine(indent + "Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+                        log.buf.AppendLine(indent + "Adding fuel line parent as source (" + partSim.parent.name + ":" + partSim.parent.partId + ")");
 #endif
-                        partSources = attachSim.attachedPartSim.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
+                        partSources = partSim.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
                         if (partSources.Count > 0)
                         {
                             allSources.UnionWith(partSources);
@@ -485,9 +450,63 @@ namespace Engineer.VesselSimulator
             if (allSources.Count > 0)
             {
 #if LOG
-                log.buf.AppendLine(indent + "Returning " + allSources.Count + " attached sources (" + name + ":" + partId + ")");
+                log.buf.AppendLine(indent + "Returning " + allSources.Count + " fuel line sources (" + name + ":" + partId + ")");
 #endif
                 return allSources;
+            }
+
+            // Rule 3: This rule has been removed and merged with rules 4 and 7 to fix issue with fuel tanks with disabled crossfeed
+
+            // Rule 4: Part performs scan on each of its axially mounted neighbors. 
+            //  Couplers (bicoupler, tricoupler, ...) are an exception, they only scan one attach point on the single attachment side, skip the points on the side where multiple points are. [Experiment]
+            //  Again, the part creates union of scan lists from each of its neighbor and if it is not empty, returns this list. 
+            //  The order in which mount points of a part are scanned appears to be fixed and defined by the part specification file. [Experiment]
+            if (fuelCrossFeed)
+            {
+                //MonoBehaviour.print("foreach attach node");
+                foreach (AttachNodeSim attachSim in attachNodes)
+                {
+                    if (attachSim.attachedPartSim != null)
+                    {
+                        if (attachSim.nodeType == AttachNode.NodeType.Stack &&
+//                            (attachSim.attachedPartSim.fuelCrossFeed || attachSim.attachedPartSim.isFuelTank) &&
+                            !(noCrossFeedNodeKey != null && noCrossFeedNodeKey.Length > 0 && attachSim.id.Contains(noCrossFeedNodeKey)))
+                        {
+                            if (visited.Contains(attachSim.attachedPartSim))
+                            {
+#if LOG
+                                log.buf.AppendLine(indent + "Attached part already visited, skipping (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+#endif
+                            }
+                            else
+                            {
+#if LOG
+                                log.buf.AppendLine(indent + "Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+#endif
+                                partSources = attachSim.attachedPartSim.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
+                                if (partSources.Count > 0)
+                                {
+                                    allSources.UnionWith(partSources);
+                                    partSources.Clear();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (allSources.Count > 0)
+                {
+#if LOG
+                    log.buf.AppendLine(indent + "Returning " + allSources.Count + " attached sources (" + name + ":" + partId + ")");
+#endif
+                    return allSources;
+                }
+            }
+            else
+            {
+#if LOG
+                log.buf.AppendLine(indent + "Crossfeed disabled, skipping axial connected parts (" + name + ":" + partId + ")");
+#endif
             }
 
             // Rule 5: If the part is fuel container for searched type of fuel (i.e. it has capability to contain that type of fuel and the fuel type was not disabled [Experiment]) and it contains fuel, it returns itself.
@@ -514,13 +533,31 @@ namespace Engineer.VesselSimulator
             // Rule 7: If the part is radially attached to another part and it is child of that part in the ship's tree structure, it scans its parent and returns whatever the parent scan returned. [Experiment] [Experiment]
             if (parent != null)
             {
-                allSources = parent.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
-                if (allSources.Count > 0)
+                if (fuelCrossFeed)
+                {
+                    if (visited.Contains(parent))
+                    {
+#if LOG
+                        log.buf.AppendLine(indent + "Parent part already visited, skipping (" + parent.name + ":" + parent.partId + ")");
+#endif
+                    }
+                    else
+                    {
+                        allSources = parent.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
+                        if (allSources.Count > 0)
+                        {
+#if LOG
+                            log.buf.AppendLine(indent + "Returning " + allSources.Count + " parent sources (" + name + ":" + partId + ")");
+#endif
+                            return allSources;
+                        }
+                    }
+                }
+                else
                 {
 #if LOG
-                    log.buf.AppendLine(indent + "Returning " + allSources.Count + " parent sources (" + name + ":" + partId + ")");
+                    log.buf.AppendLine(indent + "Crossfeed disabled, skipping radial parent (" + name + ":" + partId + ")");
 #endif
-                    return allSources;
                 }
             }
 
