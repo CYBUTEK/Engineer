@@ -21,9 +21,10 @@ namespace Engineer.VesselSimulator
     {
         public ResourceContainer resources = new ResourceContainer();
         public ResourceContainer resourceDrains = new ResourceContainer();
-        ResourceContainer resourceFlowStates = new ResourceContainer();
+        public ResourceContainer resourceFlowStates = new ResourceContainer();
 
         List<AttachNodeSim> attachNodes = new List<AttachNodeSim>();
+        public List<PartSim> fuelTargets = new List<PartSim>();
 
         public Part part;              // This is only set while the data structures are being initialised
         public int partId = 0;
@@ -39,8 +40,8 @@ namespace Engineer.VesselSimulator
         public int decoupledInStage;
         public int inverseStage;
         public int cost;
-        double baseMass = 0d;
-        double startMass = 0d;
+        public double baseMass = 0d;
+        public double startMass = 0d;
         public String noCrossFeedNodeKey;
         public bool fuelCrossFeed;
         public bool isEngine;
@@ -262,19 +263,33 @@ namespace Engineer.VesselSimulator
             return thrustvec;
         }
 
-        public void SetupAttachNodes(Dictionary<Part, PartSim> partSimLookup)
+        public void SetupParent(Dictionary<Part, PartSim> partSimLookup, LogMsg log)
         {
-            LogMsg log = null;
-            if (SimManager.logOutput)
+            if (part.parent != null)
             {
-                log = new LogMsg();
-                log.buf.AppendLine("SetupAttachNodes for " + name + ":" + partId + "");
+                parent = null;
+                if (partSimLookup.TryGetValue(part.parent, out parent))
+                {
+                    if (log != null)
+                        log.buf.AppendLine("Parent part is " + parent.name + ":" + parent.partId);
+                }
+                else
+                {
+                    if (log != null)
+                        log.buf.AppendLine("No PartSim for parent part (" + part.parent.partInfo.name + ")");
+                }
             }
+        }
+
+        public void SetupAttachNodes(Dictionary<Part, PartSim> partSimLookup, LogMsg log)
+        {
+            if (log != null)
+                log.buf.AppendLine("SetupAttachNodes for " + name + ":" + partId + "");
 
             attachNodes.Clear();
             foreach (AttachNode attachNode in part.attachNodes)
             {
-                if (SimManager.logOutput)
+                if (log != null)
                     log.buf.AppendLine("AttachNode " + attachNode.id + " = " + (attachNode.attachedPart != null ? attachNode.attachedPart.partInfo.name : "null"));
 
                 if (attachNode.attachedPart != null /*&& attachNode.id != "Strut"*/)
@@ -282,21 +297,23 @@ namespace Engineer.VesselSimulator
                     PartSim attachedSim;
                     if (partSimLookup.TryGetValue(attachNode.attachedPart, out attachedSim))
                     {
-                        if (SimManager.logOutput)
+                        if (log != null)
                             log.buf.AppendLine("Adding attached node " + attachedSim.name + ":" + attachedSim.partId + "");
 
                         attachNodes.Add(new AttachNodeSim(attachedSim, attachNode.id, attachNode.nodeType));
                     }
                     else
                     {
-                        if (SimManager.logOutput)
+                        if (log != null)
                             log.buf.AppendLine("No PartSim for attached part (" + attachNode.attachedPart.partInfo.name + ")");
                     }
                 }
             }
 
-            if (isFuelLine)
+/*            if (isFuelLine)
             {
+                // Add this to the fuelTargets of the target
+                
                 if ((part as FuelLine).target != null)
                 {
                     PartSim targetSim;
@@ -324,24 +341,24 @@ namespace Engineer.VesselSimulator
                     fuelLineTarget = null;
                 }
             }
+*/
 
-            if (part.parent != null)
+            foreach (Part p in part.fuelLookupTargets)
             {
-                parent = null;
-                if (partSimLookup.TryGetValue(part.parent, out parent))
+                PartSim targetSim;
+                if (partSimLookup.TryGetValue(p, out targetSim))
                 {
-                    if (SimManager.logOutput)
-                        log.buf.AppendLine("Parent part is " + parent.name + ":" + parent.partId);
+                    if (log != null)
+                        log.buf.AppendLine("Fuel target: " + targetSim.name + ":" + targetSim.partId);
+
+                    fuelTargets.Add(targetSim);
                 }
                 else
                 {
-                    if (SimManager.logOutput)
-                        log.buf.AppendLine("No PartSim for parent part (" + part.parent.partInfo.name + ")");
+                    if (log != null)
+                        log.buf.AppendLine("No PartSim for fuel target (" + p.name + ")");
                 }
             }
-
-            if (SimManager.logOutput)
-                log.Flush();
         }
 
         private int DecoupledInStage(Part thePart, int stage = -1)
@@ -401,7 +418,7 @@ namespace Engineer.VesselSimulator
         // All functions below this point must not rely on the part member (it may be null)
         //
 
-        public HashSet<PartSim> GetSourceSet(int type, List<PartSim> allParts, List<PartSim> allFuelLines, HashSet<PartSim> visited, LogMsg log, String indent)
+        public HashSet<PartSim> GetSourceSet(int type, List<PartSim> allParts, HashSet<PartSim> visited, LogMsg log, String indent)
         {
             if (SimManager.logOutput)
             {
@@ -428,27 +445,24 @@ namespace Engineer.VesselSimulator
 
             // Rule 2: Part performs scan on start of every fuel pipe ending in it. This scan is done in order in which pipes were installed. Then it makes an union of fuel tank sets each pipe scan returned. If the resulting list is not empty, it is returned as result.
             //MonoBehaviour.print("foreach fuel line");
-            
-            foreach (PartSim partSim in allFuelLines)
-            {
-                if (partSim.fuelLineTarget == this)
-                {
-                    if (visited.Contains(partSim.parent))
-                    {
-                        if (SimManager.logOutput)
-                            log.buf.AppendLine(indent + "Fuel line parent already visited, skipping (" + partSim.parent.name + ":" + partSim.parent.partId + ")");
-                    }
-                    else
-                    {
-                        if (SimManager.logOutput)
-                            log.buf.AppendLine(indent + "Adding fuel line parent as source (" + partSim.parent.name + ":" + partSim.parent.partId + ")");
 
-                        partSources = partSim.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
-                        if (partSources.Count > 0)
-                        {
-                            allSources.UnionWith(partSources);
-                            partSources.Clear();
-                        }
+            foreach (PartSim partSim in fuelTargets)
+            {
+                if (visited.Contains(partSim))
+                {
+                    if (SimManager.logOutput)
+                        log.buf.AppendLine(indent + "Fuel target already visited, skipping (" + partSim.name + ":" + partSim.partId + ")");
+                }
+                else
+                {
+                    if (SimManager.logOutput)
+                        log.buf.AppendLine(indent + "Adding fuel target as source (" + partSim.name + ":" + partSim.partId + ")");
+
+                    partSources = partSim.GetSourceSet(type, allParts, visited, log, indent);
+                    if (partSources.Count > 0)
+                    {
+                        allSources.UnionWith(partSources);
+                        partSources.Clear();
                     }
                 }
             }
@@ -456,7 +470,7 @@ namespace Engineer.VesselSimulator
             if (allSources.Count > 0)
             {
                 if (SimManager.logOutput)
-                    log.buf.AppendLine(indent + "Returning " + allSources.Count + " fuel line sources (" + name + ":" + partId + ")");
+                    log.buf.AppendLine(indent + "Returning " + allSources.Count + " fuel target sources (" + name + ":" + partId + ")");
 
                 return allSources;
             }
@@ -487,7 +501,7 @@ namespace Engineer.VesselSimulator
                                 if (SimManager.logOutput)
                                     log.buf.AppendLine(indent + "Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
 
-                                partSources = attachSim.attachedPartSim.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
+                                partSources = attachSim.attachedPartSim.GetSourceSet(type, allParts, visited, log, indent);
                                 if (partSources.Count > 0)
                                 {
                                     allSources.UnionWith(partSources);
@@ -549,7 +563,7 @@ namespace Engineer.VesselSimulator
                     }
                     else
                     {
-                        allSources = parent.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
+                        allSources = parent.GetSourceSet(type, allParts, visited, log, indent);
                         if (allSources.Count > 0)
                         {
                             if (SimManager.logOutput)

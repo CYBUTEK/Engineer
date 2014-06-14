@@ -266,7 +266,7 @@ namespace Engineer.VesselSimulator
                             log = new LogMsg();
                             log.buf.AppendLine("Find " + ResourceContainer.GetResourceName(type) + " sources for " + partSim.name + ":" + partSim.partId);
                         }
-                        sourcePartSet = partSim.GetSourceSet(type, allParts, allFuelLines, visited, log, "");
+                        sourcePartSet = partSim.GetSourceSet(type, allParts, visited, log, "");
                         if (SimManager.logOutput)
                             MonoBehaviour.print(log.buf);
                         break;

@@ -67,9 +67,11 @@ namespace Engineer.VesselSimulator
         // the core game changing the data while the simulation is running.
         public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0, double theVelocity = 0, bool dumpTree = false, bool vectoredThrust = false)
         {
+            LogMsg log = null;
             if (SimManager.logOutput)
             {
-                MonoBehaviour.print("PrepareSimulation started");
+                log = new LogMsg();
+                log.buf.AppendLine("PrepareSimulation started");
                 dumpTree = true;
             }
             _timer.Start();
@@ -106,7 +108,8 @@ namespace Engineer.VesselSimulator
                 // If the part is already in the lookup dictionary then log it and skip to the next part
                 if (partSimLookup.ContainsKey(part))
                 {
-                    MonoBehaviour.print("Part " + part.name + " appears in vessel list more than once");
+                    if (log != null)
+                        log.buf.AppendLine("Part " + part.name + " appears in vessel list more than once");
                     continue;
                 }
 
@@ -127,10 +130,45 @@ namespace Engineer.VesselSimulator
             UpdateActiveEngines();
 
             // Now that all the PartSims have been created we can do any set up that needs access to other parts
+            // First we set up all the parent links
+            foreach (PartSim partSim in allParts)
+            {
+                partSim.SetupParent(partSimLookup, log);
+            }
+            
+            // Then, in the VAB/SPH, we add the parent of each fuel line to the fuelTargets list of their targets
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                foreach (PartSim partSim in allFuelLines)
+                {
+                    if ((partSim.part as FuelLine).target != null)
+                    {
+                        PartSim targetSim;
+                        if (partSimLookup.TryGetValue((partSim.part as FuelLine).target, out targetSim))
+                        {
+                            if (log != null)
+                                log.buf.AppendLine("Fuel line target is " + targetSim.name + ":" + targetSim.partId);
+
+                            targetSim.fuelTargets.Add(partSim.parent);
+                        }
+                        else
+                        {
+                            if (SimManager.logOutput)
+                                MonoBehaviour.print("No PartSim for fuel line target (" + partSim.part.partInfo.name + ")");
+                        }
+                    }
+                    else
+                    {
+                        if (SimManager.logOutput)
+                            log.buf.AppendLine("Fuel line target is null");
+                    }
+                }
+            }
+
             //MonoBehaviour.print("SetupAttachNodes and count stages");
             foreach (PartSim partSim in allParts)
             {
-                partSim.SetupAttachNodes(partSimLookup);
+                partSim.SetupAttachNodes(partSimLookup, log);
                 if (partSim.decoupledInStage >= lastStage)
                     lastStage = partSim.decoupledInStage + 1;
             }
@@ -144,8 +182,11 @@ namespace Engineer.VesselSimulator
             partList = null;
 
             _timer.Stop();
-            if (SimManager.logOutput)
-                MonoBehaviour.print("PrepareSimulation: " + _timer.ElapsedMilliseconds + "ms");
+            if (log != null)
+            {
+                log.buf.AppendLine("PrepareSimulation: " + _timer.ElapsedMilliseconds + "ms");
+                log.Flush();
+            }
 
             if (dumpTree)
                 Dump();
