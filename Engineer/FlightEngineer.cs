@@ -25,7 +25,15 @@ namespace Engineer
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Dump Tree")]
         public void DumpTree()
         {
+            MonoBehaviour.print("FlightEngineer.DumpTree");
             SimManager.dumpTree = true;
+        }
+
+        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Log Sim")]
+        public void LogSim()
+        {
+            MonoBehaviour.print("FlightEngineer.LogSim");
+            SimManager.logOutput = true;
         }
 
         public static bool isVisible = true;

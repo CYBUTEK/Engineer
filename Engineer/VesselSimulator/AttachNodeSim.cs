@@ -18,7 +18,6 @@ namespace Engineer.VesselSimulator
             id = newId;
         }
 
-#if LOG || true
         public void DumpToBuffer(StringBuilder buffer)
         {
             if (attachedPartSim == null)
@@ -36,6 +35,5 @@ namespace Engineer.VesselSimulator
             buffer.Append(":");
             buffer.Append(id);
         }
-#endif
     }
 }

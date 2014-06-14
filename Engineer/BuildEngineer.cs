@@ -29,10 +29,18 @@ namespace Engineer
             UI_Toggle(disabledText = "Scalar", enabledText = "Vector", scene = UI_Scene.Editor)]
         public bool vectoredThrust = false;
 
-        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Dump Tree")]
+        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "Dump Tree")]
         public void DumpTree()
         {
+            MonoBehaviour.print("BuildEngineer.DumpTree");
             SimManager.dumpTree = true;
+        }
+
+        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "Log Sim")]
+        public void LogSim()
+        {
+            MonoBehaviour.print("BuildEngineer.LogSim");
+            SimManager.logOutput = true;
         }
 
         public static bool isVisible = true;
@@ -85,7 +93,6 @@ namespace Engineer
         {
             try
             {
-                print("BuildEngineer: OnStart (" + state + ")");
                 if (state == StartState.Editor)
                 {
                     this.part.OnEditorAttach += OnEditorAttach;

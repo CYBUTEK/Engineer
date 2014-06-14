@@ -42,6 +42,7 @@ namespace Engineer.VesselSimulator
                             bool active,
                             bool correctThrust)
         {
+            StringBuilder buffer = null;
             //MonoBehaviour.print("Create EngineSim for " + theEngine.name);
             //MonoBehaviour.print("maxThrust = " + maxThrust);
             //MonoBehaviour.print("thrustPercentage = " + thrustPercentage);
@@ -152,36 +153,40 @@ namespace Engineer.VesselSimulator
 
                 flowRate = thrust / (isp * 9.81d);
             }
-#if LOG
-            StringBuilder buffer = new StringBuilder(1024);
-            buffer.AppendFormat("flowRate = {0:g6}\n", flowRate);
-#endif
-            float flowMass = 0f;
 
+            if (SimManager.logOutput)
+            {
+                buffer = new StringBuilder(1024);
+                buffer.AppendFormat("flowRate = {0:g6}\n", flowRate);
+            }
+
+            float flowMass = 0f;
             foreach (Propellant propellant in propellants)
                 flowMass += propellant.ratio * ResourceContainer.GetResourceDensity(propellant.id);
-#if LOG
-            buffer.AppendFormat("flowMass = {0:g6}\n", flowMass);
-#endif
+
+            if (SimManager.logOutput)
+                buffer.AppendFormat("flowMass = {0:g6}\n", flowMass);
+
             foreach (Propellant propellant in propellants)
             {
                 if (propellant.name == "ElectricCharge" || propellant.name == "IntakeAir")
                     continue;
 
                 double consumptionRate = propellant.ratio * flowRate / flowMass;
-#if LOG
-                buffer.AppendFormat("Add consumption({0}, {1}:{2:d}) = {3:g6}\n", ResourceContainer.GetResourceName(propellant.id), theEngine.name, theEngine.partId, consumptionRate);
-#endif
+                if (SimManager.logOutput)
+                    buffer.AppendFormat("Add consumption({0}, {1}:{2:d}) = {3:g6}\n", ResourceContainer.GetResourceName(propellant.id), theEngine.name, theEngine.partId, consumptionRate);
                 resourceConsumptions.Add(propellant.id, consumptionRate);
             }
-#if LOG
-            MonoBehaviour.print(buffer);
-#endif
+
+            if (SimManager.logOutput)
+                MonoBehaviour.print(buffer);
         }
 
 
         public bool SetResourceDrains(List<PartSim> allParts, List<PartSim> allFuelLines, HashSet<PartSim> drainingParts)
         {
+            LogMsg log = null;
+
             // A dictionary to hold a set of parts for each resource
             Dictionary<int, HashSet<PartSim>> sourcePartSets = new Dictionary<int, HashSet<PartSim>>();
 
@@ -233,7 +238,7 @@ namespace Engineer.VesselSimulator
                                         sourcePartSet = new HashSet<PartSim>();
                                         stagePartSets.Add(stage, sourcePartSet);
                                     }
-                                    
+
                                     sourcePartSet.Add(aPartSim);
                                 }
                             }
@@ -255,16 +260,15 @@ namespace Engineer.VesselSimulator
 
                     case ResourceFlowMode.STACK_PRIORITY_SEARCH:
                         HashSet<PartSim> visited = new HashSet<PartSim>();
-#if LOG
-                        LogMsg log = new LogMsg();
-                        log.buf.AppendLine("Find " + ResourceContainer.GetResourceName(type) + " sources for " + partSim.name + ":" + partSim.partId);
-#else
-                        LogMsg log = null;
-#endif
+
+                        if (SimManager.logOutput)
+                        {
+                            log = new LogMsg();
+                            log.buf.AppendLine("Find " + ResourceContainer.GetResourceName(type) + " sources for " + partSim.name + ":" + partSim.partId);
+                        }
                         sourcePartSet = partSim.GetSourceSet(type, allParts, allFuelLines, visited, log, "");
-#if LOG
-                        MonoBehaviour.print(log.buf);
-#endif
+                        if (SimManager.logOutput)
+                            MonoBehaviour.print(log.buf);
                         break;
 
                     default:
@@ -275,15 +279,16 @@ namespace Engineer.VesselSimulator
                 if (sourcePartSet != null && sourcePartSet.Count > 0)
                 {
                     sourcePartSets[type] = sourcePartSet;
-#if LOG
-                    LogMsg log = new LogMsg();
-                    log.buf.AppendLine("Source parts for " + ResourceContainer.GetResourceName(type) + ":");
-                    foreach (PartSim partSim in sourcePartSet)
+                    if (SimManager.logOutput)
                     {
-                        log.buf.AppendLine(partSim.name + ":" + partSim.partId);
+                        log = new LogMsg();
+                        log.buf.AppendLine("Source parts for " + ResourceContainer.GetResourceName(type) + ":");
+                        foreach (PartSim partSim in sourcePartSet)
+                        {
+                            log.buf.AppendLine(partSim.name + ":" + partSim.partId);
+                        }
+                        MonoBehaviour.print(log.buf);
                     }
-                    MonoBehaviour.print(log.buf);
-#endif
                 }
             }
 
@@ -292,9 +297,9 @@ namespace Engineer.VesselSimulator
             {
                 if (!sourcePartSets.ContainsKey(type))
                 {
-#if LOG
-                    MonoBehaviour.print("No source of " + ResourceContainer.GetResourceName(type));
-#endif
+                    if (SimManager.logOutput)
+                        MonoBehaviour.print("No source of " + ResourceContainer.GetResourceName(type));
+
                     isActive = false;
                     return false;
                 }
@@ -308,9 +313,9 @@ namespace Engineer.VesselSimulator
                 double amount = resourceConsumptions[type] / sourcePartSet.Count;
                 foreach (PartSim partSim in sourcePartSet)
                 {
-#if LOG
-                    MonoBehaviour.print("Adding drain of " + amount + " " + ResourceContainer.GetResourceName(type) + " to " + partSim.name + ":" + partSim.partId);
-#endif
+                    if (SimManager.logOutput)
+                        MonoBehaviour.print("Adding drain of " + amount + " " + ResourceContainer.GetResourceName(type) + " to " + partSim.name + ":" + partSim.partId);
+
                     partSim.resourceDrains.Add(type, amount);
                     drainingParts.Add(partSim);
                 }
@@ -328,12 +333,10 @@ namespace Engineer.VesselSimulator
             }
         }
 
-#if LOG
         public void DumpEngineToBuffer(StringBuilder buffer, String prefix)
         {
             buffer.Append(prefix);
             buffer.AppendFormat("[thrust = {0:g6}, actual = {1:g6}, isp = {2:g6}\n", thrust, actualThrust, isp);
         }
-#endif
     }
 }

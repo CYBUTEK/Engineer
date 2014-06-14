@@ -21,6 +21,7 @@ namespace Engineer.VesselSimulator
         public static String failMessage { get; private set; }
 
         public static bool dumpTree = false;
+        public static bool logOutput = false;
         public static bool vectoredThrust = false;
         public static long minSimTime = 150;
         public static double Gravity { get; set; }
@@ -164,6 +165,7 @@ namespace Engineer.VesselSimulator
                 {
                     failMessage = "PrepareSimulation failed";
                     bRunning = false;
+                    logOutput = false;
                 }
             }
             catch (Exception e)
@@ -171,6 +173,7 @@ namespace Engineer.VesselSimulator
                 MonoBehaviour.print("Exception in StartSimulation: " + e);
                 failMessage = e.ToString();
                 bRunning = false;
+                logOutput = false;
             }
             dumpTree = false;
         }
@@ -182,10 +185,11 @@ namespace Engineer.VesselSimulator
                 Stages = (simObject as Simulation).RunSimulation();
                 if (Stages != null)
                 {
-#if LOG
-                    foreach (Stage stage in Stages)
-                        stage.Dump();
-#endif
+                    if (logOutput)
+                    {
+                        foreach (Stage stage in Stages)
+                            stage.Dump();
+                    }
                     LastStage = Stages.Last();
                 }
             }
@@ -198,8 +202,11 @@ namespace Engineer.VesselSimulator
             }
 
             timer.Stop();
-#if LOG || TIMERS
+#if TIMERS
             MonoBehaviour.print("Total simulation time: " + timer.ElapsedMilliseconds + "ms");
+#else
+            if (logOutput)
+                MonoBehaviour.print("Total simulation time: " + timer.ElapsedMilliseconds + "ms");
 #endif
             delayBetweenSims = minSimTime - timer.ElapsedMilliseconds;
             if (delayBetweenSims < 0)
@@ -209,6 +216,7 @@ namespace Engineer.VesselSimulator
             timer.Start();
 
             bRunning = false;
+            logOutput = false;
         }
 
         public static String GetVesselTypeString(VesselType vesselType)
