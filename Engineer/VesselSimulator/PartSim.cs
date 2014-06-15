@@ -30,7 +30,6 @@ namespace Engineer.VesselSimulator
         public int partId = 0;
         public String name;
         public PartSim parent;
-        public PartSim fuelLineTarget;
         public bool hasVessel;
         public String vesselName;
         public VesselType vesselType;
@@ -309,39 +308,6 @@ namespace Engineer.VesselSimulator
                     }
                 }
             }
-
-/*            if (isFuelLine)
-            {
-                // Add this to the fuelTargets of the target
-                
-                if ((part as FuelLine).target != null)
-                {
-                    PartSim targetSim;
-                    if (partSimLookup.TryGetValue((this.part as FuelLine).target, out targetSim))
-                    {
-                        if (SimManager.logOutput)
-                            log.buf.AppendLine("Fuel line target is " + targetSim.name + ":" + targetSim.partId);
-
-                        fuelLineTarget = targetSim;
-                    }
-                    else
-                    {
-                        if (SimManager.logOutput)
-                            log.buf.AppendLine("No PartSim for fuel line target (" + part.partInfo.name + ")");
-
-                        fuelLineTarget = null;
-                    }
-
-                }
-                else
-                {
-                    if (SimManager.logOutput)
-                        log.buf.AppendLine("Fuel line target is null");
-
-                    fuelLineTarget = null;
-                }
-            }
-*/
 
             foreach (Part p in part.fuelLookupTargets)
             {
@@ -700,9 +666,6 @@ namespace Engineer.VesselSimulator
             buffer.AppendFormat(", fuelCF = {0}", fuelCrossFeed);
             buffer.AppendFormat(", noCFNKey = '{0}'", noCrossFeedNodeKey);
 
-            if (isFuelLine)
-                buffer.AppendFormat(", fuelLineTarget = {0:d}", fuelLineTarget == null ? -1 : fuelLineTarget.partId);
-            
             buffer.AppendFormat(", isSep = {0}", isSepratron);
 
             foreach (int type in resources.Types)
