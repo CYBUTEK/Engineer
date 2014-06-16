@@ -418,15 +418,12 @@ namespace Engineer
             double impactlong = 0;
             double impactlat = 0;
             double impactalt = 0;
+            string impactbiome = "---";
 
             if (FlightGlobals.ActiveVessel.mainBody.pqsController != null)
             {
                 //do impact site calculations
                 impacthappening = true;
-                impacttime = 0;
-                impactlong = 0;
-                impactlat = 0;
-                impactalt = 0;
                 double e = vessel.orbit.eccentricity;
                 //get current position direction vector
                 Vector3d currentpos = radiusdirection(vessel.orbit.trueAnomaly);
@@ -494,6 +491,9 @@ namespace Engineer
                         impactalt = 0;
                     }
                 }
+
+                if (impacthappening)
+                    impactbiome = ScienceUtil.GetExperimentBiome(vessel.mainBody, impactlat, impactlong);
             }
 
             if (vessel.geeForce > maxGForce) maxGForce = vessel.geeForce;
@@ -532,6 +532,7 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Horizontal Speed", true)) GUILayout.Label("Horizontal Speed", headingStyle);
             if (settings.Get<bool>("Surface: Longitude", true)) GUILayout.Label("Longitude", headingStyle);
             if (settings.Get<bool>("Surface: Latitude", true)) GUILayout.Label("Latitude", headingStyle);
+            if (settings.Get<bool>("Surface: Biome", true)) GUILayout.Label("Biome", headingStyle);
 
             if (impacthappening)
             {
@@ -539,6 +540,7 @@ namespace Engineer
                 if (settings.Get<bool>("Surface: Impact Longitude", true)) GUILayout.Label("Impact Longitude", headingStyle);
                 if (settings.Get<bool>("Surface: Impact Latitude", true)) GUILayout.Label("Impact Latitude", headingStyle);
                 if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label("Impact Altitude", headingStyle);
+                if (settings.Get<bool>("Surface: Impact Biome", true)) GUILayout.Label("Impact Biome", headingStyle);
             }
 
             if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", headingStyle);
@@ -586,6 +588,7 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Horizontal Speed")) GUILayout.Label(Tools.FormatSI(vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), dataStyle);
             if (settings.Get<bool>("Surface: Longitude")) GUILayout.Label(Tools.FormatNumber(vessel.longitude, "°", 6), dataStyle);
             if (settings.Get<bool>("Surface: Latitude")) GUILayout.Label(Tools.FormatNumber(vessel.latitude, "°", 6), dataStyle);
+            if (settings.Get<bool>("Surface: Biome")) GUILayout.Label(ScienceUtil.GetExperimentBiome(vessel.mainBody, vessel.latitude, vessel.longitude), dataStyle);
 
             if (impacthappening)
             {
@@ -593,6 +596,7 @@ namespace Engineer
                 if (settings.Get<bool>("Surface: Impact Longitude", true)) GUILayout.Label(Tools.FormatNumber(impactlong, "°", 6), dataStyle);
                 if (settings.Get<bool>("Surface: Impact Latitude", true)) GUILayout.Label(Tools.FormatNumber(impactlat, "°", 6), dataStyle);
                 if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label(Tools.FormatSI(impactalt, Tools.SIUnitType.Distance), dataStyle);
+                if (settings.Get<bool>("Surface: Impact Biome", true)) GUILayout.Label(impactbiome, dataStyle);
             }
 
             if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
