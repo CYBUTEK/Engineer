@@ -3,6 +3,7 @@
 // License: Attribution-NonCommercial-ShareAlike 3.0 Unported
 
 using System;
+using UnityEngine;
 
 namespace Engineer
 {
@@ -218,5 +219,56 @@ namespace Engineer
 
             return FormatNumber(number, decimals) + postfix;
         }
+
+        public static void GetSlopeAngleAndHeading(Vessel vessel, out string result)
+        {
+            //LogMsg log = new LogMsg();
+            CelestialBody mainBody = vessel.mainBody;
+            Vector3d rad = (vessel.CoM - mainBody.position).normalized;
+            //log.buf.AppendLine("rad = " + rad.ToString() + "   len = " + rad.magnitude);
+            RaycastHit hit;
+            if (Physics.Raycast(vessel.CoM, -rad, out hit))
+            {
+                Vector3d norm = hit.normal;
+                norm = norm.normalized;
+                //log.buf.AppendLine("norm = " + norm.ToString() + "   len = " + norm.magnitude);
+                double raddotnorm = Vector3d.Dot(rad, norm);
+                //log.buf.AppendLine("dot = " + raddotnorm);
+                if (raddotnorm > 1.0)
+                    raddotnorm = 1.0;
+                else if (raddotnorm < 0.0)
+                    raddotnorm = 0.0;
+                double slope = Math.Acos(raddotnorm) * 180 / Math.PI;
+                //log.buf.AppendLine("slope = " + slope);
+                result = FormatNumber(slope, "°", 1);
+                if (slope < 0.05)
+                {
+                    result += " @ ---°";
+                }
+                else
+                {
+                    Vector3d side = Vector3d.Cross(rad, norm).normalized;
+                    //log.buf.AppendLine("side = " + side.ToString() + "   len = " + side.magnitude);
+                    Vector3d east = Vector3d.Cross(rad, Vector3d.up).normalized;
+                    //log.buf.AppendLine("east = " + east.ToString() + "   len = " + east.magnitude);
+                    Vector3d north = Vector3d.Cross(rad, east).normalized;
+                    //log.buf.AppendLine("north = " + north.ToString() + "   len = " + north.magnitude);
+                    double sidedoteast = Vector3d.Dot(side, east);
+                    //log.buf.AppendLine("side.east = " + sidedoteast);
+                    double direction = Math.Acos(sidedoteast) * 180 / Math.PI;
+                    //log.buf.AppendLine("angle side:east = " + direction);
+                    double sidedotnorth = Vector3d.Dot(side, north);
+                    //log.buf.AppendLine("side.north = " + sidedotnorth);
+                    if (sidedotnorth < 0)
+                        direction = 360 - direction;
+                    result += " @ " + FormatNumber(direction, "°", 0);
+                }
+            }
+            else
+            {
+                result = "--° @ ---°";
+            }
+            //log.Flush();
+        }    
     }
 }

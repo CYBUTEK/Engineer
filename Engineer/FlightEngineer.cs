@@ -533,6 +533,7 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Longitude", true)) GUILayout.Label("Longitude", headingStyle);
             if (settings.Get<bool>("Surface: Latitude", true)) GUILayout.Label("Latitude", headingStyle);
             if (settings.Get<bool>("Surface: Biome", true)) GUILayout.Label("Biome", headingStyle);
+            if (settings.Get<bool>("Surface: Slope", true)) GUILayout.Label("Slope", headingStyle);
 
             if (impacthappening)
             {
@@ -557,6 +558,9 @@ namespace Engineer
 
             double altSL = vessel.mainBody.GetAltitude(vessel.CoM);
             double altT = altSL - vessel.terrainAltitude;
+
+            string slope;
+            Tools.GetSlopeAngleAndHeading(vessel, out slope);
 
             GUILayout.BeginVertical();
             if (settings.Get<bool>("Surface: Altitude (Sea Level)")) GUILayout.Label(Tools.FormatSI(altSL, Tools.SIUnitType.Distance), dataStyle);
@@ -589,6 +593,7 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Longitude")) GUILayout.Label(Tools.FormatNumber(vessel.longitude, "°", 6), dataStyle);
             if (settings.Get<bool>("Surface: Latitude")) GUILayout.Label(Tools.FormatNumber(vessel.latitude, "°", 6), dataStyle);
             if (settings.Get<bool>("Surface: Biome")) GUILayout.Label(ScienceUtil.GetExperimentBiome(vessel.mainBody, vessel.latitude, vessel.longitude), dataStyle);
+            if (settings.Get<bool>("Surface: Slope")) GUILayout.Label(slope, dataStyle);
 
             if (impacthappening)
             {
