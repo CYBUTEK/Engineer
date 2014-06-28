@@ -159,7 +159,7 @@ namespace Engineer.VesselSimulator
                 // This call doesn't ever fail at the moment but we'll check and return a sensible error for display
                 if (sim.PrepareSimulation(parts, Gravity, Atmosphere, Velocity, dumpTree, vectoredThrust))
                 {
-                    ThreadPool.QueueUserWorkItem(RunSimulation, sim);
+                    ThreadPool.QueueUserWorkItem(new WaitCallback(RunSimulation), sim);
                 }
                 else
                 {
