@@ -53,14 +53,14 @@ namespace Engineer.VesselSimulator
         public bool isNoPhysics;
         public bool localCorrectThrust;
 
-        public PartSim(Part thePart, int id, double atmosphere)
+        public PartSim(Part thePart, int id, double atmosphere, LogMsg log)
         {
             part = thePart;
             partId = id;
             name = part.partInfo.name;
 
-            if (SimManager.logOutput)
-                MonoBehaviour.print("Create PartSim for " + name);
+            if (log != null)
+                log.buf.AppendLine("Create PartSim for " + name);
 
             parent = null;
             fuelCrossFeed = part.fuelCrossFeed;
@@ -125,14 +125,11 @@ namespace Engineer.VesselSimulator
                 MonoBehaviour.print("Created " + name + ". Decoupled in stage " + decoupledInStage);
         }
 
-        public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere, double velocity, bool vectoredThrust)
+        public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere, double velocity, bool vectoredThrust, LogMsg log)
         {
             bool correctThrust = SimManager.DoesEngineUseCorrectedThrust(part);
-            //MonoBehaviour.print("Engine " + name + " correctThrust = " + correctThrust);
-            LogMsg log = null;
-            if (SimManager.logOutput)
+            if (log != null)
             {
-                log = new LogMsg();
                 log.buf.AppendLine("CreateEngineSims for " + name);
 
                 foreach (PartModule partMod in part.Modules)
@@ -153,7 +150,7 @@ namespace Engineer.VesselSimulator
                 {
                     if (engine.engineID == mode)
                     {
-                        if (SimManager.logOutput)
+                        if (log != null)
                             log.buf.AppendLine("Module: " + engine.moduleName);
 
                         Vector3 thrustvec = CalculateThrustVector(vectoredThrust ? engine.thrustTransforms : null, log);
@@ -182,7 +179,7 @@ namespace Engineer.VesselSimulator
                 {
                     foreach (ModuleEnginesFX engine in part.GetModules<ModuleEnginesFX>())
                     {
-                        if (SimManager.logOutput)
+                        if (log != null)
                             log.buf.AppendLine("Module: " + engine.moduleName);
 
                         Vector3 thrustvec = CalculateThrustVector(vectoredThrust ? engine.thrustTransforms : null, log);
@@ -209,7 +206,7 @@ namespace Engineer.VesselSimulator
                 {
                     foreach (ModuleEngines engine in part.GetModules<ModuleEngines>())
                     {
-                        if (SimManager.logOutput)
+                        if (log != null)
                             log.buf.AppendLine("Module: " + engine.moduleName);
 
                         Vector3 thrustvec = CalculateThrustVector(vectoredThrust ? engine.thrustTransforms : null, log);
@@ -233,7 +230,7 @@ namespace Engineer.VesselSimulator
                 }
             }
 
-            if (SimManager.logOutput)
+            if (log != null)
                 log.Flush();
         }
 
@@ -245,18 +242,18 @@ namespace Engineer.VesselSimulator
             Vector3 thrustvec = Vector3.zero;
             foreach (Transform trans in thrustTransforms)
             {
-                if (SimManager.logOutput)
+                if (log != null)
                     log.buf.AppendFormat("Transform = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", trans.forward.x, trans.forward.y, trans.forward.z, trans.forward.magnitude);
 
                 thrustvec -= trans.forward;
             }
 
-            if (SimManager.logOutput)
+            if (log != null)
                 log.buf.AppendFormat("ThrustVec  = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
 
             thrustvec.Normalize();
 
-            if (SimManager.logOutput)
+            if (log != null)
                 log.buf.AppendFormat("ThrustVecN = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
 
             return thrustvec;
@@ -291,7 +288,7 @@ namespace Engineer.VesselSimulator
                 if (log != null)
                     log.buf.AppendLine("AttachNode " + attachNode.id + " = " + (attachNode.attachedPart != null ? attachNode.attachedPart.partInfo.name : "null"));
 
-                if (attachNode.attachedPart != null /*&& attachNode.id != "Strut"*/)
+                if (attachNode.attachedPart != null && attachNode.id != "Strut")
                 {
                     PartSim attachedSim;
                     if (partSimLookup.TryGetValue(attachNode.attachedPart, out attachedSim))
@@ -386,7 +383,7 @@ namespace Engineer.VesselSimulator
 
         public HashSet<PartSim> GetSourceSet(int type, List<PartSim> allParts, HashSet<PartSim> visited, LogMsg log, String indent)
         {
-            if (SimManager.logOutput)
+            if (log != null)
             {
                 log.buf.AppendLine(indent + "GetSourceSet(" + ResourceContainer.GetResourceName(type) + ") for " + name + ":" + partId);
                 indent += "  ";
@@ -398,13 +395,13 @@ namespace Engineer.VesselSimulator
             // Rule 1: Each part can be only visited once, If it is visited for second time in particular search it returns empty list.
             if (visited.Contains(this))
             {
-                if (SimManager.logOutput)
+                if (log != null)
                     log.buf.AppendLine(indent + "Returning empty set, already visited (" + name + ":" + partId + ")");
 
                 return allSources;
             }
 
-            if (SimManager.logOutput)
+            if (log != null)
                 log.buf.AppendLine(indent + "Adding this to visited");
 
             visited.Add(this);
@@ -416,12 +413,12 @@ namespace Engineer.VesselSimulator
             {
                 if (visited.Contains(partSim))
                 {
-                    if (SimManager.logOutput)
+                    if (log != null)
                         log.buf.AppendLine(indent + "Fuel target already visited, skipping (" + partSim.name + ":" + partSim.partId + ")");
                 }
                 else
                 {
-                    if (SimManager.logOutput)
+                    if (log != null)
                         log.buf.AppendLine(indent + "Adding fuel target as source (" + partSim.name + ":" + partSim.partId + ")");
 
                     partSources = partSim.GetSourceSet(type, allParts, visited, log, indent);
@@ -435,7 +432,7 @@ namespace Engineer.VesselSimulator
 
             if (allSources.Count > 0)
             {
-                if (SimManager.logOutput)
+                if (log != null)
                     log.buf.AppendLine(indent + "Returning " + allSources.Count + " fuel target sources (" + name + ":" + partId + ")");
 
                 return allSources;
@@ -459,12 +456,12 @@ namespace Engineer.VesselSimulator
                         {
                             if (visited.Contains(attachSim.attachedPartSim))
                             {
-                                if (SimManager.logOutput)
+                                if (log != null)
                                     log.buf.AppendLine(indent + "Attached part already visited, skipping (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
                             }
                             else
                             {
-                                if (SimManager.logOutput)
+                                if (log != null)
                                     log.buf.AppendLine(indent + "Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
 
                                 partSources = attachSim.attachedPartSim.GetSourceSet(type, allParts, visited, log, indent);
@@ -477,7 +474,7 @@ namespace Engineer.VesselSimulator
                         }
                         else
                         {
-                            if (SimManager.logOutput)
+                            if (log != null)
                                 log.buf.AppendLine(indent + "AttachNode is noCrossFeedKey, skipping (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
                         }
                     }
@@ -485,7 +482,7 @@ namespace Engineer.VesselSimulator
 
                 if (allSources.Count > 0)
                 {
-                    if (SimManager.logOutput)
+                    if (log != null)
                         log.buf.AppendLine(indent + "Returning " + allSources.Count + " attached sources (" + name + ":" + partId + ")");
 
                     return allSources;
@@ -493,7 +490,7 @@ namespace Engineer.VesselSimulator
             }
             else
             {
-                if (SimManager.logOutput)
+                if (log != null)
                     log.buf.AppendLine(indent + "Crossfeed disabled, skipping axial connected parts (" + name + ":" + partId + ")");
             }
 
@@ -505,12 +502,12 @@ namespace Engineer.VesselSimulator
                 {
                     allSources.Add(this);
 
-                    if (SimManager.logOutput)
+                    if (log != null)
                         log.buf.AppendLine(indent + "Returning enabled tank as only source (" + name + ":" + partId + ")");
                 }
                 else
                 {
-                    if (SimManager.logOutput)
+                    if (log != null)
                         log.buf.AppendLine(indent + "Returning empty set, enabled tank is empty (" + name + ":" + partId + ")");
                 }
 
@@ -524,7 +521,7 @@ namespace Engineer.VesselSimulator
                 {
                     if (visited.Contains(parent))
                     {
-                        if (SimManager.logOutput)
+                        if (log != null)
                             log.buf.AppendLine(indent + "Parent part already visited, skipping (" + parent.name + ":" + parent.partId + ")");
                     }
                     else
@@ -532,7 +529,7 @@ namespace Engineer.VesselSimulator
                         allSources = parent.GetSourceSet(type, allParts, visited, log, indent);
                         if (allSources.Count > 0)
                         {
-                            if (SimManager.logOutput)
+                            if (log != null)
                                 log.buf.AppendLine(indent + "Returning " + allSources.Count + " parent sources (" + name + ":" + partId + ")");
 
                             return allSources;
@@ -541,13 +538,13 @@ namespace Engineer.VesselSimulator
                 }
                 else
                 {
-                    if (SimManager.logOutput)
+                    if (log != null)
                         log.buf.AppendLine(indent + "Crossfeed disabled, skipping radial parent (" + name + ":" + partId + ")");
                 }
             }
 
             // Rule 8: If all preceding rules failed, part returns empty list.
-            if (SimManager.logOutput)
+            if (log != null)
                 log.buf.AppendLine(indent + "Returning empty set, no sources found (" + name + ":" + partId + ")");
 
             return allSources;

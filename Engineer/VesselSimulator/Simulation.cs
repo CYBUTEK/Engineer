@@ -114,7 +114,7 @@ namespace Engineer.VesselSimulator
                 }
 
                 // Create the PartSim
-                PartSim partSim = new PartSim(part, partId, atmosphere);
+                PartSim partSim = new PartSim(part, partId, atmosphere, log);
 
                 // Add it to the Part lookup dictionary and the necessary lists
                 partSimLookup.Add(part, partSim);
@@ -122,7 +122,7 @@ namespace Engineer.VesselSimulator
                 if (partSim.isFuelLine)
                     allFuelLines.Add(partSim);
                 if (partSim.isEngine)
-                    partSim.CreateEngineSims(allEngines, atmosphere, velocity, vectoredThrust);
+                    partSim.CreateEngineSims(allEngines, atmosphere, velocity, vectoredThrust, log);
 
                 partId++;
             }
@@ -153,13 +153,13 @@ namespace Engineer.VesselSimulator
                         }
                         else
                         {
-                            if (SimManager.logOutput)
-                                MonoBehaviour.print("No PartSim for fuel line target (" + partSim.part.partInfo.name + ")");
+                            if (log != null)
+                                log.buf.AppendLine("No PartSim for fuel line target (" + partSim.part.partInfo.name + ")");
                         }
                     }
                     else
                     {
-                        if (SimManager.logOutput)
+                        if (log != null)
                             log.buf.AppendLine("Fuel line target is null");
                     }
                 }
@@ -214,18 +214,18 @@ namespace Engineer.VesselSimulator
             // Loop through all the engines
             foreach (EngineSim engine in allEngines)
             {
-                if (SimManager.logOutput)
+                if (log != null)
                     log.buf.AppendLine("Testing engine mod of " + engine.partSim.name + ":" + engine.partSim.partId);
                 bool bActive = engine.isActive;
                 bool bStage = (engine.partSim.inverseStage >= currentStage);
-                if (SimManager.logOutput)
+                if (log != null)
                     log.buf.AppendLine("bActive = " + bActive + "   bStage = " + bStage);
                 if (HighLogic.LoadedSceneIsFlight)
                 {
                     if (bActive != bStage)
                     {
                         // If the active state is different to the state due to staging
-                        if (SimManager.logOutput)
+                        if (log != null)
                             log.buf.AppendLine("Need to do current active engines first");
 
                         doingCurrent = true;
@@ -237,7 +237,7 @@ namespace Engineer.VesselSimulator
                 {
                     if (bStage)
                     {
-                        if (SimManager.logOutput)
+                        if (log != null)
                             log.buf.AppendLine("Marking as active");
 
                         engine.isActive = true;
@@ -245,8 +245,8 @@ namespace Engineer.VesselSimulator
                 }
             }
 
-            if (SimManager.logOutput)
-                MonoBehaviour.print(log.buf);
+            if (log != null)
+                log.Flush();
 
             // Create the array of stages that will be returned
             Stage[] stages = new Stage[currentStage + 1];
@@ -254,10 +254,11 @@ namespace Engineer.VesselSimulator
             // Loop through the stages
             while (currentStage >= 0)
             {
-                if (SimManager.logOutput)
+                if (log != null)
                 {
-                    MonoBehaviour.print("Simulating stage " + currentStage);
-                    MonoBehaviour.print("ShipMass = " + ShipMass);
+                    log.buf.AppendLine("Simulating stage " + currentStage);
+                    log.buf.AppendLine("ShipMass = " + ShipMass);
+                    log.Flush();
                     _timer.Reset();
                     _timer.Start();
                 }
@@ -296,7 +297,7 @@ namespace Engineer.VesselSimulator
                     }
                 }
 
-                if (SimManager.logOutput)
+                if (log != null)
                     MonoBehaviour.print("Stage setup took " + _timer.ElapsedMilliseconds + "ms");
 
                 // Now we will loop until we are allowed to stage
@@ -319,7 +320,7 @@ namespace Engineer.VesselSimulator
                         }
                     }
 
-                    if (SimManager.logOutput)
+                    if (log != null)
                         MonoBehaviour.print("Drain time = " + resourceDrainTime + " (" + partMinDrain.name + ":" + partMinDrain.partId + ")");
 
                     foreach (PartSim partSim in drainingParts)
@@ -390,7 +391,7 @@ namespace Engineer.VesselSimulator
                 currentStage--;
                 doingCurrent = false;
 
-                if (SimManager.logOutput)
+                if (log != null)
                 {
                     // Log how long the stage took
                     _timer.Stop();
@@ -403,7 +404,7 @@ namespace Engineer.VesselSimulator
                 // Activate the next stage
                 ActivateStage();
 
-                if (SimManager.logOutput)
+                if (log != null)
                 {
                     // Log how long it took to activate
                     _timer.Stop();
@@ -434,7 +435,7 @@ namespace Engineer.VesselSimulator
                     stages[i].totalTime = 0d;
             }
 
-            if (SimManager.logOutput)
+            if (log != null)
             {
                 _timer.Stop();
                 MonoBehaviour.print("RunSimulation: " + _timer.ElapsedMilliseconds + "ms");
@@ -554,7 +555,8 @@ namespace Engineer.VesselSimulator
                 return true;
             }
 
-            bool nothingDecoupled = true;
+            bool partDecoupled = false;
+            bool engineDecoupled = false;
 
             foreach (PartSim partSim in allParts)
             {
@@ -562,7 +564,7 @@ namespace Engineer.VesselSimulator
                 //buffer.AppendFormat("isSepratron = {0}\n", partSim.isSepratron ? "true" : "false");
                 if (partSim.decoupledInStage == (currentStage - 1) && (!partSim.isSepratron || partSim.decoupledInStage < partSim.inverseStage))
                 {
-                    nothingDecoupled = false;
+                    partDecoupled = true;
                     
                     if (!partSim.Resources.EmptyOf(drainingResources))
                     {
@@ -574,26 +576,32 @@ namespace Engineer.VesselSimulator
 
                         return false;
                     }
-                    foreach (EngineSim engine in activeEngines)
+
+                    if (partSim.isEngine)
                     {
-                        if (engine.partSim == partSim)
+                        foreach (EngineSim engine in activeEngines)
                         {
-                            if (SimManager.logOutput)
+                            if (engine.partSim == partSim)
                             {
-                                partSim.DumpPartToBuffer(buffer, "Decoupled part is active engine => false: ");
-                                MonoBehaviour.print(buffer);
+                                if (SimManager.logOutput)
+                                {
+                                    partSim.DumpPartToBuffer(buffer, "Decoupled part is active engine => false: ");
+                                    MonoBehaviour.print(buffer);
+                                }
+                                return false;
                             }
-                            return false;
                         }
+
+                        engineDecoupled = true;
                     }
                 }
             }
 
-            if (nothingDecoupled)
+            if (!partDecoupled)
             {
                 if (SimManager.logOutput)
                 {
-                    buffer.AppendLine("Nothing decoupled => false");
+                    buffer.AppendLine("No engine decoupled but something is => false");
                     MonoBehaviour.print(buffer);
                 }
                 return false;
