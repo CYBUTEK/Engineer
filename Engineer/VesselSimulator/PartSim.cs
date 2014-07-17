@@ -38,7 +38,7 @@ namespace Engineer.VesselSimulator
         public bool isDecoupler;
         public int decoupledInStage;
         public int inverseStage;
-        public int cost;
+        public float cost;
         public double baseMass = 0d;
         public double startMass = 0d;
         public String noCrossFeedNodeKey;
@@ -401,8 +401,8 @@ namespace Engineer.VesselSimulator
                 return allSources;
             }
 
-            if (log != null)
-                log.buf.AppendLine(indent + "Adding this to visited");
+            //if (log != null)
+            //    log.buf.AppendLine(indent + "Adding this to visited");
 
             visited.Add(this);
 
@@ -413,13 +413,13 @@ namespace Engineer.VesselSimulator
             {
                 if (visited.Contains(partSim))
                 {
-                    if (log != null)
-                        log.buf.AppendLine(indent + "Fuel target already visited, skipping (" + partSim.name + ":" + partSim.partId + ")");
+                    //if (log != null)
+                    //    log.buf.AppendLine(indent + "Fuel target already visited, skipping (" + partSim.name + ":" + partSim.partId + ")");
                 }
                 else
                 {
-                    if (log != null)
-                        log.buf.AppendLine(indent + "Adding fuel target as source (" + partSim.name + ":" + partSim.partId + ")");
+                    //if (log != null)
+                    //    log.buf.AppendLine(indent + "Adding fuel target as source (" + partSim.name + ":" + partSim.partId + ")");
 
                     partSources = partSim.GetSourceSet(type, allParts, visited, log, indent);
                     if (partSources.Count > 0)
@@ -456,13 +456,13 @@ namespace Engineer.VesselSimulator
                         {
                             if (visited.Contains(attachSim.attachedPartSim))
                             {
-                                if (log != null)
-                                    log.buf.AppendLine(indent + "Attached part already visited, skipping (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+                                //if (log != null)
+                                //    log.buf.AppendLine(indent + "Attached part already visited, skipping (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
                             }
                             else
                             {
-                                if (log != null)
-                                    log.buf.AppendLine(indent + "Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+                                //if (log != null)
+                                //    log.buf.AppendLine(indent + "Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
 
                                 partSources = attachSim.attachedPartSim.GetSourceSet(type, allParts, visited, log, indent);
                                 if (partSources.Count > 0)
@@ -474,8 +474,8 @@ namespace Engineer.VesselSimulator
                         }
                         else
                         {
-                            if (log != null)
-                                log.buf.AppendLine(indent + "AttachNode is noCrossFeedKey, skipping (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+                            //if (log != null)
+                            //    log.buf.AppendLine(indent + "AttachNode is noCrossFeedKey, skipping (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
                         }
                     }
                 }
@@ -490,8 +490,8 @@ namespace Engineer.VesselSimulator
             }
             else
             {
-                if (log != null)
-                    log.buf.AppendLine(indent + "Crossfeed disabled, skipping axial connected parts (" + name + ":" + partId + ")");
+                //if (log != null)
+                //    log.buf.AppendLine(indent + "Crossfeed disabled, skipping axial connected parts (" + name + ":" + partId + ")");
             }
 
             // Rule 5: If the part is fuel container for searched type of fuel (i.e. it has capability to contain that type of fuel and the fuel type was not disabled [Experiment]) and it contains fuel, it returns itself.
@@ -507,8 +507,8 @@ namespace Engineer.VesselSimulator
                 }
                 else
                 {
-                    if (log != null)
-                        log.buf.AppendLine(indent + "Returning empty set, enabled tank is empty (" + name + ":" + partId + ")");
+                    //if (log != null)
+                    //    log.buf.AppendLine(indent + "Returning empty set, enabled tank is empty (" + name + ":" + partId + ")");
                 }
 
                 return allSources;
@@ -521,8 +521,8 @@ namespace Engineer.VesselSimulator
                 {
                     if (visited.Contains(parent))
                     {
-                        if (log != null)
-                            log.buf.AppendLine(indent + "Parent part already visited, skipping (" + parent.name + ":" + parent.partId + ")");
+                        //if (log != null)
+                        //    log.buf.AppendLine(indent + "Parent part already visited, skipping (" + parent.name + ":" + parent.partId + ")");
                     }
                     else
                     {
@@ -538,14 +538,14 @@ namespace Engineer.VesselSimulator
                 }
                 else
                 {
-                    if (log != null)
-                        log.buf.AppendLine(indent + "Crossfeed disabled, skipping radial parent (" + name + ":" + partId + ")");
+                    //if (log != null)
+                    //    log.buf.AppendLine(indent + "Crossfeed disabled, skipping radial parent (" + name + ":" + partId + ")");
                 }
             }
 
             // Rule 8: If all preceding rules failed, part returns empty list.
-            if (log != null)
-                log.buf.AppendLine(indent + "Returning empty set, no sources found (" + name + ":" + partId + ")");
+            //if (log != null)
+            //    log.buf.AppendLine(indent + "Returning empty set, no sources found (" + name + ":" + partId + ")");
 
             return allSources;
         }

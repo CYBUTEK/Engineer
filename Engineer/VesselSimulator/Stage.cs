@@ -10,8 +10,8 @@ namespace Engineer.VesselSimulator
     public class Stage
     {
         public int number = 0;
-        public int cost = 0;
-        public int totalCost = 0;
+        public float cost = 0;
+        public float totalCost = 0;
         public double time = 0f;
         public double totalTime = 0f;
         public double mass = 0f;
