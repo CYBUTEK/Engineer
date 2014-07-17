@@ -26,6 +26,7 @@ namespace Engineer.VesselSimulator
         private List<EngineSim> allEngines;
         private List<EngineSim> activeEngines;
         private HashSet<int> drainingResources;
+        private List<PartSim> dontStageParts;
 
         private int lastStage = 0;
         private int currentStage = 0;
@@ -201,13 +202,16 @@ namespace Engineer.VesselSimulator
             if (SimManager.logOutput)
                 MonoBehaviour.print("RunSimulation started");
             _timer.Start();
-            // Start with the last stage to simulate
-            // (this is in a member variable so it can be accessed by AllowedToStage and ActivateStage)
-            currentStage = lastStage;
 
             LogMsg log = null;
             if (SimManager.logOutput)
                 log = new LogMsg();
+
+            dontStageParts = new List<PartSim>();
+
+            // Start with the last stage to simulate
+            // (this is in a member variable so it can be accessed by AllowedToStage and ActivateStage)
+            currentStage = lastStage;
 
             // Work out which engines would be active if just doing the staging and if this is different to the 
             // currently active engines then generate an extra stage
@@ -263,6 +267,9 @@ namespace Engineer.VesselSimulator
                     _timer.Start();
                 }
 
+                // Empty out the list of parts that stop staging
+                dontStageParts.Clear();
+
                 // Update active engines and resource drains
                 UpdateResourceDrains();
 
@@ -287,18 +294,35 @@ namespace Engineer.VesselSimulator
                 stage.actualThrust = totalStageActualThrust;
                 stage.actualThrustToWeight = totalStageActualThrust / (stageStartMass * gravity);
 
-                // Calculate the cost and mass of this stage
+                // Calculate the cost and mass of this stage and add all engines and tanks that are decoupled
+                // in the next stage to the dontStageParts list
                 foreach (PartSim partSim in allParts)
                 {
                     if (partSim.decoupledInStage == currentStage - 1)
                     {
                         stage.cost += partSim.cost;
                         stage.mass += partSim.GetStartMass();
+
+                        if (partSim.isEngine || !partSim.Resources.Empty)
+                            dontStageParts.Add(partSim);
                     }
                 }
 
                 if (log != null)
-                    MonoBehaviour.print("Stage setup took " + _timer.ElapsedMilliseconds + "ms");
+                {
+                    log.buf.AppendLine("Stage setup took " + _timer.ElapsedMilliseconds + "ms");
+
+                    if (dontStageParts.Count > 0)
+                    {
+                        log.buf.AppendLine("Parts preventing staging:");
+                        foreach (PartSim partSim in dontStageParts)
+                            partSim.DumpPartToBuffer(log.buf, "");
+                    }
+                    else
+                        log.buf.AppendLine("No parts preventing staging");
+
+                    log.Flush();
+                }
 
                 // Now we will loop until we are allowed to stage
                 int loopCounter = 0;
@@ -544,28 +568,14 @@ namespace Engineer.VesselSimulator
                 buffer.AppendFormat("currentStage = {0:d}\n", currentStage);
             }
 
-            if (activeEngines.Count == 0)
+            if (activeEngines.Count > 0)
             {
-                if (SimManager.logOutput)
+                foreach (PartSim partSim in dontStageParts)
                 {
-                    buffer.AppendLine("No active engines => true");
-                    MonoBehaviour.print(buffer);
-                }
+                    if (SimManager.logOutput)
+                        partSim.DumpPartToBuffer(buffer, "Testing: ");
+                    //buffer.AppendFormat("isSepratron = {0}\n", partSim.isSepratron ? "true" : "false");
 
-                return true;
-            }
-
-            bool partDecoupled = false;
-            bool engineDecoupled = false;
-
-            foreach (PartSim partSim in allParts)
-            {
-                //partSim.DumpPartToBuffer(buffer, "Testing: ", allParts);
-                //buffer.AppendFormat("isSepratron = {0}\n", partSim.isSepratron ? "true" : "false");
-                if (partSim.decoupledInStage == (currentStage - 1) && (!partSim.isSepratron || partSim.decoupledInStage < partSim.inverseStage))
-                {
-                    partDecoupled = true;
-                    
                     if (!partSim.Resources.EmptyOf(drainingResources))
                     {
                         if (SimManager.logOutput)
@@ -591,38 +601,27 @@ namespace Engineer.VesselSimulator
                                 return false;
                             }
                         }
-
-                        engineDecoupled = true;
                     }
                 }
+               
             }
 
-            if (!partDecoupled)
+            if (currentStage == 0 && doingCurrent)
             {
                 if (SimManager.logOutput)
                 {
-                    buffer.AppendLine("No engine decoupled but something is => false");
+                    buffer.AppendLine("Current stage == 0 && doingCurrent => false");
                     MonoBehaviour.print(buffer);
                 }
                 return false;
             }
 
-            if (currentStage > 0 && !doingCurrent)
-            {
-                if (SimManager.logOutput)
-                {
-                    buffer.AppendLine("Current stage > 0 && !doingCurrent => true");
-                    MonoBehaviour.print(buffer);
-                }
-                return true;
-            }
-
             if (SimManager.logOutput)
             {
-                buffer.AppendLine("Returning false");
+                buffer.AppendLine("Returning true");
                 MonoBehaviour.print(buffer);
             }
-            return false;
+            return true;
         }
 
         // This function activates the next stage
