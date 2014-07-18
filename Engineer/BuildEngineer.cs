@@ -22,6 +22,7 @@ namespace Engineer
         public float percentASP = 100.0f;      // The percentage of sea-level pressure to use for "atmospheric stats"
 
         public static bool isVisible = true;
+        public static bool hasEngineer;
 
         Version version = new Version();
         Settings settings = new Settings();
@@ -56,10 +57,7 @@ namespace Engineer
                             {
                                 return true;
                             }
-                            else
-                            {
-                                break;
-                            }
+                            break;
                         }
                     }
                 }
@@ -164,6 +162,8 @@ namespace Engineer
         {
             if (IsPrimary)
             {
+                hasEngineer = true;
+
                 // Update the simulation timing from the tweakable
                 SimManager.minSimTime = (long)minBESimTime;
 

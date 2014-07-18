@@ -19,6 +19,7 @@ namespace Engineer
         public float minFESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
 
         public static bool isVisible = true;
+        public static bool hasEngineer;
 
         public Settings settings = new Settings();
         Version version = new Version();
@@ -59,6 +60,7 @@ namespace Engineer
             {
                 TapeDriveAnimator tapeAnimator = (TapeDriveAnimator)part.Modules["TapeDriveAnimator"];
                 tapeAnimator.Enabled = settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER");
+                isVisible = settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER");
             }
         }
 
@@ -68,18 +70,15 @@ namespace Engineer
             {
                 if (vessel != null)
                 {
-                    foreach (Part thePart in vessel.parts)
+                    foreach (var part in vessel.parts)
                     {
-                        if (thePart.Modules.Contains(ClassID))
+                        if (part.Modules.Contains(this.ClassID))
                         {
-                            if (thePart == part)
+                            if (this.part == part)
                             {
                                 return true;
                             }
-                            else
-                            {
-                                break;
-                            }
+                            break;
                         }
                     }
                 }
@@ -146,6 +145,8 @@ namespace Engineer
             {
                 if (IsPrimary)
                 {
+                    hasEngineer = true;
+
                     // Update the simulation timing from the tweakable
                     SimManager.minSimTime = (long)minFESimTime;
 
