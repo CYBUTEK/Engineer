@@ -29,38 +29,58 @@ namespace Engineer.VesselSimulator
 
         private int lastStage = 0;
         private int currentStage = 0;
+        private bool doingCurrent = false;
 
-        private double gravity = 0;
-        private double atmosphere = 0;
-#if LOG || TIMERS
+        public String vesselName;
+        public VesselType vesselType;
+
+        private double stageTime = 0d;
+        private Vector3 vecStageDeltaV;
+        private double simpleTotalThrust = 0d;
+        private double totalStageThrust = 0d;
+        private double totalStageActualThrust = 0d;
+        private Vector3 vecThrust;
+        private Vector3 vecActualThrust;
+        private double totalStageFlowRate = 0d;
+        private double totalStageIspFlowRate = 0d;
+        private double currentisp = 0d;
+        private double stageStartMass = 0d;
+        private double stepStartMass = 0d;
+        private double stepEndMass = 0d;
+
+        private double gravity = 0d;
+        private double atmosphere = 0d;
+        private double velocity = 0d;
         private Stopwatch _timer = new Stopwatch();
-#endif
         private const double STD_GRAVITY = 9.81d;
-        private const double SECONDS_PER_DAY = 86400;
+        private const double SECONDS_PER_DAY = 86400d;
         
         public Simulation()
         {
-#if LOG
-            MonoBehaviour.print("Simulation created");
-#endif
+            if (SimManager.logOutput)
+                MonoBehaviour.print("Simulation created");
         }
 
         // This function prepares the simulation by creating all the necessary data structures it will 
         // need during the simulation.  All required data is copied from the core game data structures 
         // so that the simulation itself can be run in a background thread without having issues with 
         // the core game changing the data while the simulation is running.
-        public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0)
+        public bool PrepareSimulation(List<Part> parts, double theGravity, double theAtmosphere = 0, double theVelocity = 0, bool dumpTree = false, bool vectoredThrust = false)
         {
-#if LOG
-            MonoBehaviour.print("PrepareSimulation started");
-#endif
-#if LOG || TIMERS
+            LogMsg log = null;
+            if (SimManager.logOutput)
+            {
+                log = new LogMsg();
+                log.buf.AppendLine("PrepareSimulation started");
+                dumpTree = true;
+            }
             _timer.Start();
-#endif
+
             // Store the parameters in members for ease of access in other functions
             partList = parts;
             gravity = theGravity;
             atmosphere = theAtmosphere;
+            velocity = theVelocity;
             lastStage = Staging.lastStage;
             //MonoBehaviour.print("lastStage = " + lastStage);
 
@@ -75,6 +95,12 @@ namespace Engineer.VesselSimulator
             // A dictionary for fast lookup of Part->PartSim during the preparation phase
             Dictionary<Part, PartSim> partSimLookup = new Dictionary<Part, PartSim>();
 
+            if (partList.Count > 0 && partList[0].vessel != null)
+            {
+                vesselName = partList[0].vessel.vesselName;
+                vesselType = partList[0].vessel.vesselType;
+            }
+
             // First we create a PartSim for each Part (giving each a unique id)
             int partId = 1;
             foreach (Part part in partList)
@@ -82,12 +108,13 @@ namespace Engineer.VesselSimulator
                 // If the part is already in the lookup dictionary then log it and skip to the next part
                 if (partSimLookup.ContainsKey(part))
                 {
-                    MonoBehaviour.print("Part " + part.name + " appears in vessel list more than once");
+                    if (log != null)
+                        log.buf.AppendLine("Part " + part.name + " appears in vessel list more than once");
                     continue;
                 }
 
                 // Create the PartSim
-                PartSim partSim = new PartSim(part, partId, atmosphere);
+                PartSim partSim = new PartSim(part, partId, atmosphere, log);
 
                 // Add it to the Part lookup dictionary and the necessary lists
                 partSimLookup.Add(part, partSim);
@@ -95,16 +122,53 @@ namespace Engineer.VesselSimulator
                 if (partSim.isFuelLine)
                     allFuelLines.Add(partSim);
                 if (partSim.isEngine)
-                    partSim.CreateEngineSims(allEngines, atmosphere);
+                    partSim.CreateEngineSims(allEngines, atmosphere, velocity, vectoredThrust, log);
 
                 partId++;
             }
 
+            UpdateActiveEngines();
+
             // Now that all the PartSims have been created we can do any set up that needs access to other parts
+            // First we set up all the parent links
+            foreach (PartSim partSim in allParts)
+            {
+                partSim.SetupParent(partSimLookup, log);
+            }
+            
+            // Then, in the VAB/SPH, we add the parent of each fuel line to the fuelTargets list of their targets
+            if (HighLogic.LoadedSceneIsEditor)
+            {
+                foreach (PartSim partSim in allFuelLines)
+                {
+                    if ((partSim.part as FuelLine).target != null)
+                    {
+                        PartSim targetSim;
+                        if (partSimLookup.TryGetValue((partSim.part as FuelLine).target, out targetSim))
+                        {
+                            if (log != null)
+                                log.buf.AppendLine("Fuel line target is " + targetSim.name + ":" + targetSim.partId);
+
+                            targetSim.fuelTargets.Add(partSim.parent);
+                        }
+                        else
+                        {
+                            if (log != null)
+                                log.buf.AppendLine("No PartSim for fuel line target (" + partSim.part.partInfo.name + ")");
+                        }
+                    }
+                    else
+                    {
+                        if (log != null)
+                            log.buf.AppendLine("Fuel line target is null");
+                    }
+                }
+            }
+
             //MonoBehaviour.print("SetupAttachNodes and count stages");
             foreach (PartSim partSim in allParts)
             {
-                partSim.SetupAttachNodes(partSimLookup);
+                partSim.SetupAttachNodes(partSimLookup, log);
                 if (partSim.decoupledInStage >= lastStage)
                     lastStage = partSim.decoupledInStage + 1;
             }
@@ -117,13 +181,16 @@ namespace Engineer.VesselSimulator
             // And dereference the core's part list
             partList = null;
 
-#if LOG || TIMERS
             _timer.Stop();
-            MonoBehaviour.print("PrepareSimulation: " + _timer.ElapsedMilliseconds + "ms");
-#endif
-#if LOG
-            Dump();
-#endif
+            if (log != null)
+            {
+                log.buf.AppendLine("PrepareSimulation: " + _timer.ElapsedMilliseconds + "ms");
+                log.Flush();
+            }
+
+            if (dumpTree)
+                Dump();
+
             return true;
         }
 
@@ -131,15 +198,55 @@ namespace Engineer.VesselSimulator
         // This function runs the simulation and returns a newly created array of Stage objects
         public Stage[] RunSimulation()
         {
-#if LOG
-            MonoBehaviour.print("RunSimulation started");
-#endif
-#if LOG || TIMERS
+            if (SimManager.logOutput)
+                MonoBehaviour.print("RunSimulation started");
             _timer.Start();
-#endif
             // Start with the last stage to simulate
-            // (this is in a member variable so it can be accessed by AllowedToStage and ActiveStage)
+            // (this is in a member variable so it can be accessed by AllowedToStage and ActivateStage)
             currentStage = lastStage;
+
+            LogMsg log = null;
+            if (SimManager.logOutput)
+                log = new LogMsg();
+
+            // Work out which engines would be active if just doing the staging and if this is different to the 
+            // currently active engines then generate an extra stage
+            // Loop through all the engines
+            foreach (EngineSim engine in allEngines)
+            {
+                if (log != null)
+                    log.buf.AppendLine("Testing engine mod of " + engine.partSim.name + ":" + engine.partSim.partId);
+                bool bActive = engine.isActive;
+                bool bStage = (engine.partSim.inverseStage >= currentStage);
+                if (log != null)
+                    log.buf.AppendLine("bActive = " + bActive + "   bStage = " + bStage);
+                if (HighLogic.LoadedSceneIsFlight)
+                {
+                    if (bActive != bStage)
+                    {
+                        // If the active state is different to the state due to staging
+                        if (log != null)
+                            log.buf.AppendLine("Need to do current active engines first");
+
+                        doingCurrent = true;
+                        currentStage++;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (bStage)
+                    {
+                        if (log != null)
+                            log.buf.AppendLine("Marking as active");
+
+                        engine.isActive = true;
+                    }
+                }
+            }
+
+            if (log != null)
+                log.Flush();
 
             // Create the array of stages that will be returned
             Stage[] stages = new Stage[currentStage + 1];
@@ -147,45 +254,28 @@ namespace Engineer.VesselSimulator
             // Loop through the stages
             while (currentStage >= 0)
             {
-#if LOG
-                MonoBehaviour.print("Simulating stage " + currentStage);
-                MonoBehaviour.print("ShipMass = " + ShipMass);
-                _timer.Reset();
-                _timer.Start();
-#endif
+                if (log != null)
+                {
+                    log.buf.AppendLine("Simulating stage " + currentStage);
+                    log.buf.AppendLine("ShipMass = " + ShipMass);
+                    log.Flush();
+                    _timer.Reset();
+                    _timer.Start();
+                }
+
                 // Update active engines and resource drains
                 UpdateResourceDrains();
 
                 // Create the Stage object for this stage
                 Stage stage = new Stage();
 
-                double stageTime = 0d;
-                double stageDeltaV = 0d;            
-                double totalStageThrust = 0d;
-                double totalStageActualThrust = 0d;
+                stageTime = 0d;
+                vecStageDeltaV = Vector3.zero;
+                stageStartMass = ShipMass;
+                stepStartMass = stageStartMass;
+                stepEndMass = 0;
 
-                double totalStageFlowRate = 0d;
-                double totalStageIspFlowRate = 0d;
-                double currentisp = 0;
-                double stageStartMass = ShipMass;
-                double stepStartMass = stageStartMass;
-                double stepEndMass = 0;
-
-                // Loop through all the active engines totalling the thrust, actual thrust and mass flow rates
-                foreach (EngineSim engine in activeEngines)
-                {
-                    totalStageActualThrust += engine.actualThrust;
-                    totalStageThrust += engine.thrust;
-
-                    totalStageFlowRate += engine.ResourceConsumptions.Mass;
-                    totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
-                }
-
-                // Calculate the effective isp at this point
-                if (totalStageFlowRate > 0d && totalStageIspFlowRate > 0d)
-                    currentisp = totalStageIspFlowRate / totalStageFlowRate;
-                else
-                    currentisp = 0;
+                CalculateThrustAndISP();
 
                 // Store various things in the Stage object
                 stage.thrust = totalStageThrust;
@@ -206,9 +296,10 @@ namespace Engineer.VesselSimulator
                         stage.mass += partSim.GetStartMass();
                     }
                 }
-#if LOG
-                MonoBehaviour.print("Stage setup took " + _timer.ElapsedMilliseconds + "ms");
-#endif
+
+                if (log != null)
+                    MonoBehaviour.print("Stage setup took " + _timer.ElapsedMilliseconds + "ms");
+
                 // Now we will loop until we are allowed to stage
                 int loopCounter = 0;
                 while (!AllowedToStage())
@@ -228,9 +319,10 @@ namespace Engineer.VesselSimulator
                             partMinDrain = partSim;
                         }
                     }
-#if LOG
-                    MonoBehaviour.print("Drain time = " + resourceDrainTime + " (" + partMinDrain.name + ":" + partMinDrain.partId + ")");
-#endif
+
+                    if (log != null)
+                        MonoBehaviour.print("Drain time = " + resourceDrainTime + " (" + partMinDrain.name + ":" + partMinDrain.partId + ")");
+
                     foreach (PartSim partSim in drainingParts)
                         partSim.DrainResources(resourceDrainTime);
 
@@ -249,36 +341,18 @@ namespace Engineer.VesselSimulator
 
                     // If we have drained anything and the masses make sense then add this step's deltaV to the stage total
                     if (resourceDrainTime > 0d && stepStartMass > stepEndMass && stepStartMass > 0d && stepEndMass > 0d)
-                        stageDeltaV += (currentisp * STD_GRAVITY) * Math.Log(stepStartMass / stepEndMass);
+                        vecStageDeltaV += vecThrust * (float)((currentisp * STD_GRAVITY * Math.Log(stepStartMass / stepEndMass)) / simpleTotalThrust);
 
                     // Update the active engines and resource drains for the next step
                     UpdateResourceDrains();
 
                     // Recalculate the current thrust and isp for the next step
-                    totalStageThrust = 0d;
-                    totalStageActualThrust = 0d;
-                    totalStageFlowRate = 0d;
-                    totalStageIspFlowRate = 0d;
-                    foreach (EngineSim engine in activeEngines)
-                    {
-                        totalStageActualThrust += engine.actualThrust;
-                        totalStageThrust += engine.thrust;
-
-                        totalStageFlowRate += engine.ResourceConsumptions.Mass;
-                        totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
-                    }
-
-                    //MonoBehaviour.print("next step thrust = " + totalStageThrust);
-
-                    if (totalStageFlowRate > 0d && totalStageIspFlowRate > 0d)
-                        currentisp = totalStageIspFlowRate / totalStageFlowRate;
-                    else
-                        currentisp = 0;
+                    CalculateThrustAndISP();
 
                     // Check if we actually changed anything
                     if (stepStartMass == stepEndMass)
                     {
-                        MonoBehaviour.print("No change in mass");
+                        //MonoBehaviour.print("No change in mass");
                         break;
                     }
 
@@ -297,35 +371,45 @@ namespace Engineer.VesselSimulator
                 }
 
                 // Store more values in the Stage object and stick it in the array
-                // Recalculate effective stage isp from the stageDeltaV (flip the standard deltaV calculation around)
+
+                // Store the magnitude of the deltaV vector
+                stage.deltaV = vecStageDeltaV.magnitude;
+                
+                // Recalculate effective stage isp from the stage deltaV (flip the standard deltaV calculation around)
                 // Note: If the mass doesn't change then this is a divide by zero
                 if (stageStartMass != stepStartMass)
-                    stage.isp = stageDeltaV / (STD_GRAVITY * Math.Log(stageStartMass / stepStartMass));
+                    stage.isp = stage.deltaV / (STD_GRAVITY * Math.Log(stageStartMass / stepStartMass));
                 else
                     stage.isp = 0;
-                stage.deltaV = stageDeltaV;
+
                 // Zero stage time if more than a day (this should be moved into the window code)
                 stage.time = (stageTime < SECONDS_PER_DAY) ? stageTime : 0d;
-                stage.number = currentStage;
+                stage.number = doingCurrent ? -1 : currentStage;                // Set the stage number to -1 if doing current engines
                 stages[currentStage] = stage;
 
                 // Now activate the next stage
                 currentStage--;
-#if LOG
-                // Log how long the stage took
-                _timer.Stop();
-                MonoBehaviour.print("Simulating stage took " + _timer.ElapsedMilliseconds + "ms");
-                stage.Dump();
-                _timer.Reset();
-                _timer.Start();
-#endif
+                doingCurrent = false;
+
+                if (log != null)
+                {
+                    // Log how long the stage took
+                    _timer.Stop();
+                    MonoBehaviour.print("Simulating stage took " + _timer.ElapsedMilliseconds + "ms");
+                    stage.Dump();
+                    _timer.Reset();
+                    _timer.Start();
+                }
+
                 // Activate the next stage
                 ActivateStage();
-#if LOG
-                // Log home long it took to activate
-                _timer.Stop();
-                MonoBehaviour.print("ActivateStage took " + _timer.ElapsedMilliseconds + "ms");
-#endif
+
+                if (log != null)
+                {
+                    // Log how long it took to activate
+                    _timer.Stop();
+                    MonoBehaviour.print("ActivateStage took " + _timer.ElapsedMilliseconds + "ms");
+                }
             }
 
             // Now we add up the various total fields in the stages
@@ -350,20 +434,70 @@ namespace Engineer.VesselSimulator
                 if (stages[i].totalTime > SECONDS_PER_DAY)
                     stages[i].totalTime = 0d;
             }
-#if LOG || TIMERS
-            _timer.Stop();
-            MonoBehaviour.print("RunSimulation: " + _timer.ElapsedMilliseconds + "ms");
-#endif
+
+            if (log != null)
+            {
+                _timer.Stop();
+                MonoBehaviour.print("RunSimulation: " + _timer.ElapsedMilliseconds + "ms");
+            }
+
             return stages;
         }
 
+        // This function simply rebuilds the active engines by testing the isActive flag of all the engines
+        private void UpdateActiveEngines()
+        {
+            activeEngines.Clear();
+            foreach (EngineSim engine in allEngines)
+            {
+                if (engine.isActive)
+                    activeEngines.Add(engine);
+            }
+        }
+
+        private void CalculateThrustAndISP()
+        {
+            // Reset all the values
+            vecThrust = Vector3.zero;
+            vecActualThrust = Vector3.zero;
+            simpleTotalThrust = 0d;
+            totalStageThrust = 0d;
+            totalStageActualThrust = 0d;
+            totalStageFlowRate = 0d;
+            totalStageIspFlowRate = 0d;
+
+            // Loop through all the active engines totalling the thrust, actual thrust and mass flow rates
+            // The thrust is totalled as vectors
+            foreach (EngineSim engine in activeEngines)
+            {
+                simpleTotalThrust += engine.thrust;
+                vecThrust += ((float)engine.thrust * engine.thrustVec);
+                vecActualThrust += ((float)engine.actualThrust * engine.thrustVec);
+
+                totalStageFlowRate += engine.ResourceConsumptions.Mass;
+                totalStageIspFlowRate += engine.ResourceConsumptions.Mass * engine.isp;
+            }
+
+            //MonoBehaviour.print("vecThrust = " + vecThrust.ToString() + "   magnitude = " + vecThrust.magnitude);
+
+            totalStageThrust = vecThrust.magnitude;
+            totalStageActualThrust = vecActualThrust.magnitude;
+
+            // Calculate the effective isp at this point
+            if (totalStageFlowRate > 0d && totalStageIspFlowRate > 0d)
+                currentisp = totalStageIspFlowRate / totalStageFlowRate;
+            else
+                currentisp = 0;
+        }
 
         // This function does all the hard work of working out which engines are burning, which tanks are being drained 
         // and setting the drain rates
         private void UpdateResourceDrains()
         {
-            // Empty the active engines list and the draining resources set
-            activeEngines.Clear();
+            // Update the active engines
+            UpdateActiveEngines();
+            
+            // Empty the draining resources set
             drainingResources.Clear();
 
             // Reset the resource drains of all draining parts
@@ -373,47 +507,56 @@ namespace Engineer.VesselSimulator
             // Empty the draining parts set
             drainingParts.Clear();
 
-            // Loop through all the engine modules in the ship
-            foreach (EngineSim engine in allEngines)
+            // Loop through all the active engine modules
+            foreach (EngineSim engine in activeEngines)
             {
-                // If the engine is active in the current stage
-                if (engine.partSim.inverseStage >= currentStage)
+                // Set the resource drains for this engine
+                if (engine.SetResourceDrains(allParts, allFuelLines, drainingParts))
                 {
-                    // Set the resource drains for this engine and add it to the active list if it is active
-                    if (engine.SetResourceDrains(allParts, allFuelLines, drainingParts))
-                    {
-                        activeEngines.Add(engine);
-                        foreach (int type in engine.ResourceConsumptions.Types)
-                            drainingResources.Add(type);
-                    }
+                    // If it is active then add the consumed resource types to the set
+                    foreach (int type in engine.ResourceConsumptions.Types)
+                        drainingResources.Add(type);
                 }
             }
-#if LOG
-            StringBuilder buffer = new StringBuilder(1024);
-            buffer.AppendFormat("Active engines = {0:d}\n", activeEngines.Count);
-            int i = 0;
-            foreach (EngineSim engine in activeEngines)
-                engine.DumpEngineToBuffer(buffer, "Engine " + (i++) + ":");
-            MonoBehaviour.print(buffer);
-#endif
+
+            // Update the active engines again to remove any engines that have no fuel supply
+            UpdateActiveEngines();
+
+            if (SimManager.logOutput)
+            {
+                StringBuilder buffer = new StringBuilder(1024);
+                buffer.AppendFormat("Active engines = {0:d}\n", activeEngines.Count);
+                int i = 0;
+                foreach (EngineSim engine in activeEngines)
+                    engine.DumpEngineToBuffer(buffer, "Engine " + (i++) + ":");
+                MonoBehaviour.print(buffer);
+            }
         }
 
         // This function works out if it is time to stage
         private bool AllowedToStage()
         {
-#if LOG
-            StringBuilder buffer = new StringBuilder(1024);
-            buffer.AppendLine("AllowedToStage");
-            buffer.AppendFormat("currentStage = {0:d}\n", currentStage);
-#endif
+            StringBuilder buffer = null;
+            if (SimManager.logOutput)
+            {
+                buffer = new StringBuilder(1024);
+                buffer.AppendLine("AllowedToStage");
+                buffer.AppendFormat("currentStage = {0:d}\n", currentStage);
+            }
+
             if (activeEngines.Count == 0)
             {
-#if LOG
-                buffer.AppendLine("No active engines => true");
-                MonoBehaviour.print(buffer);
-#endif
+                if (SimManager.logOutput)
+                {
+                    buffer.AppendLine("No active engines => true");
+                    MonoBehaviour.print(buffer);
+                }
+
                 return true;
             }
+
+            bool partDecoupled = false;
+            bool engineDecoupled = false;
 
             foreach (PartSim partSim in allParts)
             {
@@ -421,41 +564,64 @@ namespace Engineer.VesselSimulator
                 //buffer.AppendFormat("isSepratron = {0}\n", partSim.isSepratron ? "true" : "false");
                 if (partSim.decoupledInStage == (currentStage - 1) && (!partSim.isSepratron || partSim.decoupledInStage < partSim.inverseStage))
                 {
+                    partDecoupled = true;
+                    
                     if (!partSim.Resources.EmptyOf(drainingResources))
                     {
-#if LOG
-                        partSim.DumpPartToBuffer(buffer, "Decoupled part not empty => false: ");
-                        MonoBehaviour.print(buffer);
-#endif
+                        if (SimManager.logOutput)
+                        {
+                            partSim.DumpPartToBuffer(buffer, "Decoupled part not empty => false: ");
+                            MonoBehaviour.print(buffer);
+                        }
+
                         return false;
                     }
-                    foreach (EngineSim engine in activeEngines)
+
+                    if (partSim.isEngine)
                     {
-                        if (engine.partSim == partSim)
+                        foreach (EngineSim engine in activeEngines)
                         {
-#if LOG
-                            partSim.DumpPartToBuffer(buffer, "Decoupled part is active engine => false: ");
-                            MonoBehaviour.print(buffer);
-#endif
-                            return false;
+                            if (engine.partSim == partSim)
+                            {
+                                if (SimManager.logOutput)
+                                {
+                                    partSim.DumpPartToBuffer(buffer, "Decoupled part is active engine => false: ");
+                                    MonoBehaviour.print(buffer);
+                                }
+                                return false;
+                            }
                         }
+
+                        engineDecoupled = true;
                     }
                 }
             }
 
-            if (currentStage > 0)
+            if (!partDecoupled)
             {
-#if LOG
-                buffer.AppendLine("Current stage > 0 => true");
-                MonoBehaviour.print(buffer);
-#endif
+                if (SimManager.logOutput)
+                {
+                    buffer.AppendLine("No engine decoupled but something is => false");
+                    MonoBehaviour.print(buffer);
+                }
+                return false;
+            }
+
+            if (currentStage > 0 && !doingCurrent)
+            {
+                if (SimManager.logOutput)
+                {
+                    buffer.AppendLine("Current stage > 0 && !doingCurrent => true");
+                    MonoBehaviour.print(buffer);
+                }
                 return true;
             }
 
-#if LOG
-            buffer.AppendLine("Returning false");
-            MonoBehaviour.print(buffer);
-#endif
+            if (SimManager.logOutput)
+            {
+                buffer.AppendLine("Returning false");
+                MonoBehaviour.print(buffer);
+            }
             return false;
         }
 
@@ -495,6 +661,13 @@ namespace Engineer.VesselSimulator
                 // Ask the part to remove all the parts that are decoupled
                 partSim.RemoveAttachedParts(decoupledParts);
             }
+
+            // Now we loop through all the engines and activate those that are ignited in this stage
+            foreach(EngineSim engine in allEngines)
+            {
+                if (engine.partSim.inverseStage == currentStage)
+                    engine.isActive = true;
+            }
         }
 
         private double ShipStartMass
@@ -526,7 +699,7 @@ namespace Engineer.VesselSimulator
                 return mass;
             }
         }
-#if LOG
+
         public void Dump()
         {
             StringBuilder buffer = new StringBuilder(1024);
@@ -539,11 +712,13 @@ namespace Engineer.VesselSimulator
                 while (root.parent != null)
                     root = root.parent;
 
+                if (root.hasVessel)
+                    buffer.AppendFormat("vesselName = '{0}'  vesselType = {1}\n", vesselName, SimManager.GetVesselTypeString(vesselType));
+
                 root.DumpPartToBuffer(buffer, "", allParts);
             }
 
             MonoBehaviour.print(buffer);
         }
-#endif
     }
 }

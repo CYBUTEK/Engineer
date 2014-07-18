@@ -21,26 +21,26 @@ namespace Engineer.VesselSimulator
     {
         public ResourceContainer resources = new ResourceContainer();
         public ResourceContainer resourceDrains = new ResourceContainer();
-        ResourceContainer resourceFlowStates = new ResourceContainer();
-        //ResourceContainer resourceConsumptions = new ResourceContainer();
-
-        //Dictionary<int, bool> resourceCanSupply = new Dictionary<int, bool>();
+        public ResourceContainer resourceFlowStates = new ResourceContainer();
 
         List<AttachNodeSim> attachNodes = new List<AttachNodeSim>();
+        public List<PartSim> fuelTargets = new List<PartSim>();
 
         public Part part;              // This is only set while the data structures are being initialised
         public int partId = 0;
         public String name;
         public PartSim parent;
-        public PartSim fuelLineTarget;
         public bool hasVessel;
+        public String vesselName;
+        public VesselType vesselType;
+        public String initialVesselName;
         public bool isLanded;
         public bool isDecoupler;
         public int decoupledInStage;
         public int inverseStage;
-        public int cost;
-        double baseMass = 0d;
-        double startMass = 0d;
+        public float cost;
+        public double baseMass = 0d;
+        public double startMass = 0d;
         public String noCrossFeedNodeKey;
         public bool fuelCrossFeed;
         public bool isEngine;
@@ -53,14 +53,15 @@ namespace Engineer.VesselSimulator
         public bool isNoPhysics;
         public bool localCorrectThrust;
 
-        public PartSim(Part thePart, int id, double atmosphere)
+        public PartSim(Part thePart, int id, double atmosphere, LogMsg log)
         {
             part = thePart;
             partId = id;
             name = part.partInfo.name;
-#if LOG
-            MonoBehaviour.print("Create PartSim for " + name);
-#endif
+
+            if (log != null)
+                log.buf.AppendLine("Create PartSim for " + name);
+
             parent = null;
             fuelCrossFeed = part.fuelCrossFeed;
             noCrossFeedNodeKey = part.NoCrossFeedNodeKey;
@@ -81,18 +82,19 @@ namespace Engineer.VesselSimulator
 
             if (!isNoPhysics)
                 baseMass = part.mass;
-#if LOG
-            MonoBehaviour.print((isNoPhysics ? "Ignoring" : "Using") + " part.mass of " + part.mass);
-#endif
+
+            if (SimManager.logOutput)
+                MonoBehaviour.print((isNoPhysics ? "Ignoring" : "Using") + " part.mass of " + part.mass);
+
             foreach (PartResource resource in part.Resources)
             {
                 // Make sure it isn't NaN as this messes up the part mass and hence most of the values
                 // This can happen if a resource capacity is 0 and tweakable
                 if (!Double.IsNaN(resource.amount))
                 {
-#if LOG
-                    MonoBehaviour.print(resource.resourceName + " = " + resource.amount);
-#endif
+                    if (SimManager.logOutput)
+                        MonoBehaviour.print(resource.resourceName + " = " + resource.amount);
+
                     resources.Add(resource.info.id, resource.amount);
                     resourceFlowStates.Add(resource.info.id, resource.flowState ? 1 : 0);
                 }
@@ -106,32 +108,37 @@ namespace Engineer.VesselSimulator
 
             hasVessel = (part.vessel != null);
             isLanded = hasVessel && part.vessel.Landed;
+            if (hasVessel)
+            {
+                vesselName = part.vessel.vesselName;
+                vesselType = part.vesselType;
+            }
+            initialVesselName = part.initialVesselName;
 
             hasMultiModeEngine = part.HasModule<MultiModeEngine>();
             hasModuleEnginesFX = part.HasModule<ModuleEnginesFX>();
             hasModuleEngines = part.HasModule<ModuleEngines>();
 
             isEngine = hasMultiModeEngine || hasModuleEnginesFX || hasModuleEngines;
-#if LOG
-            MonoBehaviour.print("Created " + name + ". Decoupled in stage " + decoupledInStage);
-#endif
+
+            if (SimManager.logOutput)
+                MonoBehaviour.print("Created " + name + ". Decoupled in stage " + decoupledInStage);
         }
 
-        public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere)
+        public void CreateEngineSims(List<EngineSim> allEngines, double atmosphere, double velocity, bool vectoredThrust, LogMsg log)
         {
             bool correctThrust = SimManager.DoesEngineUseCorrectedThrust(part);
-            //MonoBehaviour.print("Engine " + name + " correctThrust = " + correctThrust);
-#if LOG
-            LogMsg log = new LogMsg();
-            log.buf.AppendLine("CreateEngineSims for " + name);
-
-            foreach (PartModule partMod in part.Modules)
+            if (log != null)
             {
-                log.buf.AppendLine("Module: " + partMod.moduleName);
-            }
+                log.buf.AppendLine("CreateEngineSims for " + name);
 
-            log.buf.AppendLine("correctThrust = " + correctThrust);
-#endif
+                foreach (PartModule partMod in part.Modules)
+                {
+                    log.buf.AppendLine("Module: " + partMod.moduleName);
+                }
+
+                log.buf.AppendLine("correctThrust = " + correctThrust);
+            }
 
             if (hasMultiModeEngine)
             {
@@ -143,14 +150,24 @@ namespace Engineer.VesselSimulator
                 {
                     if (engine.engineID == mode)
                     {
-                        EngineSim engineSim = new EngineSim(this, atmosphere,
+                        if (log != null)
+                            log.buf.AppendLine("Module: " + engine.moduleName);
+
+                        Vector3 thrustvec = CalculateThrustVector(vectoredThrust ? engine.thrustTransforms : null, log);
+
+                        EngineSim engineSim = new EngineSim(this,
+                                                            atmosphere,
+                                                            velocity,
                                                             engine.maxThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
+                                                            thrustvec,
                                                             engine.realIsp,
                                                             engine.atmosphereCurve,
+                                                            engine.useVelocityCurve ? engine.velocityCurve : null,
                                                             engine.throttleLocked,
                                                             engine.propellants,
+                                                            engine.isOperational,
                                                             correctThrust);
                         allEngines.Add(engineSim);
                     }
@@ -162,14 +179,24 @@ namespace Engineer.VesselSimulator
                 {
                     foreach (ModuleEnginesFX engine in part.GetModules<ModuleEnginesFX>())
                     {
-                        EngineSim engineSim = new EngineSim(this, atmosphere,
+                        if (log != null)
+                            log.buf.AppendLine("Module: " + engine.moduleName);
+
+                        Vector3 thrustvec = CalculateThrustVector(vectoredThrust ? engine.thrustTransforms : null, log);
+                        
+                        EngineSim engineSim = new EngineSim(this,
+                                                            atmosphere,
+                                                            velocity,
                                                             engine.maxThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
+                                                            thrustvec,
                                                             engine.realIsp,
                                                             engine.atmosphereCurve,
+                                                            engine.useVelocityCurve ? engine.velocityCurve : null,
                                                             engine.throttleLocked,
                                                             engine.propellants,
+                                                            engine.isOperational,
                                                             correctThrust);
                         allEngines.Add(engineSim);
                     }
@@ -179,105 +206,122 @@ namespace Engineer.VesselSimulator
                 {
                     foreach (ModuleEngines engine in part.GetModules<ModuleEngines>())
                     {
-                        EngineSim engineSim = new EngineSim(this, atmosphere,
+                        if (log != null)
+                            log.buf.AppendLine("Module: " + engine.moduleName);
+
+                        Vector3 thrustvec = CalculateThrustVector(vectoredThrust ? engine.thrustTransforms : null, log);
+
+                        EngineSim engineSim = new EngineSim(this,
+                                                            atmosphere,
+                                                            velocity,
                                                             engine.maxThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
+                                                            thrustvec,
                                                             engine.realIsp,
                                                             engine.atmosphereCurve,
+                                                            engine.useVelocityCurve ? engine.velocityCurve : null,
                                                             engine.throttleLocked,
                                                             engine.propellants,
+                                                            engine.isOperational,
                                                             correctThrust);
                         allEngines.Add(engineSim);
                     }
                 }
             }
-#if LOG
-            log.Flush();
-#endif
+
+            if (log != null)
+                log.Flush();
         }
 
-
-        public void SetupAttachNodes(Dictionary<Part, PartSim> partSimLookup)
+        private Vector3 CalculateThrustVector(List<Transform> thrustTransforms, LogMsg log)
         {
-#if LOG
-            LogMsg log = new LogMsg();
-            log.buf.AppendLine("SetupAttachNodes for " + name + ":" + partId + "");
-#endif
-            attachNodes.Clear();
-            foreach (AttachNode attachNode in part.attachNodes)
+            if (thrustTransforms == null)
+                return Vector3.forward;
+            
+            Vector3 thrustvec = Vector3.zero;
+            foreach (Transform trans in thrustTransforms)
             {
-#if LOG
-                log.buf.AppendLine("AttachNode " + attachNode.id + " = " + (attachNode.attachedPart != null ? attachNode.attachedPart.partInfo.name : "null"));
-#endif
-                if (attachNode.attachedPart != null && attachNode.id != "Strut")
-                {
-                    PartSim attachedSim;
-                    if (partSimLookup.TryGetValue(attachNode.attachedPart, out attachedSim))
-                    {
-#if LOG
-                        log.buf.AppendLine("Adding attached node " + attachedSim.name + ":" + attachedSim.partId + "");
-#endif
-                        attachNodes.Add(new AttachNodeSim(attachedSim, attachNode.id, attachNode.nodeType));
-                    }
-                    else
-                    {
-#if LOG
-                        log.buf.AppendLine("No PartSim for attached part (" + attachNode.attachedPart.partInfo.name + ")");
-#endif
-                    }
-                }
+                if (log != null)
+                    log.buf.AppendFormat("Transform = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", trans.forward.x, trans.forward.y, trans.forward.z, trans.forward.magnitude);
+
+                thrustvec -= trans.forward;
             }
 
-            if (isFuelLine)
-            {
-                if ((part as FuelLine).target != null)
-                {
-                    PartSim targetSim;
-                    if (partSimLookup.TryGetValue((this.part as FuelLine).target, out targetSim))
-                    {
-#if LOG
-                        log.buf.AppendLine("Fuel line target is " + targetSim.name + ":" + targetSim.partId);
-#endif
-                        fuelLineTarget = targetSim;
-                    }
-                    else
-                    {
-#if LOG
-                        log.buf.AppendLine("No PartSim for fuel line target (" + part.partInfo.name + ")");
-#endif
-                        fuelLineTarget = null;
-                    }
+            if (log != null)
+                log.buf.AppendFormat("ThrustVec  = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
 
-                }
-                else
-                {
-#if LOG
-                    log.buf.AppendLine("Fuel line target is null");
-#endif
-                    fuelLineTarget = null;
-                }
-            }
+            thrustvec.Normalize();
 
+            if (log != null)
+                log.buf.AppendFormat("ThrustVecN = ({0:g6}, {1:g6}, {2:g6})   length = {3:g6}\n", thrustvec.x, thrustvec.y, thrustvec.z, thrustvec.magnitude);
+
+            return thrustvec;
+        }
+
+        public void SetupParent(Dictionary<Part, PartSim> partSimLookup, LogMsg log)
+        {
             if (part.parent != null)
             {
                 parent = null;
                 if (partSimLookup.TryGetValue(part.parent, out parent))
                 {
-#if LOG
-                    log.buf.AppendLine("Parent part is " + parent.name + ":" + parent.partId);
-#endif
+                    if (log != null)
+                        log.buf.AppendLine("Parent part is " + parent.name + ":" + parent.partId);
                 }
                 else
                 {
-#if LOG
-                    log.buf.AppendLine("No PartSim for parent part (" + part.parent.partInfo.name + ")");
-#endif
+                    if (log != null)
+                        log.buf.AppendLine("No PartSim for parent part (" + part.parent.partInfo.name + ")");
                 }
             }
-#if LOG
-            log.Flush();
-#endif
+        }
+
+        public void SetupAttachNodes(Dictionary<Part, PartSim> partSimLookup, LogMsg log)
+        {
+            if (log != null)
+                log.buf.AppendLine("SetupAttachNodes for " + name + ":" + partId + "");
+
+            attachNodes.Clear();
+            foreach (AttachNode attachNode in part.attachNodes)
+            {
+                if (log != null)
+                    log.buf.AppendLine("AttachNode " + attachNode.id + " = " + (attachNode.attachedPart != null ? attachNode.attachedPart.partInfo.name : "null"));
+
+                if (attachNode.attachedPart != null && attachNode.id != "Strut")
+                {
+                    PartSim attachedSim;
+                    if (partSimLookup.TryGetValue(attachNode.attachedPart, out attachedSim))
+                    {
+                        if (log != null)
+                            log.buf.AppendLine("Adding attached node " + attachedSim.name + ":" + attachedSim.partId + "");
+
+                        attachNodes.Add(new AttachNodeSim(attachedSim, attachNode.id, attachNode.nodeType));
+                    }
+                    else
+                    {
+                        if (log != null)
+                            log.buf.AppendLine("No PartSim for attached part (" + attachNode.attachedPart.partInfo.name + ")");
+                    }
+                }
+            }
+
+            foreach (Part p in part.fuelLookupTargets)
+            {
+                PartSim targetSim;
+                if (partSimLookup.TryGetValue(p, out targetSim))
+                {
+                    if (log != null)
+                        log.buf.AppendLine("Fuel target: " + targetSim.name + ":" + targetSim.partId);
+
+                    fuelTargets.Add(targetSim);
+                }
+                else
+                {
+                    if (log != null)
+                        log.buf.AppendLine("No PartSim for fuel target (" + p.name + ")");
+                }
+            }
         }
 
         private int DecoupledInStage(Part thePart, int stage = -1)
@@ -337,40 +381,47 @@ namespace Engineer.VesselSimulator
         // All functions below this point must not rely on the part member (it may be null)
         //
 
-        public HashSet<PartSim> GetSourceSet(int type, List<PartSim> allParts, List<PartSim> allFuelLines, HashSet<PartSim> visited, LogMsg log, String indent)
+        public HashSet<PartSim> GetSourceSet(int type, List<PartSim> allParts, HashSet<PartSim> visited, LogMsg log, String indent)
         {
-#if LOG
-            log.buf.AppendLine(indent + "GetSourceSet(" + ResourceContainer.GetResourceName(type) + ") for " + name + ":" + partId);
-            indent += "  ";
-#endif
+            if (log != null)
+            {
+                log.buf.AppendLine(indent + "GetSourceSet(" + ResourceContainer.GetResourceName(type) + ") for " + name + ":" + partId);
+                indent += "  ";
+            }
+
             HashSet<PartSim> allSources = new HashSet<PartSim>();
             HashSet<PartSim> partSources = null;
 
             // Rule 1: Each part can be only visited once, If it is visited for second time in particular search it returns empty list.
             if (visited.Contains(this))
             {
-#if LOG
-                log.buf.AppendLine(indent + "Returning empty set, already visited (" + name + ":" + partId + ")");
-#endif
+                if (log != null)
+                    log.buf.AppendLine(indent + "Returning empty set, already visited (" + name + ":" + partId + ")");
+
                 return allSources;
             }
 
-#if LOG
-            log.buf.AppendLine("Adding this to visited");
-#endif
+            //if (log != null)
+            //    log.buf.AppendLine(indent + "Adding this to visited");
+
             visited.Add(this);
 
             // Rule 2: Part performs scan on start of every fuel pipe ending in it. This scan is done in order in which pipes were installed. Then it makes an union of fuel tank sets each pipe scan returned. If the resulting list is not empty, it is returned as result.
             //MonoBehaviour.print("foreach fuel line");
-            
-            foreach (PartSim partSim in allFuelLines)
+
+            foreach (PartSim partSim in fuelTargets)
             {
-                if (partSim.fuelLineTarget == this)
+                if (visited.Contains(partSim))
                 {
-#if LOG
-                    log.buf.AppendLine(indent + "Adding fuel line as source (" + partSim.name + ":" + partSim.partId + ")");
-#endif
-                    partSources = partSim.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
+                    //if (log != null)
+                    //    log.buf.AppendLine(indent + "Fuel target already visited, skipping (" + partSim.name + ":" + partSim.partId + ")");
+                }
+                else
+                {
+                    //if (log != null)
+                    //    log.buf.AppendLine(indent + "Adding fuel target as source (" + partSim.name + ":" + partSim.partId + ")");
+
+                    partSources = partSim.GetSourceSet(type, allParts, visited, log, indent);
                     if (partSources.Count > 0)
                     {
                         allSources.UnionWith(partSources);
@@ -381,54 +432,66 @@ namespace Engineer.VesselSimulator
 
             if (allSources.Count > 0)
             {
-#if LOG
-                log.buf.AppendLine(indent + "Returning " + allSources.Count + " fuel line sources (" + name + ":" + partId + ")");
-#endif
+                if (log != null)
+                    log.buf.AppendLine(indent + "Returning " + allSources.Count + " fuel target sources (" + name + ":" + partId + ")");
+
                 return allSources;
             }
 
-            // Rule 3: If the part is not crossfeed capable, it returns empty list.
-            //MonoBehaviour.print("Test crossfeed");
-            if (!fuelCrossFeed)
-            {
-#if LOG
-                log.buf.AppendLine(indent + "Returning empty set, no cross feed (" + name + ":" + partId + ")");
-#endif
-                return allSources;
-            }
+            // Rule 3: This rule has been removed and merged with rules 4 and 7 to fix issue with fuel tanks with disabled crossfeed
 
             // Rule 4: Part performs scan on each of its axially mounted neighbors. 
             //  Couplers (bicoupler, tricoupler, ...) are an exception, they only scan one attach point on the single attachment side, skip the points on the side where multiple points are. [Experiment]
             //  Again, the part creates union of scan lists from each of its neighbor and if it is not empty, returns this list. 
             //  The order in which mount points of a part are scanned appears to be fixed and defined by the part specification file. [Experiment]
-            //MonoBehaviour.print("foreach attach node");
-            foreach (AttachNodeSim attachSim in attachNodes)
+            if (fuelCrossFeed)
             {
-                if (attachSim.attachedPartSim != null)
+                //MonoBehaviour.print("foreach attach node");
+                foreach (AttachNodeSim attachSim in attachNodes)
                 {
-                    if (attachSim.nodeType == AttachNode.NodeType.Stack &&
-                        (attachSim.attachedPartSim.fuelCrossFeed || attachSim.attachedPartSim.isFuelTank) &&
-                        !(noCrossFeedNodeKey != null && noCrossFeedNodeKey.Length > 0 && attachSim.id.Contains(noCrossFeedNodeKey)))
+                    if (attachSim.attachedPartSim != null)
                     {
-#if LOG
-                        log.buf.AppendLine(indent + "Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
-#endif
-                        partSources = attachSim.attachedPartSim.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
-                        if (partSources.Count > 0)
+                        if (/*attachSim.nodeType != AttachNode.NodeType.Surface &&*/
+                            !(noCrossFeedNodeKey != null && noCrossFeedNodeKey.Length > 0 && attachSim.id.Contains(noCrossFeedNodeKey)))
                         {
-                            allSources.UnionWith(partSources);
-                            partSources.Clear();
+                            if (visited.Contains(attachSim.attachedPartSim))
+                            {
+                                //if (log != null)
+                                //    log.buf.AppendLine(indent + "Attached part already visited, skipping (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+                            }
+                            else
+                            {
+                                //if (log != null)
+                                //    log.buf.AppendLine(indent + "Adding attached part as source (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
+
+                                partSources = attachSim.attachedPartSim.GetSourceSet(type, allParts, visited, log, indent);
+                                if (partSources.Count > 0)
+                                {
+                                    allSources.UnionWith(partSources);
+                                    partSources.Clear();
+                                }
+                            }
+                        }
+                        else
+                        {
+                            //if (log != null)
+                            //    log.buf.AppendLine(indent + "AttachNode is noCrossFeedKey, skipping (" + attachSim.attachedPartSim.name + ":" + attachSim.attachedPartSim.partId + ")");
                         }
                     }
                 }
-            }
 
-            if (allSources.Count > 0)
+                if (allSources.Count > 0)
+                {
+                    if (log != null)
+                        log.buf.AppendLine(indent + "Returning " + allSources.Count + " attached sources (" + name + ":" + partId + ")");
+
+                    return allSources;
+                }
+            }
+            else
             {
-#if LOG
-                log.buf.AppendLine(indent + "Returning " + allSources.Count + " attached sources (" + name + ":" + partId + ")");
-#endif
-                return allSources;
+                //if (log != null)
+                //    log.buf.AppendLine(indent + "Crossfeed disabled, skipping axial connected parts (" + name + ":" + partId + ")");
             }
 
             // Rule 5: If the part is fuel container for searched type of fuel (i.e. it has capability to contain that type of fuel and the fuel type was not disabled [Experiment]) and it contains fuel, it returns itself.
@@ -438,15 +501,14 @@ namespace Engineer.VesselSimulator
                 if (resources[type] > SimManager.RESOURCE_MIN)
                 {
                     allSources.Add(this);
-#if LOG
-                    log.buf.AppendLine(indent + "Returning enabled tank as only source (" + name + ":" + partId + ")");
-#endif
+
+                    if (log != null)
+                        log.buf.AppendLine(indent + "Returning enabled tank as only source (" + name + ":" + partId + ")");
                 }
                 else
                 {
-#if LOG
-                    log.buf.AppendLine(indent + "Returning empty set, enabled tank is empty (" + name + ":" + partId + ")");
-#endif
+                    //if (log != null)
+                    //    log.buf.AppendLine(indent + "Returning empty set, enabled tank is empty (" + name + ":" + partId + ")");
                 }
 
                 return allSources;
@@ -455,20 +517,36 @@ namespace Engineer.VesselSimulator
             // Rule 7: If the part is radially attached to another part and it is child of that part in the ship's tree structure, it scans its parent and returns whatever the parent scan returned. [Experiment] [Experiment]
             if (parent != null)
             {
-                allSources = parent.GetSourceSet(type, allParts, allFuelLines, visited, log, indent);
-                if (allSources.Count > 0)
+                if (fuelCrossFeed)
                 {
-#if LOG
-                    log.buf.AppendLine(indent + "Returning " + allSources.Count + " parent sources (" + name + ":" + partId + ")");
-#endif
-                    return allSources;
+                    if (visited.Contains(parent))
+                    {
+                        //if (log != null)
+                        //    log.buf.AppendLine(indent + "Parent part already visited, skipping (" + parent.name + ":" + parent.partId + ")");
+                    }
+                    else
+                    {
+                        allSources = parent.GetSourceSet(type, allParts, visited, log, indent);
+                        if (allSources.Count > 0)
+                        {
+                            if (log != null)
+                                log.buf.AppendLine(indent + "Returning " + allSources.Count + " parent sources (" + name + ":" + partId + ")");
+
+                            return allSources;
+                        }
+                    }
+                }
+                else
+                {
+                    //if (log != null)
+                    //    log.buf.AppendLine(indent + "Crossfeed disabled, skipping radial parent (" + name + ":" + partId + ")");
                 }
             }
 
             // Rule 8: If all preceding rules failed, part returns empty list.
-#if LOG
-            log.buf.AppendLine(indent + "Returning empty set, no sources found (" + name + ":" + partId + ")");
-#endif
+            //if (log != null)
+            //    log.buf.AppendLine(indent + "Returning empty set, no sources found (" + name + ":" + partId + ")");
+
             return allSources;
         }
 
@@ -551,15 +629,7 @@ namespace Engineer.VesselSimulator
                 return resources;
             }
         }
-#if false
-        public ResourceContainer ResourceConsumptions
-        {
-            get
-            {
-                return resourceConsumptions;
-            }
-        }
-#endif
+
         public ResourceContainer ResourceDrains
         {
             get
@@ -568,7 +638,6 @@ namespace Engineer.VesselSimulator
             }
         }
 
-#if LOG || true
         public String DumpPartAndParentsToBuffer(StringBuilder buffer, String prefix)
         {
             if (parent != null)
@@ -587,12 +656,13 @@ namespace Engineer.VesselSimulator
             buffer.Append(name);
             buffer.AppendFormat(":[id = {0:d}, decouple = {1:d}, invstage = {2:d}", partId, decoupledInStage, inverseStage);
 
+            buffer.AppendFormat(", vesselName = '{0}'", vesselName);
+            buffer.AppendFormat(", vesselType = {0}", SimManager.GetVesselTypeString(vesselType));
+            buffer.AppendFormat(", initialVesselName = '{0}'", initialVesselName);
+
             buffer.AppendFormat(", fuelCF = {0}", fuelCrossFeed);
             buffer.AppendFormat(", noCFNKey = '{0}'", noCrossFeedNodeKey);
 
-            if (isFuelLine)
-                buffer.AppendFormat(", fuelLineTarget = {0:d}", fuelLineTarget == null ? -1 : fuelLineTarget.partId);
-            
             buffer.AppendFormat(", isSep = {0}", isSepratron);
 
             foreach (int type in resources.Types)
@@ -624,6 +694,5 @@ namespace Engineer.VesselSimulator
                 }
             }
         }
-#endif
     }
 }
