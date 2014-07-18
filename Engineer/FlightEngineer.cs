@@ -37,6 +37,7 @@ namespace Engineer
         }
 
         public static bool isVisible = true;
+        public static bool hasEngineer;
 
         public Settings settings = new Settings();
         Version version = new Version();
@@ -77,6 +78,7 @@ namespace Engineer
             {
                 TapeDriveAnimator tapeAnimator = (TapeDriveAnimator)part.Modules["TapeDriveAnimator"];
                 tapeAnimator.Enabled = settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER");
+                isVisible = settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER");
             }
         }
 
@@ -86,18 +88,15 @@ namespace Engineer
             {
                 if (vessel != null)
                 {
-                    foreach (Part thePart in vessel.parts)
+                    foreach (var part in vessel.parts)
                     {
-                        if (thePart.Modules.Contains(ClassID))
+                        if (part.Modules.Contains(this.ClassID))
                         {
-                            if (thePart == part)
+                            if (this.part == part)
                             {
                                 return true;
                             }
-                            else
-                            {
-                                break;
-                            }
+                            break;
                         }
                     }
                 }
@@ -164,6 +163,8 @@ namespace Engineer
             {
                 if (IsPrimary)
                 {
+                    hasEngineer = true;
+
                     // Update the simulation timing from the tweakable
                     SimManager.minSimTime = (long)minFESimTime;
 
@@ -322,7 +323,7 @@ namespace Engineer
                 if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(vessel.orbit.timeToPe), dataStyle);
             }
             if (settings.Get<bool>("Orbital: Inclination")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.inclination, "°", 6), dataStyle);
-            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.eccentricity, "°", 6), dataStyle);
+            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.eccentricity, 6), dataStyle);
             if (settings.Get<bool>("Orbital: Period")) GUILayout.Label(Tools.FormatTime(vessel.orbit.period), dataStyle);
             if (settings.Get<bool>("Orbital: Longitude of AN")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.LAN, "°", 6), dataStyle);
             if (settings.Get<bool>("Orbital: Longitude of Pe")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.LAN + vessel.orbit.argumentOfPeriapsis, "°", 6), dataStyle);
