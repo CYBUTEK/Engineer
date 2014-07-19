@@ -162,6 +162,9 @@ namespace Engineer
 
         private void OnDestroy()
         {
+            BuildEngineer.hasEngineer = false;
+            FlightEngineer.hasEngineer = false;
+
             if (this.buildButton != null)
             {
                 ApplicationLauncher.Instance.RemoveModApplication(this.buildButton);
