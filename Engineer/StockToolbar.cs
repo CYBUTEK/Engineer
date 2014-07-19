@@ -18,26 +18,30 @@
 #region Using Directives
 
 using System.IO;
-using System.Linq;
 using System.Reflection;
-
-using Engineer;
 
 using UnityEngine;
 
 #endregion
 
-namespace EngineerToolbar
+namespace Engineer
 {
     [KSPAddon(KSPAddon.Startup.EveryScene, false)]
     public class StockToolbar : MonoBehaviour
     {
         private static Texture2D texture;
+        private readonly Settings settings = new Settings();
         private ApplicationLauncherButton buildButton;
         private ApplicationLauncherButton flightButton;
 
         private void Awake()
         {
+            settings.Load("toolbar.cfg");
+            if (!this.settings.Get("USE_STOCK_TOOLBAR", true))
+            {
+                Destroy(this);
+                return;
+            }
             if (texture == null)
             {
                 texture = new Texture2D(36, 36, TextureFormat.RGBA32, false);
@@ -125,7 +129,7 @@ namespace EngineerToolbar
                     this.CreateButtons();
                 }
 
-                BuildEngineer.hasEngineer = false;
+                BuildEngineer.hasEngineerReset = true;
             }
             else if (HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
@@ -152,7 +156,7 @@ namespace EngineerToolbar
                     this.CreateButtons();
                 }
 
-                FlightEngineer.hasEngineer = false;
+                FlightEngineer.hasEngineerReset = true;
             }
         }
 
@@ -167,6 +171,7 @@ namespace EngineerToolbar
             {
                 ApplicationLauncher.Instance.RemoveModApplication(this.flightButton);
             }
+            settings.Save("toolbar.cfg");
         }
     }
 }

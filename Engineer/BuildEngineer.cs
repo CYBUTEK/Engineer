@@ -45,6 +45,7 @@ namespace Engineer
 
         public static bool isVisible = true;
         public static bool hasEngineer;
+        public static bool hasEngineerReset;
 
         Version version = new Version();
         Settings settings = new Settings();
@@ -181,6 +182,12 @@ namespace Engineer
 
         private void Update()
         {
+            if (hasEngineerReset)
+            {
+                hasEngineer = false;
+                hasEngineerReset = false;
+            }
+
             if (IsPrimary)
             {
                 hasEngineer = true;
@@ -208,6 +215,15 @@ namespace Engineer
                     SimManager.vectoredThrust = vectoredThrust;
                     SimManager.TryStartSimulation();
                 }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (hasEngineerReset)
+            {
+                hasEngineer = false;
+                hasEngineerReset = false;
             }
         }
 

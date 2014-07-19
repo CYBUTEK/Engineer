@@ -225,13 +225,13 @@ namespace Engineer
             //LogMsg log = new LogMsg();
             CelestialBody mainBody = vessel.mainBody;
             Vector3d rad = (vessel.CoM - mainBody.position).normalized;
-            //log.buf.AppendLine("rad = " + rad.ToString() + "   len = " + rad.magnitude);
+            //log.buf.AppendLine("rad = " + rad.ToString() + " len = " + rad.magnitude);
             RaycastHit hit;
             if (Physics.Raycast(vessel.CoM, -rad, out hit))
             {
                 Vector3d norm = hit.normal;
                 norm = norm.normalized;
-                //log.buf.AppendLine("norm = " + norm.ToString() + "   len = " + norm.magnitude);
+                //log.buf.AppendLine("norm = " + norm.ToString() + " len = " + norm.magnitude);
                 double raddotnorm = Vector3d.Dot(rad, norm);
                 //log.buf.AppendLine("dot = " + raddotnorm);
                 if (raddotnorm > 1.0)
@@ -269,6 +269,6 @@ namespace Engineer
                 result = "--° @ ---°";
             }
             //log.Flush();
-        }    
+        } 
     }
 }
