@@ -227,7 +227,7 @@ namespace Engineer
             Vector3d rad = (vessel.CoM - mainBody.position).normalized;
             //log.buf.AppendLine("rad = " + rad.ToString() + " len = " + rad.magnitude);
             RaycastHit hit;
-            if (Physics.Raycast(vessel.CoM, -rad, out hit))
+            if (Physics.Raycast(vessel.CoM, -rad, out hit, Mathf.Infinity, 1 << 15))  // Just "Local Scenery" please
             {
                 Vector3d norm = hit.normal;
                 norm = norm.normalized;
