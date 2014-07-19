@@ -20,6 +20,7 @@ namespace Engineer
 
         public static bool isVisible = true;
         public static bool hasEngineer;
+        public static bool hasEngineerReset;
 
         public Settings settings = new Settings();
         Version version = new Version();
@@ -38,6 +39,9 @@ namespace Engineer
         bool hasInitStyles = false;
 
         bool surfaceOpen = false;
+
+        private bool atmosphereOpen;
+        private bool impactOpen;
 #if TERRAINTEST
         double maxDiff = 0;
         double heightMaxDiff = 0;
@@ -141,6 +145,12 @@ namespace Engineer
 
         public void Update()
         {
+            if (hasEngineerReset)
+            {
+                hasEngineer = false;
+                hasEngineerReset = false;
+            }
+
             if (vessel != null && vessel == FlightGlobals.ActiveVessel)
             {
                 if (IsPrimary)
@@ -161,6 +171,15 @@ namespace Engineer
                         SimManager.TryStartSimulation();
                     }
                 }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (hasEngineerReset)
+            {
+                hasEngineer = false;
+                hasEngineerReset = false;
             }
         }
 
@@ -399,6 +418,7 @@ namespace Engineer
             double impactlong = 0;
             double impactlat = 0;
             double impactalt = 0;
+            string impactbiome = "---";
 
             if (FlightGlobals.ActiveVessel.mainBody.pqsController != null)
             {
@@ -474,6 +494,9 @@ namespace Engineer
                     {
                         impactalt = 0;
                     }
+
+                    if (impacthappening)
+                        impactbiome = ScienceUtil.GetExperimentBiome(vessel.mainBody, impactlat, impactlong);
                 }
             }
 
@@ -513,24 +536,45 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Horizontal Speed", true)) GUILayout.Label("Horizontal Speed", headingStyle);
             if (settings.Get<bool>("Surface: Longitude", true)) GUILayout.Label("Longitude", headingStyle);
             if (settings.Get<bool>("Surface: Latitude", true)) GUILayout.Label("Latitude", headingStyle);
+            if (settings.Get<bool>("Surface: Biome", true)) GUILayout.Label("Biome", headingStyle);
+            if (settings.Get<bool>("Surface: Slope", true)) GUILayout.Label("Slope", headingStyle);
 
             if (impacthappening)
             {
+                this.impactOpen = true;
                 if (settings.Get<bool>("Surface: Impact Time", true)) GUILayout.Label("Impact Time", headingStyle);
                 if (settings.Get<bool>("Surface: Impact Longitude", true)) GUILayout.Label("Impact Longitude", headingStyle);
                 if (settings.Get<bool>("Surface: Impact Latitude", true)) GUILayout.Label("Impact Latitude", headingStyle);
                 if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label("Impact Altitude", headingStyle);
+                if (settings.Get<bool>("Surface: Impact Biome", true)) GUILayout.Label("Impact Biome", headingStyle);
+            }
+            else
+            {
+                if (this.impactOpen)
+                {
+                    this.impactOpen = false;
+                    settings.Changed = true;
+                }
             }
 
             if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", headingStyle);
 
-            if (!hasInstalledFAR)
+            if (!hasInstalledFAR && vessel.atmDensity > 0)
             {
+                this.atmosphereOpen = true;
                 if (settings.Get<bool>("Surface: Terminal Velocity", true)) GUILayout.Label("Terminal Velocity", headingStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Efficiency", true)) GUILayout.Label("Atmospheric Efficiency", headingStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Drag", true)) GUILayout.Label("Atmospheric Drag", headingStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Pressure", true)) GUILayout.Label("Atmospheric Pressure", headingStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Density", true)) GUILayout.Label("Atmospheric Density", headingStyle);
+            }
+            else
+            {
+                if (this.atmosphereOpen)
+                {
+                    this.atmosphereOpen = false;
+                    settings.Changed = true;
+                }
             }
             GUILayout.EndVertical();
 
@@ -567,6 +611,14 @@ namespace Engineer
             if (settings.Get<bool>("Surface: Horizontal Speed")) GUILayout.Label(Tools.FormatSI(vessel.horizontalSrfSpeed, Tools.SIUnitType.Speed), dataStyle);
             if (settings.Get<bool>("Surface: Longitude")) GUILayout.Label(Tools.FormatNumber(vessel.longitude, "°", 6), dataStyle);
             if (settings.Get<bool>("Surface: Latitude")) GUILayout.Label(Tools.FormatNumber(vessel.latitude, "°", 6), dataStyle);
+            if (settings.Get<bool>("Surface: Biome")) GUILayout.Label(ScienceUtil.GetExperimentBiome(vessel.mainBody, vessel.latitude, vessel.longitude), dataStyle);
+            if (settings.Get<bool>("Surface: Slope"))
+            {
+                string slope;
+                Tools.GetSlopeAngleAndHeading(vessel, out slope);
+                GUILayout.Label(slope, dataStyle);
+            }
+
 
             if (impacthappening)
             {
@@ -574,11 +626,12 @@ namespace Engineer
                 if (settings.Get<bool>("Surface: Impact Longitude", true)) GUILayout.Label(Tools.FormatNumber(impactlong, "°", 6), dataStyle);
                 if (settings.Get<bool>("Surface: Impact Latitude", true)) GUILayout.Label(Tools.FormatNumber(impactlat, "°", 6), dataStyle);
                 if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label(Tools.FormatSI(impactalt, Tools.SIUnitType.Distance), dataStyle);
+                if (settings.Get<bool>("Surface: Impact Biome", true)) GUILayout.Label(impactbiome, dataStyle);
             }
 
             if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
 
-            if (!hasInstalledFAR)
+            if (!hasInstalledFAR && vessel.atmDensity > 0)
             {
                 double totalMass = 0d;
                 double massDrag = 0d;
@@ -595,11 +648,7 @@ namespace Engineer
                 double gravity = FlightGlobals.getGeeForceAtPosition(vessel.CoM).magnitude;
                 double atmosphere = vessel.atmDensity;
 
-                double terminalVelocity = 0d;
-                if (atmosphere > 0)
-                {
-                    terminalVelocity = Math.Sqrt((2 * totalMass * gravity) / (atmosphere * massDrag * FlightGlobals.DragMultiplier));
-                }
+                double terminalVelocity = Math.Sqrt((2 * totalMass * gravity) / (atmosphere * massDrag * FlightGlobals.DragMultiplier));
 
                 double atmosphericEfficiency = 0d;
                 if (terminalVelocity > 0)
