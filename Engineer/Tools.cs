@@ -57,11 +57,16 @@ namespace Engineer
             // Loop through the notations until the smallest usable one is found.
             for (notationIndex = 0; notationIndex < notation.Length; notationIndex++)
             {
-                if (number > 1000 || number < -1000) { number /= 1000; } else { break; }
+                // If the number is now in a sensible range then return a string of the concatenated number and selected notation.
+                if (number <= 1000d && number >= -1000d) 
+                    return number.ToString("0.000") + notation[notationIndex];
+                        
+                // Switch to bigger unit
+                number /= 1000;
             }
 
-            // Return a string of the concatinated number and selected notation.
-            return number.ToString("0.000") + notation[notationIndex];
+            // If we fall out of the loop then we can't display
+            return "-OVF-";
         }
 
         // Quick and dirty implementation of the new distance formatter from KER 1.0
