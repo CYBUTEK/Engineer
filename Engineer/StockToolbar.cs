@@ -168,11 +168,13 @@ namespace Engineer
             if (this.buildButton != null)
             {
                 ApplicationLauncher.Instance.RemoveModApplication(this.buildButton);
+                this.buildButton = null;
             }
 
             if (this.flightButton != null)
             {
                 ApplicationLauncher.Instance.RemoveModApplication(this.flightButton);
+                this.flightButton = null;
             }
             settings.Save("toolbar.cfg");
         }
