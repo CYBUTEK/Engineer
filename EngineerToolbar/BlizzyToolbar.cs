@@ -96,6 +96,7 @@ namespace EngineerToolbar
             if (this.button != null)
             {
                 this.button.Destroy();
+                this.button = null;
             }
         }
     }
