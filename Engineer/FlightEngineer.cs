@@ -70,8 +70,10 @@ namespace Engineer
         int numberOfStages = 0;
         int numberOfStagesUseful = 0;
 
-        bool hasCheckedForFAR = false;
+        bool hasCheckedAero = false;
         bool hasInstalledFAR = false;
+        bool hasInstalledNEAR = false;
+        bool hasInstalledSDF = false;       // StockDragFix
 
         [KSPEvent(guiActive = true, guiName = "Toggle Flight Engineer", active = false)]
         public void ShowWindow()
@@ -521,16 +523,22 @@ namespace Engineer
 
             if (vessel.geeForce > maxGForce) maxGForce = vessel.geeForce;
 
-            if (!hasCheckedForFAR)
+            if (!hasCheckedAero)
             {
-                hasCheckedForFAR = true;
+                hasCheckedAero = true;
 
                 foreach (AssemblyLoader.LoadedAssembly assembly in AssemblyLoader.loadedAssemblies)
                 {
-                    if (assembly.assembly.ToString().Split(',')[0] == "FerramAerospaceResearch")
+                    string asmName = assembly.assembly.ToString().Split(',')[0];
+                    if (asmName == "FerramAerospaceResearch")
                     {
                         hasInstalledFAR = true;
                         print("[KerbalEngineer]: FAR detected!  Turning off atmospheric details!");
+                    }
+                    else if (asmName == "NEAR")
+                    {
+                        hasInstalledNEAR = true;
+                        print("[KerbalEngineer]: NEAR detected!  Turning off atmospheric details!");
                     }
                 }
             }
@@ -578,7 +586,7 @@ namespace Engineer
 
             if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", headingStyle);
 
-            if (!hasInstalledFAR && vessel.atmDensity > 0)
+            if (!hasInstalledFAR && !hasInstalledNEAR && vessel.atmDensity > 0)
             {
                 this.atmosphereOpen = true;
                 if (settings.Get<bool>("Surface: Terminal Velocity", true)) GUILayout.Label("Terminal Velocity", headingStyle);
@@ -649,7 +657,7 @@ namespace Engineer
 
             if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
 
-            if (!hasInstalledFAR && vessel.atmDensity > 0)
+            if (!hasInstalledFAR && !hasInstalledNEAR && vessel.atmDensity > 0)
             {
                 double totalMass = 0d;
                 double massDrag = 0d;
