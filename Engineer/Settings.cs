@@ -42,6 +42,7 @@ namespace Engineer
         {
             this.filename = filename;
             this.vessel = vessel;
+            bool loaded = false;
 
             if (File.Exists<Settings>(filename))
             {
@@ -52,11 +53,19 @@ namespace Engineer
                 for (int i = 0; i < lines.Length; i++)
                 {
                     string[] line = lines[i].Split('=');
-                    settings.Add(line[0].Trim(), line[1].Trim());
+                    if (line.Length == 2)
+                    {
+                        settings.Add(line[0].Trim(), line[1].Trim());
+                        loaded = true;
+                    }
+                    else
+                        MonoBehaviour.print("[KER] Ignoring invalid line in settings: '" + lines[i] + "'");
                 }
             }
 
             firstStart = false;
+            if (!loaded)
+                MonoBehaviour.print("[KER] No valid settings in " + filename);
         }
 
         public void Save(string filename, Vessel vessel = null)
