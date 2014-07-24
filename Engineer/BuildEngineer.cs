@@ -17,31 +17,9 @@ namespace Engineer
          UI_FloatRange(minValue = 0.0f, maxValue = 1000.0f, stepIncrement = 10.0f, scene = UI_Scene.Editor)]
         public float minBESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
 
-        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Sim ASP %"),
-         UI_FloatRange(minValue = 0.0f, maxValue = 100.0f, stepIncrement = 1.0f, scene = UI_Scene.Editor)]
         public float percentASP = 100.0f;      // The percentage of sea-level pressure to use for "atmospheric stats"
-
-        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Sim Velocity"),
-         UI_FloatRange(minValue = 0.0f, maxValue = 2500.0f, stepIncrement = 25.0f, scene = UI_Scene.Editor)]
         public float velocity = 0.0f;      // The velocity to use for "atmospheric stats"
-
-        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Thrust: "),
-            UI_Toggle(disabledText = "Scalar", enabledText = "Vector", scene = UI_Scene.Editor)]
         public bool vectoredThrust = false;
-
-        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "Dump Tree")]
-        public void DumpTree()
-        {
-            MonoBehaviour.print("BuildEngineer.DumpTree");
-            SimManager.dumpTree = true;
-        }
-
-        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "Log Sim")]
-        public void LogSim()
-        {
-            MonoBehaviour.print("BuildEngineer.LogSim");
-            SimManager.logOutput = true;
-        }
 
         public static bool isVisible = true;
         public static bool hasEngineer;
@@ -180,7 +158,7 @@ namespace Engineer
             }
         }
 
-        private void Update()
+        protected virtual void Update()
         {
             if (hasEngineerReset)
             {
