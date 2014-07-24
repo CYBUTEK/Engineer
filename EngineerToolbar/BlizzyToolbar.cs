@@ -46,12 +46,12 @@ namespace EngineerToolbar
 
         private void Start()
         {
-            if (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.FLIGHT)
+            if (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.SPH || HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
                 this.button = ToolbarManager.Instance.add("KER", "engineerButton");
                 this.button.ToolTip = "Kerbal Engineer Redux";
 
-                if (HighLogic.LoadedScene == GameScenes.EDITOR)
+                if (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.SPH)
                 {
                     this.SetButtonState(BuildEngineer.isVisible);
                     this.button.OnClick += e => this.TogglePluginVisibility(ref BuildEngineer.isVisible);
@@ -66,7 +66,7 @@ namespace EngineerToolbar
 
         private void LateUpdate()
         {
-            if (HighLogic.LoadedScene == GameScenes.EDITOR)
+            if (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.SPH)
             {
                 this.SetButtonState(BuildEngineer.isVisible);
                 this.button.Visible = BuildEngineer.hasEngineer;
@@ -96,6 +96,7 @@ namespace EngineerToolbar
             if (this.button != null)
             {
                 this.button.Destroy();
+                this.button = null;
             }
         }
     }

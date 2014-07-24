@@ -14,9 +14,27 @@ namespace Engineer
 {
     public class FlightEngineer : PartModule
     {
-        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = false, guiName = "Sim time limit"),
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = false, guiName = "Sim Timing"),
          UI_FloatRange(minValue = 0.0f, maxValue = 1000.0f, stepIncrement = 10.0f, scene = UI_Scene.Flight)]
         public float minFESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
+
+        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = false, guiName = "Thrust: "),
+            UI_Toggle(disabledText = "Scalar", enabledText = "Vector", scene = UI_Scene.Flight)]
+        public bool vectoredThrust = false;
+
+        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Dump Tree")]
+        public void DumpTree()
+        {
+            MonoBehaviour.print("FlightEngineer.DumpTree");
+            SimManager.dumpTree = true;
+        }
+
+        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Log Sim")]
+        public void LogSim()
+        {
+            MonoBehaviour.print("FlightEngineer.LogSim");
+            SimManager.logOutput = true;
+        }
 
         public static bool isVisible = true;
         public static bool hasEngineer;
@@ -52,8 +70,10 @@ namespace Engineer
         int numberOfStages = 0;
         int numberOfStagesUseful = 0;
 
-        bool hasCheckedForFAR = false;
+        bool hasCheckedAero = false;
         bool hasInstalledFAR = false;
+        bool hasInstalledNEAR = false;
+        bool hasInstalledSDF = false;       // StockDragFix
 
         [KSPEvent(guiActive = true, guiName = "Toggle Flight Engineer", active = false)]
         public void ShowWindow()
@@ -168,6 +188,8 @@ namespace Engineer
                         failMessage = SimManager.failMessage;
 
                         SimManager.Gravity = vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius + vessel.mainBody.GetAltitude(vessel.CoM), 2);
+                        SimManager.Velocity = vessel.srfSpeed;
+                        SimManager.vectoredThrust = vectoredThrust;
                         SimManager.TryStartSimulation();
                     }
                 }
@@ -424,10 +446,6 @@ namespace Engineer
             {
                 //do impact site calculations
                 impacthappening = true;
-                impacttime = 0;
-                impactlong = 0;
-                impactlat = 0;
-                impactalt = 0;
                 double e = vessel.orbit.eccentricity;
                 //get current position direction vector
                 Vector3d currentpos = radiusdirection(vessel.orbit.trueAnomaly);
@@ -498,20 +516,29 @@ namespace Engineer
                     if (impacthappening)
                         impactbiome = ScienceUtil.GetExperimentBiome(vessel.mainBody, impactlat, impactlong);
                 }
+
+                if (impacthappening)
+                    impactbiome = ScienceUtil.GetExperimentBiome(vessel.mainBody, impactlat, impactlong);
             }
 
             if (vessel.geeForce > maxGForce) maxGForce = vessel.geeForce;
 
-            if (!hasCheckedForFAR)
+            if (!hasCheckedAero)
             {
-                hasCheckedForFAR = true;
+                hasCheckedAero = true;
 
                 foreach (AssemblyLoader.LoadedAssembly assembly in AssemblyLoader.loadedAssemblies)
                 {
-                    if (assembly.assembly.ToString().Split(',')[0] == "FerramAerospaceResearch")
+                    string asmName = assembly.assembly.ToString().Split(',')[0];
+                    if (asmName == "FerramAerospaceResearch")
                     {
                         hasInstalledFAR = true;
                         print("[KerbalEngineer]: FAR detected!  Turning off atmospheric details!");
+                    }
+                    else if (asmName == "NEAR")
+                    {
+                        hasInstalledNEAR = true;
+                        print("[KerbalEngineer]: NEAR detected!  Turning off atmospheric details!");
                     }
                 }
             }
@@ -559,7 +586,7 @@ namespace Engineer
 
             if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", headingStyle);
 
-            if (!hasInstalledFAR && vessel.atmDensity > 0)
+            if (!hasInstalledFAR && !hasInstalledNEAR && vessel.atmDensity > 0)
             {
                 this.atmosphereOpen = true;
                 if (settings.Get<bool>("Surface: Terminal Velocity", true)) GUILayout.Label("Terminal Velocity", headingStyle);
@@ -619,7 +646,6 @@ namespace Engineer
                 GUILayout.Label(slope, dataStyle);
             }
 
-
             if (impacthappening)
             {
                 if (settings.Get<bool>("Surface: Impact Time", true)) GUILayout.Label(Tools.FormatTime(impacttime), dataStyle);
@@ -631,7 +657,7 @@ namespace Engineer
 
             if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
 
-            if (!hasInstalledFAR && vessel.atmDensity > 0)
+            if (!hasInstalledFAR && !hasInstalledNEAR && vessel.atmDensity > 0)
             {
                 double totalMass = 0d;
                 double massDrag = 0d;
@@ -702,6 +728,7 @@ namespace Engineer
             {
                 int stageCount = stages.Length;
                 int stageCountUseful = 0;
+                Stage currentStage = stages[stageCount - 1];
                 if (settings.Get<bool>("Vessel: Show All DeltaV Stages", true))
                 {
                     for (int i = stageCount - 1; i >= 0; i--)
@@ -709,7 +736,13 @@ namespace Engineer
                         stageDeltaV = stages[i].deltaV;
                         if (stageDeltaV > 0)
                         {
-                            if (settings.Get<bool>("Vessel: DeltaV (Stage)", true)) GUILayout.Label("DeltaV (S" + i + ")", headingStyle);
+                            if (settings.Get<bool>("Vessel: DeltaV (Stage)", true))
+                            {
+                                if (stages[i].number == -1)
+                                    GUILayout.Label("DeltaV (active)", headingStyle);
+                                else
+                                    GUILayout.Label("DeltaV (S" + i + ")", headingStyle);
+                            }
                             stageCountUseful++;
                         }
                     }
@@ -749,16 +782,16 @@ namespace Engineer
                 }
                 else
                 {
-                    if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].deltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[Staging.lastStage].time) + ")", dataStyle);
+                    if (settings.Get<bool>("Vessel: DeltaV (Stage)")) GUILayout.Label(Tools.FormatNumber(currentStage.deltaV, "m/s", 0) + " (" + Tools.FormatTime(currentStage.time) + ")", dataStyle);
                 }
-                if (settings.Get<bool>("Vessel: DeltaV (Total)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].totalDeltaV, "m/s", 0) + " (" + Tools.FormatTime(stages[Staging.lastStage].totalTime) + ")", dataStyle);
-                if (settings.Get<bool>("Vessel: Specific Impulse")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].isp, "s", 3), dataStyle);
-                if (settings.Get<bool>("Vessel: Mass")) GUILayout.Label(EngineerTools.WeightFormatter(stages[Staging.lastStage].mass, stages[Staging.lastStage].totalMass), dataStyle);
-                if (settings.Get<bool>("Vessel: Thrust (Maximum)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].thrust, Tools.SIUnitType.Force), dataStyle);
-                if (settings.Get<bool>("Vessel: Thrust (Throttle)")) GUILayout.Label(Tools.FormatSI(stages[Staging.lastStage].actualThrust, Tools.SIUnitType.Force), dataStyle);
-                if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].actualThrustToWeight, 3), dataStyle);
-                if (settings.Get<bool>("Vessel: Thrust to Weight (Current)")) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].thrustToWeight, 3), dataStyle);
-                if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)", true)) GUILayout.Label(Tools.FormatNumber(stages[Staging.lastStage].thrust / (stages[Staging.lastStage].totalMass * (vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius, 2))), 3), dataStyle);
+                if (settings.Get<bool>("Vessel: DeltaV (Total)")) GUILayout.Label(Tools.FormatNumber(currentStage.totalDeltaV, "m/s", 0) + " (" + Tools.FormatTime(currentStage.totalTime) + ")", dataStyle);
+                if (settings.Get<bool>("Vessel: Specific Impulse")) GUILayout.Label(Tools.FormatNumber(currentStage.isp, "s", 3), dataStyle);
+                if (settings.Get<bool>("Vessel: Mass")) GUILayout.Label(EngineerTools.WeightFormatter(currentStage.mass, currentStage.totalMass), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust (Maximum)")) GUILayout.Label(Tools.FormatSI(currentStage.thrust, Tools.SIUnitType.Force), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust (Throttle)")) GUILayout.Label(Tools.FormatSI(currentStage.actualThrust, Tools.SIUnitType.Force), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)")) GUILayout.Label(Tools.FormatNumber(currentStage.actualThrustToWeight, 3), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Current)")) GUILayout.Label(Tools.FormatNumber(currentStage.thrustToWeight, 3), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)", true)) GUILayout.Label(Tools.FormatNumber(currentStage.thrust / (currentStage.totalMass * (vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius, 2))), 3), dataStyle);
             }
 
             GUILayout.EndVertical();

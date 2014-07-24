@@ -51,7 +51,7 @@ namespace Engineer
 
         private void CreateButtons()
         {
-            if (HighLogic.LoadedScene == GameScenes.EDITOR && this.buildButton == null)
+            if (this.buildButton == null && (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.SPH))
             {
                 this.buildButton = ApplicationLauncher.Instance.AddModApplication(
                     this.BuildOn,
@@ -65,7 +65,7 @@ namespace Engineer
                     );
             }
 
-            if (HighLogic.LoadedScene == GameScenes.FLIGHT && this.flightButton == null)
+            if (this.flightButton == null && HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
                 this.flightButton = ApplicationLauncher.Instance.AddModApplication(
                     this.FlightOn,
@@ -104,7 +104,7 @@ namespace Engineer
 
         private void LateUpdate()
         {
-            if (HighLogic.LoadedScene == GameScenes.EDITOR)
+            if (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.SPH)
             {
                 if (this.buildButton != null)
                 {
@@ -168,11 +168,13 @@ namespace Engineer
             if (this.buildButton != null)
             {
                 ApplicationLauncher.Instance.RemoveModApplication(this.buildButton);
+                this.buildButton = null;
             }
 
             if (this.flightButton != null)
             {
                 ApplicationLauncher.Instance.RemoveModApplication(this.flightButton);
+                this.flightButton = null;
             }
             settings.Save("toolbar.cfg");
         }

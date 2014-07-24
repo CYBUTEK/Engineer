@@ -3,7 +3,6 @@
 // License: Attribution-NonCommercial-ShareAlike 3.0 Unported
 
 using System;
-
 using UnityEngine;
 
 namespace Engineer
@@ -58,11 +57,16 @@ namespace Engineer
             // Loop through the notations until the smallest usable one is found.
             for (notationIndex = 0; notationIndex < notation.Length; notationIndex++)
             {
-                if (number > 1000 || number < -1000) { number /= 1000; } else { break; }
+                // If the number is now in a sensible range then return a string of the concatenated number and selected notation.
+                if (number <= 1000d && number >= -1000d) 
+                    return number.ToString("0.000") + notation[notationIndex];
+                        
+                // Switch to bigger unit
+                number /= 1000;
             }
 
-            // Return a string of the concatinated number and selected notation.
-            return number.ToString("0.000") + notation[notationIndex];
+            // If we fall out of the loop then we can't display
+            return "-OVF-";
         }
 
         // Quick and dirty implementation of the new distance formatter from KER 1.0
@@ -228,7 +232,7 @@ namespace Engineer
             Vector3d rad = (vessel.CoM - mainBody.position).normalized;
             //log.buf.AppendLine("rad = " + rad.ToString() + " len = " + rad.magnitude);
             RaycastHit hit;
-            if (Physics.Raycast(vessel.CoM, -rad, out hit))
+            if (Physics.Raycast(vessel.CoM, -rad, out hit, Mathf.Infinity, 1 << 15))  // Just "Local Scenery" please
             {
                 Vector3d norm = hit.normal;
                 norm = norm.normalized;
@@ -249,11 +253,11 @@ namespace Engineer
                 else
                 {
                     Vector3d side = Vector3d.Cross(rad, norm).normalized;
-                    //log.buf.AppendLine("side = " + side.ToString() + " len = " + side.magnitude);
+                    //log.buf.AppendLine("side = " + side.ToString() + "   len = " + side.magnitude);
                     Vector3d east = Vector3d.Cross(rad, Vector3d.up).normalized;
-                    //log.buf.AppendLine("east = " + east.ToString() + " len = " + east.magnitude);
+                    //log.buf.AppendLine("east = " + east.ToString() + "   len = " + east.magnitude);
                     Vector3d north = Vector3d.Cross(rad, east).normalized;
-                    //log.buf.AppendLine("north = " + north.ToString() + " len = " + north.magnitude);
+                    //log.buf.AppendLine("north = " + north.ToString() + "   len = " + north.magnitude);
                     double sidedoteast = Vector3d.Dot(side, east);
                     //log.buf.AppendLine("side.east = " + sidedoteast);
                     double direction = Math.Acos(sidedoteast) * 180 / Math.PI;
