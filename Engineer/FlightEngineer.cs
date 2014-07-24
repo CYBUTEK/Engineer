@@ -18,23 +18,7 @@ namespace Engineer
          UI_FloatRange(minValue = 0.0f, maxValue = 1000.0f, stepIncrement = 10.0f, scene = UI_Scene.Flight)]
         public float minFESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
 
-        [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = false, guiName = "Thrust: "),
-            UI_Toggle(disabledText = "Scalar", enabledText = "Vector", scene = UI_Scene.Flight)]
         public bool vectoredThrust = false;
-
-        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Dump Tree")]
-        public void DumpTree()
-        {
-            MonoBehaviour.print("FlightEngineer.DumpTree");
-            SimManager.dumpTree = true;
-        }
-
-        [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Log Sim")]
-        public void LogSim()
-        {
-            MonoBehaviour.print("FlightEngineer.LogSim");
-            SimManager.logOutput = true;
-        }
 
         public static bool isVisible = true;
         public static bool hasEngineer;
@@ -163,7 +147,7 @@ namespace Engineer
             }
         }
 
-        public void Update()
+        public virtual void Update()
         {
             if (hasEngineerReset)
             {
