@@ -264,8 +264,6 @@ namespace Engineer
 
                     bool compact = settings.Get<bool>("_SAVEONCHANGE_COMPACT");
                     bool compactChanged = (compact != isCompact);
-                    if (compactChanged)
-                        print("Old: x = " + windowPosition.x + "   width = " + windowPosition.width);
 
                     if (!compact)
                     {
@@ -285,8 +283,7 @@ namespace Engineer
                             windowPosition.width -= (740 - 255);
                         }
                     }
-                    if (compactChanged)
-                        print("New: x = " + windowPosition.x + "   width = " + windowPosition.width);
+
                     isCompact = compact;
                     windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
                 }
