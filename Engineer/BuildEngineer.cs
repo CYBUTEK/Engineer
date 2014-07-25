@@ -627,11 +627,11 @@ namespace Engineer
             settings.Set("*SPACER_TWEAKS", "");
             settings.Set("*headingStyle_TWEAKABLES", "TWEAKABLES");
             settings.Set<bool>("Tweak: Sim Timing", true);
-            settings.Set<bool>("Tweak: Atmospheric Pressure", true);
-            settings.Set<bool>("Tweak: Sim Velocity", true);
-            settings.Set<bool>("Tweak: Vectored Thrust", true);
-            settings.Set<bool>("Tweak: Dump Tree", true);
-            settings.Set<bool>("Tweak: Log Simulation", true);
+            settings.Set<bool>("Tweak: Atmospheric Pressure", false);
+            settings.Set<bool>("Tweak: Sim Velocity", false);
+            settings.Set<bool>("Tweak: Vectored Thrust", false);
+            settings.Set<bool>("Tweak: Dump Tree", false);
+            settings.Set<bool>("Tweak: Log Simulation", false);
         }
     }
 }
