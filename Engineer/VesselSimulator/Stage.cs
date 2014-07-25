@@ -30,8 +30,8 @@ namespace Engineer.VesselSimulator
         {
             StringBuilder str = new StringBuilder("", 512);
             str.AppendFormat("number        : {0:d}\n", number);
-            str.AppendFormat("cost          : {0:d}\n", cost);
-            str.AppendFormat("totalCost     : {0:d}\n", totalCost);
+            str.AppendFormat("cost          : {0:g6}\n", cost);
+            str.AppendFormat("totalCost     : {0:g6}\n", totalCost);
             str.AppendFormat("time          : {0:g6}\n", time);
             str.AppendFormat("totalTime     : {0:g6}\n", totalTime);
             str.AppendFormat("mass          : {0:g6}\n", mass);
