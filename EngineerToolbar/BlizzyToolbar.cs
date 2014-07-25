@@ -49,17 +49,20 @@ namespace EngineerToolbar
             if (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.SPH || HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
                 this.button = ToolbarManager.Instance.add("KER", "engineerButton");
-                this.button.ToolTip = "Kerbal Engineer Redux";
+                if (this.button != null)
+                {
+                    this.button.ToolTip = "Kerbal Engineer Redux";
 
-                if (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.SPH)
-                {
-                    this.SetButtonState(BuildEngineer.isVisible);
-                    this.button.OnClick += e => this.TogglePluginVisibility(ref BuildEngineer.isVisible);
-                }
-                else if (HighLogic.LoadedScene == GameScenes.FLIGHT)
-                {
-                    this.SetButtonState(FlightEngineer.isVisible);
-                    this.button.OnClick += e => this.TogglePluginVisibility(ref FlightEngineer.isVisible);
+                    if (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.SPH)
+                    {
+                        this.SetButtonState(BuildEngineer.isVisible);
+                        this.button.OnClick += e => this.TogglePluginVisibility(ref BuildEngineer.isVisible);
+                    }
+                    else if (HighLogic.LoadedScene == GameScenes.FLIGHT)
+                    {
+                        this.SetButtonState(FlightEngineer.isVisible);
+                        this.button.OnClick += e => this.TogglePluginVisibility(ref FlightEngineer.isVisible);
+                    }
                 }
             }
         }
@@ -69,13 +72,15 @@ namespace EngineerToolbar
             if (HighLogic.LoadedScene == GameScenes.EDITOR || HighLogic.LoadedScene == GameScenes.SPH)
             {
                 this.SetButtonState(BuildEngineer.isVisible);
-                this.button.Visible = BuildEngineer.hasEngineer;
+                if (this.button != null)
+                    this.button.Visible = BuildEngineer.hasEngineer;
                 BuildEngineer.hasEngineerReset = true;
             }
             else if (HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
                 this.SetButtonState(FlightEngineer.isVisible);
-                this.button.Visible = FlightEngineer.hasEngineer;
+                if (this.button != null)
+                    this.button.Visible = FlightEngineer.hasEngineer;
                 FlightEngineer.hasEngineerReset = true;
             }
         }
@@ -88,7 +93,8 @@ namespace EngineerToolbar
 
         private void SetButtonState(bool state)
         {
-            this.button.TexturePath = state ? EnabledTexturePath : DisabledTexturePath;
+            if (this.button != null)
+                this.button.TexturePath = state ? EnabledTexturePath : DisabledTexturePath;
         }
 
         private void OnDestroy()
