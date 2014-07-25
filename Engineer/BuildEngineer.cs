@@ -65,6 +65,7 @@ namespace Engineer
         String failMessage = "";
         int stageCount;
         int stageCountAll;
+        bool isCompact = false;
 
         public bool IsPrimary
         {
@@ -145,6 +146,7 @@ namespace Engineer
                 {
                     print("BuildEngineer: OnLoad");
                     settings.Load(settingsFile);
+                    isCompact = settings.Get<bool>("_SAVEONCHANGE_COMPACT");
                     windowPosition = settings.ConvertToRect(settings.Get("_WINDOW_POSITION", settings.ConvertToString(windowPosition)));
                 }
             }
@@ -260,14 +262,32 @@ namespace Engineer
                 {
                     string title = "";
 
-                    if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
+                    bool compact = settings.Get<bool>("_SAVEONCHANGE_COMPACT");
+                    bool compactChanged = (compact != isCompact);
+                    if (compactChanged)
+                        print("Old: x = " + windowPosition.x + "   width = " + windowPosition.width);
+
+                    if (!compact)
                     {
                         title = windowTitle;
+                        if (compactChanged)
+                        {
+                            windowPosition.x -= (740 - 255);
+                            windowPosition.width += (740 - 255);
+                        }
                     }
                     else
                     {
                         title = windowTitleCompact;
+                        if (compactChanged)
+                        {
+                            windowPosition.x += (740 - 255);
+                            windowPosition.width -= (740 - 255);
+                        }
                     }
+                    if (compactChanged)
+                        print("New: x = " + windowPosition.x + "   width = " + windowPosition.width);
+                    isCompact = compact;
                     windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
                 }
                 else
