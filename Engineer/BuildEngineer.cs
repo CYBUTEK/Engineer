@@ -17,16 +17,38 @@ namespace Engineer
          UI_FloatRange(minValue = 0.0f, maxValue = 1000.0f, stepIncrement = 10.0f, scene = UI_Scene.Editor)]
         public float minBESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
 
-        public float percentASP = 100.0f;      // The percentage of sea-level pressure to use for "atmospheric stats"
-        public float velocity = 0.0f;      // The velocity to use for "atmospheric stats"
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Sim ASP %"),
+         UI_FloatRange(minValue = 0.0f, maxValue = 100.0f, stepIncrement = 1.0f, scene = UI_Scene.Editor)]
+        public float percentASP = 100.0f; // The percentage of sea-level pressure to use for "atmospheric stats"
+
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Sim Velocity"),
+         UI_FloatRange(minValue = 0.0f, maxValue = 2500.0f, stepIncrement = 25.0f, scene = UI_Scene.Editor)]
+        public float velocity = 0.0f; // The velocity to use for "atmospheric stats"
+
+        [KSPField(isPersistant = true, guiActive = false, guiActiveEditor = true, guiName = "Thrust: "),
+         UI_Toggle(disabledText = "Scalar", enabledText = "Vector", scene = UI_Scene.Editor)]
         public bool vectoredThrust = false;
+
+        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "Dump Tree")]
+        public void DumpTree()
+        {
+            print("BuildEngineer.DumpTree");
+            SimManager.dumpTree = true;
+        }
+
+        [KSPEvent(guiActive = false, guiActiveEditor = true, guiName = "Log Sim")]
+        public void LogSim()
+        {
+            print("BuildEngineer.LogSim");
+            SimManager.logOutput = true;
+        }
 
         public static bool isVisible = true;
         public static bool hasEngineer;
         public static bool hasEngineerReset;
 
         Version version = new Version();
-        Settings settings = new Settings();
+        static Settings settings = null;
         bool showUpdate = true;
         string settingsFile = "build_engineer.cfg";
         GUIStyle headingStyle, dataStyle, windowStyle, buttonStyle, areaStyle;
@@ -43,6 +65,7 @@ namespace Engineer
         String failMessage = "";
         int stageCount;
         int stageCountAll;
+        bool isCompact = false;
 
         public bool IsPrimary
         {
@@ -72,6 +95,9 @@ namespace Engineer
             {
                 if (state == StartState.Editor)
                 {
+                    if (settings == null)
+                        InitSettings();
+                    
                     this.part.OnEditorAttach += OnEditorAttach;
                     this.part.OnEditorDetach += OnEditorDetach;
                     this.part.OnEditorDestroy += OnEditorDestroy;
@@ -120,6 +146,7 @@ namespace Engineer
                 {
                     print("BuildEngineer: OnLoad");
                     settings.Load(settingsFile);
+                    isCompact = settings.Get<bool>("_SAVEONCHANGE_COMPACT");
                     windowPosition = settings.ConvertToRect(settings.Get("_WINDOW_POSITION", settings.ConvertToString(windowPosition)));
                 }
             }
@@ -164,6 +191,16 @@ namespace Engineer
             {
                 hasEngineer = false;
                 hasEngineerReset = false;
+            }
+
+            if (settings != null)
+            {
+                Fields["minBESimTime"].guiActiveEditor = settings.Get<bool>("Tweak: Sim Timing");
+                Fields["percentASP"].guiActiveEditor = settings.Get<bool>("Tweak: Atmospheric Pressure");
+                Fields["velocity"].guiActiveEditor = settings.Get<bool>("Tweak: Sim Velocity");
+                Fields["vectoredThrust"].guiActiveEditor = settings.Get<bool>("Tweak: Vectored Thrust");
+                Events["DumpTree"].active = settings.Get<bool>("Tweak: Dump Tree");
+                Events["LogSim"].active = settings.Get<bool>("Tweak: Log Simulation");
             }
 
             if (IsPrimary)
@@ -225,15 +262,29 @@ namespace Engineer
                 {
                     string title = "";
 
-                    if (!settings.Get("_SAVEONCHANGE_COMPACT", false))
+                    bool compact = settings.Get<bool>("_SAVEONCHANGE_COMPACT");
+                    bool compactChanged = (compact != isCompact);
+
+                    if (!compact)
                     {
                         title = windowTitle;
+                        if (compactChanged)
+                        {
+                            windowPosition.x -= (740 - 255);
+                            windowPosition.width += (740 - 255);
+                        }
                     }
                     else
                     {
                         title = windowTitleCompact;
+                        if (compactChanged)
+                        {
+                            windowPosition.x += (740 - 255);
+                            windowPosition.width -= (740 - 255);
+                        }
                     }
 
+                    isCompact = compact;
                     windowPosition = GUILayout.Window(windowID, windowPosition, Window, title, windowStyle);
                 }
                 else
@@ -259,6 +310,8 @@ namespace Engineer
                 settings.Set("_SAVEONCHANGE_USE_ATMOSPHERE", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_USE_ATMOSPHERE", false), "Atmospheric Stats", buttonStyle));
                 settings.Set("_SAVEONCHANGE_SHOW_ALL_STAGES", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_SHOW_ALL_STAGES", false), "Show All Stages", buttonStyle));
             }
+            if (GUILayout.Button("Settings", buttonStyle))
+                settings.IsDrawing = true;
             settings.Set("_SAVEONCHANGE_COMPACT", GUILayout.Toggle(settings.Get("_SAVEONCHANGE_COMPACT", false), "Compact", buttonStyle));
             GUILayout.EndHorizontal();
 
@@ -541,14 +594,15 @@ namespace Engineer
         private void CheckEditorLock()
         {
             Vector2 mousePos = Input.mousePosition;
+            Rect tempRect = settings.IsDrawing ? settings.windowPosition : windowPosition;
             mousePos.y = Screen.height - mousePos.y;
-            if (windowPosition.Contains(mousePos) && !isEditorLocked)
+            if (tempRect.Contains(mousePos) && !isEditorLocked)
             {
                 EditorLogic.fetch.Lock(true, true, true, windowID.ToString());
                 print("Lock");
                 isEditorLocked = true;
             }
-            else if (!windowPosition.Contains(mousePos) && isEditorLocked)
+            else if (!tempRect.Contains(mousePos) && isEditorLocked)
             {
                 EditorLogic.fetch.Unlock(windowID.ToString());
                 print("Unlock");
@@ -575,6 +629,26 @@ namespace Engineer
             dataStyle.fontStyle = FontStyle.Normal;
             dataStyle.alignment = TextAnchor.MiddleCenter;
             dataStyle.stretchWidth = true;
+        }
+
+        private void InitSettings()
+        {
+            settings = new Settings();
+
+            settings.Set<bool>("_SAVEONCHANGE_SHOW_MAIN", true);
+            settings.Set<bool>("_SAVEONCHANGE_SHOW_REFERENCES", true);
+            settings.Set<bool>("_SAVEONCHANGE_USE_ATMOSPHERE", false);
+            settings.Set<bool>("_SAVEONCHANGE_SHOW_ALL_STAGES", false);
+            settings.Set<bool>("_SAVEONCHANGE_COMPACT", false);
+
+            settings.Set("*SPACER_TWEAKS", "");
+            settings.Set("*headingStyle_TWEAKABLES", "TWEAKABLES");
+            settings.Set<bool>("Tweak: Sim Timing", true);
+            settings.Set<bool>("Tweak: Atmospheric Pressure", false);
+            settings.Set<bool>("Tweak: Sim Velocity", false);
+            settings.Set<bool>("Tweak: Vectored Thrust", false);
+            settings.Set<bool>("Tweak: Dump Tree", false);
+            settings.Set<bool>("Tweak: Log Simulation", false);
         }
     }
 }
