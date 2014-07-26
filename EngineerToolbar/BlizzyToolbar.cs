@@ -73,14 +73,18 @@ namespace EngineerToolbar
             {
                 this.SetButtonState(BuildEngineer.isVisible);
                 if (this.button != null)
+                {
                     this.button.Visible = BuildEngineer.hasEngineer;
+                }
                 BuildEngineer.hasEngineerReset = true;
             }
             else if (HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
                 this.SetButtonState(FlightEngineer.isVisible);
                 if (this.button != null)
+                {
                     this.button.Visible = FlightEngineer.hasEngineer;
+                }
                 FlightEngineer.hasEngineerReset = true;
             }
         }
@@ -94,7 +98,9 @@ namespace EngineerToolbar
         private void SetButtonState(bool state)
         {
             if (this.button != null)
+            {
                 this.button.TexturePath = state ? EnabledTexturePath : DisabledTexturePath;
+            }
         }
 
         private void OnDestroy()
