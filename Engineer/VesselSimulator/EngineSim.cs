@@ -31,6 +31,7 @@ namespace Engineer.VesselSimulator
                             double atmosphere,
                             double velocity,
                             float maxThrust,
+                            float minThrust,
                             float thrustPercentage,
                             float requestedThrust,
                             Vector3 vecThrust,
@@ -45,6 +46,7 @@ namespace Engineer.VesselSimulator
             StringBuilder buffer = null;
             //MonoBehaviour.print("Create EngineSim for " + theEngine.name);
             //MonoBehaviour.print("maxThrust = " + maxThrust);
+            //MonoBehaviour.print("minThrust = " + minThrust);
             //MonoBehaviour.print("thrustPercentage = " + thrustPercentage);
             //MonoBehaviour.print("requestedThrust = " + requestedThrust);
             //MonoBehaviour.print("velocity = " + velocity);
@@ -52,7 +54,7 @@ namespace Engineer.VesselSimulator
             partSim = theEngine;
 
             isActive = active;
-            thrust = maxThrust * (thrustPercentage / 100f);
+            thrust = (maxThrust - minThrust) * (thrustPercentage / 100f) + minThrust;
             //MonoBehaviour.print("thrust = " + thrust);
 
             thrustVec = vecThrust;
