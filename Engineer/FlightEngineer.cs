@@ -19,26 +19,28 @@ namespace Engineer
         public float minFESimTime = 200.0f;      // The minimum time in ms from the start of one simulation to the start of the next
 
         [KSPField(isPersistant = true, guiActive = true, guiActiveEditor = false, guiName = "Thrust: "),
-            UI_Toggle(disabledText = "Scalar", enabledText = "Vector", scene = UI_Scene.Flight)]
+         UI_Toggle(disabledText = "Scalar", enabledText = "Vector", scene = UI_Scene.Flight)]
         public bool vectoredThrust = false;
 
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Dump Tree")]
         public void DumpTree()
         {
-            MonoBehaviour.print("FlightEngineer.DumpTree");
+            print("FlightEngineer.DumpTree");
             SimManager.dumpTree = true;
         }
 
         [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Log Sim")]
         public void LogSim()
         {
-            MonoBehaviour.print("FlightEngineer.LogSim");
+            print("FlightEngineer.LogSim");
             SimManager.logOutput = true;
         }
 
         public static bool isVisible = true;
+        public static bool hasEngineer;
+        public static bool hasEngineerReset;
 
-        public Settings settings = new Settings();
+        public static Settings settings = null;
         Version version = new Version();
         bool showUpdate = true;
         string settingsFile = "flight_engineer.cfg";
@@ -55,6 +57,9 @@ namespace Engineer
         bool hasInitStyles = false;
 
         bool surfaceOpen = false;
+
+        private bool atmosphereOpen;
+        private bool impactOpen;
 #if TERRAINTEST
         double maxDiff = 0;
         double heightMaxDiff = 0;
@@ -65,8 +70,10 @@ namespace Engineer
         int numberOfStages = 0;
         int numberOfStagesUseful = 0;
 
-        bool hasCheckedForFAR = false;
+        bool hasCheckedAero = false;
         bool hasInstalledFAR = false;
+        bool hasInstalledNEAR = false;
+        bool hasInstalledSDF = false;       // StockDragFix
 
         [KSPEvent(guiActive = true, guiName = "Toggle Flight Engineer", active = false)]
         public void ShowWindow()
@@ -77,6 +84,7 @@ namespace Engineer
             {
                 TapeDriveAnimator tapeAnimator = (TapeDriveAnimator)part.Modules["TapeDriveAnimator"];
                 tapeAnimator.Enabled = settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER");
+                isVisible = settings.Get<bool>("_TOGGLE_FLIGHT_ENGINEER");
             }
         }
 
@@ -86,18 +94,15 @@ namespace Engineer
             {
                 if (vessel != null)
                 {
-                    foreach (Part thePart in vessel.parts)
+                    foreach (var part in vessel.parts)
                     {
-                        if (thePart.Modules.Contains(ClassID))
+                        if (part.Modules.Contains(this.ClassID))
                         {
-                            if (thePart == part)
+                            if (this.part == part)
                             {
                                 return true;
                             }
-                            else
-                            {
-                                break;
-                            }
+                            break;
                         }
                     }
                 }
@@ -112,6 +117,8 @@ namespace Engineer
                 print("FlightEngineer: OnStart (" + state + ")");
                 if (state != StartState.Editor)
                 {
+                    if (settings == null)
+                        InitSettings();
                     rendezvous.FlightEngineer = this;
                     RenderingManager.AddToPostDrawQueue(0, DrawGUI);
                 }
@@ -158,12 +165,28 @@ namespace Engineer
             }
         }
 
-        public void Update()
+        public virtual void Update()
         {
+            if (hasEngineerReset)
+            {
+                hasEngineer = false;
+                hasEngineerReset = false;
+            }
+
+            if (settings != null)
+            {
+                Fields["minFESimTime"].guiActive = settings.Get<bool>("Tweak: Sim Timing");
+                Fields["vectoredThrust"].guiActive = settings.Get<bool>("Tweak: Vectored Thrust");
+                Events["DumpTree"].active = settings.Get<bool>("Tweak: Dump Tree");
+                Events["LogSim"].active = settings.Get<bool>("Tweak: Log Simulation");
+            }
+
             if (vessel != null && vessel == FlightGlobals.ActiveVessel)
             {
                 if (IsPrimary)
                 {
+                    hasEngineer = true;
+
                     // Update the simulation timing from the tweakable
                     SimManager.minSimTime = (long)minFESimTime;
 
@@ -180,6 +203,15 @@ namespace Engineer
                         SimManager.TryStartSimulation();
                     }
                 }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (hasEngineerReset)
+            {
+                hasEngineer = false;
+                hasEngineerReset = false;
             }
         }
 
@@ -322,7 +354,7 @@ namespace Engineer
                 if (settings.Get<bool>("Orbital: Time to Periapsis")) GUILayout.Label(Tools.FormatTime(vessel.orbit.timeToPe), dataStyle);
             }
             if (settings.Get<bool>("Orbital: Inclination")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.inclination, "°", 6), dataStyle);
-            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.eccentricity, "°", 6), dataStyle);
+            if (settings.Get<bool>("Orbital: Eccentricity")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.eccentricity, 6), dataStyle);
             if (settings.Get<bool>("Orbital: Period")) GUILayout.Label(Tools.FormatTime(vessel.orbit.period), dataStyle);
             if (settings.Get<bool>("Orbital: Longitude of AN")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.LAN, "°", 6), dataStyle);
             if (settings.Get<bool>("Orbital: Longitude of Pe")) GUILayout.Label(Tools.FormatNumber(vessel.orbit.LAN + vessel.orbit.argumentOfPeriapsis, "°", 6), dataStyle);
@@ -490,6 +522,9 @@ namespace Engineer
                     {
                         impactalt = 0;
                     }
+
+                    if (impacthappening)
+                        impactbiome = ScienceUtil.GetExperimentBiome(vessel.mainBody, impactlat, impactlong);
                 }
 
                 if (impacthappening)
@@ -498,16 +533,22 @@ namespace Engineer
 
             if (vessel.geeForce > maxGForce) maxGForce = vessel.geeForce;
 
-            if (!hasCheckedForFAR)
+            if (!hasCheckedAero)
             {
-                hasCheckedForFAR = true;
+                hasCheckedAero = true;
 
                 foreach (AssemblyLoader.LoadedAssembly assembly in AssemblyLoader.loadedAssemblies)
                 {
-                    if (assembly.assembly.ToString().Split(',')[0] == "FerramAerospaceResearch")
+                    string asmName = assembly.assembly.ToString().Split(',')[0];
+                    if (asmName == "FerramAerospaceResearch")
                     {
                         hasInstalledFAR = true;
                         print("[KerbalEngineer]: FAR detected!  Turning off atmospheric details!");
+                    }
+                    else if (asmName == "NEAR")
+                    {
+                        hasInstalledNEAR = true;
+                        print("[KerbalEngineer]: NEAR detected!  Turning off atmospheric details!");
                     }
                 }
             }
@@ -537,22 +578,40 @@ namespace Engineer
 
             if (impacthappening)
             {
+                this.impactOpen = true;
                 if (settings.Get<bool>("Surface: Impact Time", true)) GUILayout.Label("Impact Time", headingStyle);
                 if (settings.Get<bool>("Surface: Impact Longitude", true)) GUILayout.Label("Impact Longitude", headingStyle);
                 if (settings.Get<bool>("Surface: Impact Latitude", true)) GUILayout.Label("Impact Latitude", headingStyle);
                 if (settings.Get<bool>("Surface: Impact Altitude", true)) GUILayout.Label("Impact Altitude", headingStyle);
                 if (settings.Get<bool>("Surface: Impact Biome", true)) GUILayout.Label("Impact Biome", headingStyle);
             }
+            else
+            {
+                if (this.impactOpen)
+                {
+                    this.impactOpen = false;
+                    settings.Changed = true;
+                }
+            }
 
             if (settings.Get<bool>("Surface: G-Force", true)) GUILayout.Label("G-Force", headingStyle);
 
-            if (!hasInstalledFAR)
+            if (!hasInstalledFAR && !hasInstalledNEAR && vessel.atmDensity > 0)
             {
+                this.atmosphereOpen = true;
                 if (settings.Get<bool>("Surface: Terminal Velocity", true)) GUILayout.Label("Terminal Velocity", headingStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Efficiency", true)) GUILayout.Label("Atmospheric Efficiency", headingStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Drag", true)) GUILayout.Label("Atmospheric Drag", headingStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Pressure", true)) GUILayout.Label("Atmospheric Pressure", headingStyle);
                 if (settings.Get<bool>("Surface: Atmospheric Density", true)) GUILayout.Label("Atmospheric Density", headingStyle);
+            }
+            else
+            {
+                if (this.atmosphereOpen)
+                {
+                    this.atmosphereOpen = false;
+                    settings.Changed = true;
+                }
             }
             GUILayout.EndVertical();
 
@@ -608,7 +667,7 @@ namespace Engineer
 
             if (settings.Get<bool>("Surface: G-Force")) GUILayout.Label(Tools.FormatNumber(vessel.geeForce, 3) + " / " + Tools.FormatNumber(maxGForce, "g", 3), dataStyle);
 
-            if (!hasInstalledFAR)
+            if (!hasInstalledFAR && !hasInstalledNEAR && vessel.atmDensity > 0)
             {
                 double totalMass = 0d;
                 double massDrag = 0d;
@@ -625,11 +684,7 @@ namespace Engineer
                 double gravity = FlightGlobals.getGeeForceAtPosition(vessel.CoM).magnitude;
                 double atmosphere = vessel.atmDensity;
 
-                double terminalVelocity = 0d;
-                if (atmosphere > 0)
-                {
-                    terminalVelocity = Math.Sqrt((2 * totalMass * gravity) / (atmosphere * massDrag * FlightGlobals.DragMultiplier));
-                }
+                double terminalVelocity = Math.Sqrt((2 * totalMass * gravity) / (atmosphere * massDrag * FlightGlobals.DragMultiplier));
 
                 double atmosphericEfficiency = 0d;
                 if (terminalVelocity > 0)
@@ -746,7 +801,7 @@ namespace Engineer
                 if (settings.Get<bool>("Vessel: Thrust (Throttle)")) GUILayout.Label(Tools.FormatSI(currentStage.actualThrust, Tools.SIUnitType.Force), dataStyle);
                 if (settings.Get<bool>("Vessel: Thrust to Weight (Throttle)")) GUILayout.Label(Tools.FormatNumber(currentStage.actualThrustToWeight, 3), dataStyle);
                 if (settings.Get<bool>("Vessel: Thrust to Weight (Current)")) GUILayout.Label(Tools.FormatNumber(currentStage.thrustToWeight, 3), dataStyle);
-                if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)", true)) GUILayout.Label(Tools.FormatNumber(currentStage.thrust / (currentStage.totalMass * (vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius, 2))), 3), dataStyle);
+                if (settings.Get<bool>("Vessel: Thrust to Weight (Surface)")) GUILayout.Label(Tools.FormatNumber(currentStage.thrust / (currentStage.totalMass * (vessel.mainBody.gravParameter / Math.Pow(vessel.mainBody.Radius, 2))), 3), dataStyle);
             }
 
             GUILayout.EndVertical();
@@ -808,6 +863,121 @@ namespace Engineer
             dataStyle.fontStyle = FontStyle.Normal;
             dataStyle.alignment = TextAnchor.MiddleRight;
             dataStyle.stretchWidth = true;
+        }
+
+        private void InitSettings()
+        {
+            settings = new Settings();
+            
+            settings.Set<bool>("_TOGGLE_FLIGHT_ENGINEER", true);
+            settings.Set("_SAVEONCHANGE_NOCHANGEUPDATE_WINDOW_POSITION", settings.ConvertToString(windowPosition));
+            settings.Set("_SAVEONCHANGE_SHOW_ORBITAL", false);
+            settings.Set("_SAVEONCHANGE_SHOW_SURFACE", false);
+            settings.Set("_SAVEONCHANGE_SHOW_VESSEL", false);
+            settings.Set("_SAVEONCHANGE_SHOW_RENDEZVOUS", false);
+            settings.Set("*SPACER_TWEAKS", "");
+            settings.Set("*headingStyle_TWEAKABLES", "TWEAKABLES");
+            settings.Set<bool>("Tweak: Sim Timing", true);
+            settings.Set<bool>("Tweak: Vectored Thrust", false);
+            settings.Set<bool>("Tweak: Dump Tree", false);
+            settings.Set<bool>("Tweak: Log Simulation", false);
+
+            settings.Set("*SPACER_ORBITAL", "");
+            settings.Set("*headingStyle_ORBITAL", "ORBITAL DISPLAY");
+            settings.Set<bool>("Orbital: Show Grouped Ap/Pe Readouts", false);
+            settings.Set<bool>("Orbital: Apoapsis Height", true);
+            settings.Set<bool>("Orbital: Time to Apoapsis", true);
+            settings.Set<bool>("Orbital: Periapsis Height", true);
+            settings.Set<bool>("Orbital: Time to Periapsis", true);
+            settings.Set<bool>("Orbital: Inclination", true);
+            settings.Set<bool>("Orbital: Eccentricity", true);
+            settings.Set<bool>("Orbital: Period", true);
+            settings.Set<bool>("Orbital: Longitude of AN", true);
+            settings.Set<bool>("Orbital: Longitude of Pe", true);
+            settings.Set<bool>("Orbital: Semi-major Axis", true);
+            settings.Set<bool>("Orbital: Semi-minor Axis", true);
+
+            settings.Set("*SPACER_SURFACE", "");
+            settings.Set("*headingStyle_SURFACE", "SURFACE DISPLAY");
+            settings.Set<bool>("Surface: Altitude (Sea Level)", true);
+            settings.Set<bool>("Surface: Altitude (Terrain)", true);
+#if TERRAINTEST
+            settings.Set<bool>("Surface: terrainAltitude", true);
+            settings.Set<bool>("Surface: pqsAltitude", true);
+            settings.Set<bool>("Surface: diff", true);
+            settings.Set<bool>("Surface: maxDiff", true);
+            settings.Set<bool>("Surface: heightFromTerrain", true);
+            settings.Set<bool>("Surface: heightDiff", true);
+            settings.Set<bool>("Surface: heightMaxDiff", true);
+#endif
+            settings.Set<bool>("Surface: Vertical Speed", true);
+            settings.Set<bool>("Surface: Horizontal Speed", true);
+            settings.Set<bool>("Surface: Longitude", true);
+            settings.Set<bool>("Surface: Latitude", true);
+            settings.Set<bool>("Surface: Biome", true);
+            settings.Set<bool>("Surface: Slope", true);
+            settings.Set<bool>("Surface: Impact Time", true);
+            settings.Set<bool>("Surface: Impact Longitude", true);
+            settings.Set<bool>("Surface: Impact Latitude", true);
+            settings.Set<bool>("Surface: Impact Altitude", true);
+            settings.Set<bool>("Surface: Impact Biome", true);
+            settings.Set<bool>("Surface: G-Force", true);
+            settings.Set<bool>("Surface: Terminal Velocity", true);
+            settings.Set<bool>("Surface: Atmospheric Efficiency", true);
+            settings.Set<bool>("Surface: Atmospheric Drag", true);
+            settings.Set<bool>("Surface: Atmospheric Pressure", true);
+            settings.Set<bool>("Surface: Atmospheric Density", true);
+
+            settings.Set("*SPACER_VESSEL", "");
+            settings.Set("*headingStyle_VESSEL", "VESSEL DISPLAY");
+            settings.Set<bool>("Vessel: Show All DeltaV Stages", true);
+            settings.Set<bool>("Vessel: DeltaV (Stage)", true);
+            settings.Set<bool>("Vessel: DeltaV (Total)", true);
+            settings.Set<bool>("Vessel: Specific Impulse", true);
+            settings.Set<bool>("Vessel: Mass", true);
+            settings.Set<bool>("Vessel: Thrust (Maximum)", true);
+            settings.Set<bool>("Vessel: Thrust (Throttle)", true);
+            settings.Set<bool>("Vessel: Thrust to Weight (Throttle)", true);
+            settings.Set<bool>("Vessel: Thrust to Weight (Current)", true);
+            settings.Set<bool>("Vessel: Thrust to Weight (Surface)", true);
+
+            settings.Set("*SPACER_RENDEZVOUS_CELESTIAL", "");
+            settings.Set("*headingStyle_RENDEZVOUS_CELESTIAL", "RENDEZVOUS DISPLAY - CELESTIAL BODY");
+            settings.Set<bool>("Rendezvous: Celestial Body - Current Phase Angle", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Intercept Angle", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Ejection Angle", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Angle to Prograde/Retrograde", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Relative Inclination", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Ascending Node", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Descending Node", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Altitude", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Distance", true);
+            settings.Set<bool>("Rendezvous: Celestial Body - Orbital Period", true);
+
+            settings.Set("*SPACER_RENDEZVOUS_VESSEL", "");
+            settings.Set("*headingStyle_RENDEZVOUS_VESSEL", "RENDEZVOUS DISPLAY - VESSEL");
+            settings.Set<bool>("Rendezvous: Vessel - Phase Angle", true);
+            settings.Set<bool>("Rendezvous: Vessel - Intercept Angle", true);
+            settings.Set<bool>("Rendezvous: Vessel - Intercept Distance", true);
+            settings.Set<bool>("Rendezvous: Vessel - Rel. Inclination", true);
+            settings.Set<bool>("Rendezvous: Vessel - Rel. Latitude", false);
+            settings.Set<bool>("Rendezvous: Vessel - Ascending Node", true);
+            settings.Set<bool>("Rendezvous: Vessel - Descending Node", true);
+            settings.Set<bool>("Rendezvous: Vessel - Time to Ascending Node", true);
+            settings.Set<bool>("Rendezvous: Vessel - Time to Ascending Node", true);
+            settings.Set<bool>("Rendezvous: Vessel - Current Altitude", true);
+            settings.Set<bool>("Rendezvous: Vessel - Apoapsis Height", true);
+            settings.Set<bool>("Rendezvous: Vessel - Periapsis Height", true);
+            settings.Set<bool>("Rendezvous: Vessel - Orbital Period", true);
+            settings.Set<bool>("Rendezvous: Vessel - Distance", true);
+            settings.Set<bool>("Rendezvous: Vessel - Velocity", true);
+            settings.Set<bool>("Rendezvous: Vessel - Rel. Velocity", true);
+            settings.Set<bool>("Rendezvous: Vessel - Rel. Velocity (Vertical)", true);
+            settings.Set<bool>("Rendezvous: Vessel - Rel. Velocity (Horizontal)", true);
+            settings.Set<bool>("Rendezvous: Vessel - Rel. Velocity (Forward)", true);
+
         }
     }
 }

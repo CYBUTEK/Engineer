@@ -57,11 +57,16 @@ namespace Engineer
             // Loop through the notations until the smallest usable one is found.
             for (notationIndex = 0; notationIndex < notation.Length; notationIndex++)
             {
-                if (number > 1000 || number < -1000) { number /= 1000; } else { break; }
+                // If the number is now in a sensible range then return a string of the concatenated number and selected notation.
+                if (number <= 1000d && number >= -1000d) 
+                    return number.ToString("0.000") + notation[notationIndex];
+                        
+                // Switch to bigger unit
+                number /= 1000;
             }
 
-            // Return a string of the concatinated number and selected notation.
-            return number.ToString("0.000") + notation[notationIndex];
+            // If we fall out of the loop then we can't display
+            return "-OVF-";
         }
 
         // Quick and dirty implementation of the new distance formatter from KER 1.0
@@ -225,13 +230,13 @@ namespace Engineer
             //LogMsg log = new LogMsg();
             CelestialBody mainBody = vessel.mainBody;
             Vector3d rad = (vessel.CoM - mainBody.position).normalized;
-            //log.buf.AppendLine("rad = " + rad.ToString() + "   len = " + rad.magnitude);
+            //log.buf.AppendLine("rad = " + rad.ToString() + " len = " + rad.magnitude);
             RaycastHit hit;
-            if (Physics.Raycast(vessel.CoM, -rad, out hit))
+            if (Physics.Raycast(vessel.CoM, -rad, out hit, Mathf.Infinity, 1 << 15))  // Just "Local Scenery" please
             {
                 Vector3d norm = hit.normal;
                 norm = norm.normalized;
-                //log.buf.AppendLine("norm = " + norm.ToString() + "   len = " + norm.magnitude);
+                //log.buf.AppendLine("norm = " + norm.ToString() + " len = " + norm.magnitude);
                 double raddotnorm = Vector3d.Dot(rad, norm);
                 //log.buf.AppendLine("dot = " + raddotnorm);
                 if (raddotnorm > 1.0)
@@ -269,6 +274,6 @@ namespace Engineer
                 result = "--° @ ---°";
             }
             //log.Flush();
-        }    
+        } 
     }
 }

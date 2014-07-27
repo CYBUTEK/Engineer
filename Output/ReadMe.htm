@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset='UTF-8'>
+	<title>Kerbal Engineer Redux - ReadMe</title>
+	<link href='http://fonts.googleapis.com/css?family=PT+Sans:400,700' rel='stylesheet' type='text/css'>
+	<style>
+		* {
+			margin: 0; padding: 0;
+			box-sizing: border-box; moz-box-sizing: border-box; webkit-box-sizing: border-box;
+		}
+
+		html, body {
+			height: 100%;
+			font-family: 'PT Sans', Verdana, Geneva, sans-serif;
+		}
+
+		a {
+			text-decoration: none;
+			font-weight: 700;
+			color: inherit;
+		}
+
+		a:hover {
+			text-decoration: underline;
+		}
+
+		h3 {
+			display: block;
+			line-height: 1.5em;
+			font-size: 1.1em;
+			font-weight: 700;
+		}
+
+		p {
+			display: block;
+			margin: 0 0.5em;
+			text-align: justify;
+		}
+
+		ul {
+			display: block;
+			margin-left: 1.5em;
+			list-style-type: square;
+		}
+
+		li {
+			margin-top: 0.5em;
+			text-align: justify;
+		}
+
+		header {
+			display: block;
+			padding: 25px;
+			text-align: center;
+			font-size: 3rem;
+			font-weight: 700;
+			letter-spacing: 0.2em;
+			color: white;
+			background-color: black;
+		}
+
+		section {
+			display: block;
+			margin: 10px;
+			padding: 0.5em 1em;
+			line-height: 1.5em;
+			background-color: #DDD;
+		}
+
+		footer {
+			display: block;
+			text-align: center;
+			line-height: 50px;
+			font-size: 0.8rem;
+			letter-spacing: 0.2em;
+			color: white;
+			background-color: black;
+		}
+
+		#changelog > li {
+			margin-top: 1em;
+		}
+
+		#changelog > li:first-child {
+			margin-top: 0.5em;
+		}
+
+		#root {
+			clear: both;
+			min-height: 100%;
+			height: auto !important;
+			height: 100%;
+			margin-bottom: -50px;
+		}
+
+		#root > #root_footer {
+			height: 50px;
+		}
+
+		#footer {
+			clear: both;
+			position: relative;
+			height: 50px;
+		}
+	</style>
+</head>
+<body>
+	<div id='root'>
+		<header>Kerbal Engineer Redux v0.6</header>
+
+		<section>
+			<h3>Current Version</h3>
+			<p>0.6.2.9</p>
+		</section>
+
+		<section>
+			<h3>Developers</h3>
+			<p>
+				CYBUTEK &amp; Padishar (Updated Simulation Logic)
+			</p>
+		</section>
+
+		<section>
+			<h3>KSP-AVC Ready</h3>
+			<p>
+				KSP Add-on Version Checker is a standardised system for versioning mods. You can get more information on the
+				<a href='http://forum.kerbalspaceprogram.com/threads/79745' target='_blank'>forum thread</a>.
+			</p>
+		</section>
+
+		<section>
+			<h3>Description</h3>
+			<p>
+				Due to the original development being abandoned. I have taken it upon myself to re-create this very useful tool. This plugin will allow you to view important statistics about your ship on the fly, whilst building it. Just attach the Engineer part anywhere onto your ship and up will come a nice window showing you lots of cool stuff. By popular demand the engineer has an add-on module that will also allow it to work within flight. The Flight Engineer will give you important and useful information for surface and orbital flight manoeuvres.
+			</p>
+		</section>
+
+		<section>
+			<h3>Installation</h3>
+			<ul>
+				<li>Copy the 'Engineer' folder into the 'GameData' folder located within your Kerbal Space Program installation directory.</li>
+				<li>
+					Attach an Engineer part from the science tab to your ship.
+					<ul>
+						<li>ER7500 includes build + flight engineer.</li>
+						<li>Chip #1 includes build + flight engineer.</li>
+						<li>Chip #2 includes only the build engineer.</li>
+					</ul>
+				</li>
+			</ul>
+		</section>
+
+			<section>
+				<h3>Toolbar Integration</h3>
+				<ul>
+					<li>Both Stock and Blizzy's toolbars are fully supported in Kerbal Engineer Redux.</li>
+					<li>You may turn toolbar support on and off via the 'toolbar.cfg' file which is located in the 'PluginData' folder within your Engineer installation.</li>
+				</ul>
+				<p>
+					<br>
+					Kerbal Engineer Redux includes integration with Blizzy78's Toolbar Plugin via EngineerToolbar.dll.<br>
+					<br>
+					For more information on Blizzy's Toolbar, the forum thread is:<br>
+					<a href='http://forum.kerbalspaceprogram.com/threads/60863'>http://forum.kerbalspaceprogram.com/threads/60863</a>
+				</p>
+			</section>
+
+		<section>
+			<h3>Change Log</h3>
+			<ul id='changelog'>
+				<li>
+					0.6.2.9
+					<ul>
+						<li>Updated for KSP v0.24.2.
+						<li>Padishar's Fixes</li>
+						<ul>
+							<li>Added: Tweakable visibility has been integrated into the existing settings system.</li>
+							<li>Changed: Compact mode now shrinks to the right.</li>
+							<li>Fixed: Null Refs caused by Blizzy's toolbar support.</li>
+							<li>Removed: BuildEngineerTweakable &amp; FlightEngineerTweakable are no longer needed.</li>
+						</ul>
+					</ul>
+				</li>
+				<li>
+					0.6.2.8
+					<ul>
+						<li>Added: BuildEngineerTweakable module including the extra tweakables.</li>
+						<li>Added: FlightEngineerTweakable module including the extra tweakables.</li>
+						<li>Padishar's Fixes:</li>
+						<ul>
+							<li>Fixed: Possible inaccuracies in the Slope readout.</li>
+							<li>Fixed: Problems caused with NEAR mod (uses the same fix as with FAR).</li>
+							<li>Fixed: Problems when the settings files were not read/written correctly.</li>
+						</ul>
+					</ul>
+				</li>
+				<li>
+					0.6.2.7
+					<ul>
+						<li>Fixed: Bug with stock toolbar not being removed on scene change.</li>
+						<li>Fixed: Stock toolbar icon changed to fit official dimensions.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.2.6
+					<ul>
+						<li>Added: An updated implementation of Blizzy's toolbar support.</li>
+						<li>Added: Toolbars are optional via the 'toolbar.cfg' config file.</li>
+						<li>Fixed: Blizzy's toolbar icon will only be show when relivant (if KER is usable).</li>
+						<li>Added: Biome &amp; Slope readouts to the Surface display.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.2.5
+					<ul>
+						<li>Updated: Merged Padishar's latest simulation code and compiled for KSP 0.24.</li>
+						<li>Added: Stock toolbar support.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.2.4
+					<ul>
+						<li>Updated: Completely overhauled vessel simulation code.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.2.3
+					<ul>
+						<li>Added: Compatibility with mods using ModuleEnginesFX like the FTmN series.</li>
+						<li>Changed: Disabled update checking as the system has not been used in a while.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.2.2
+					<ul>
+						<li>Fixed: Potential bug which could cause KER to stop updating.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.2.1
+					<ul>
+						<li>Fixed: Bug in the VAB/SPH with locking + toolbar.</li>
+						<li>Fixed: Bug with how the toolbar button is created and used.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.2.0
+					<ul>
+						<li>Fixed: Crash if set to impact any body without a PQS Controller.</li>
+						<li>Added: Integration with Blizzy78's Toolbar Plugin.</li>
+						<li>Added: Compatibility with multi-mode engines (e.g. R.A.P.I.E.R)</li>
+						<li>Changed: Window ID intialisation method.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.1.5
+					<ul>
+						<li>Updated for 0.23 compatibility.</li>
+						<li>Fixed: Crash when on impact course into the sun.</li>
+						<li>Added: Adjusts for tweakable thrust settings.</li>
+						<li>Changed: Using modified SI distance formatting from 1.0.</li>
+						<li>Changed: General tidy up of the value formatting.</li>
+					</ul>
+ 				</li>
+
+				<li>
+					0.6.1.4
+					<ul>			
+						<li>Compatibility with FAR.</li>
+					</ul>
+ 				</li>
+
+ 				<li>
+ 					0.6.1.3
+ 					<ul>
+						<li>Fixed: Crashes caused under Linux.</li>
+						<li>Added: Impact calculations. (thanks to mic_e)</li>
+						<li>Changed: From .NET 4.5 to 3.5.</li>
+					</ul>
+ 				</li>
+
+				<li>
+					0.6.1.1
+					<ul>
+						<li>Updated for 0.22 compatibility including career mode.</li>
+						<li>Fixed: Bug with the fuel lines not working.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.1.0
+					<ul>	
+						<li>General fixes for KSP v0.21.1</li>
+						<li>Updated: Interface Styles (smoother look)</li>
+						<li>Fixed: Swapped Atmospheric Density &amp; Pressure labels.</li>
+						<li>Fixed: Solid Rocket Booster bug where deltaV is not displayed.</li>
+						<li>Added: Vessel simulation for deltaV now runs on its own thread.</li>
+					</ul>
+				</li>
+				<li>
+					0.6.0.3
+					<ul>
+						<li>Loads'a Stuff!</li>
+					</ul>
+				</li>
+				<li>
+					0.4.3.2
+					<ul>
+						<li>Added: Extra part containing just the Build Engineer without the Flight Engineer.</li>
+						<li>Fixed: A completely different bug in the Build Engineer.</li>
+					</ul>
+				</li>
+				<li>
+					0.4.3.1
+					<ul>
+						<li>Fixed: Bug in the build engineer.  (Caused by an unfixed bug in KSP, handling the softLock feature of the EditorLogic)</li>
+					</ul>
+				 </li>
+				<li>
+					0.4.3
+					<ul>
+						<li>Fixed: Bug with Vessel display in the Flight Engineer which caused the GUI to freeze.</li>
+						<li>Fixed: How the phase angle calculations were done so they are now correct.</li>
+						<li>Added: Phase angle calculations for going between planets.</li>
+						<li>Added: Maximum G-Force achieved in the Flight Engineer.</li>
+						<li>Added: Extra T/W ratios in the Build Engineer for most of the new planets/moons.  (Only the ones where gravity info is available)</li>
+						<li>Changed: The deltaV in the Flight Engineer now uses the actual Isp of the engine at the time, rather than assuming vacuum Isp.</li>
+						<li>Changed: The relative velocity in the Rendezvous Display only shows the magnitude of velocity difference.</li>
+					</ul>
+				</li>
+				<li>
+					0.4.2
+					<ul>
+						<li>New: Rendezvous display in the Flight Engineer.</li>
+					    <li>Ability to select through Vessel, Debris and Celestial Body targets.</li>
+					    <li>Phase Angle</li>
+					    <li>Relative Inclination</li>
+					    <li>Altitude of target</li>
+					    <li>Distance from target</li>
+					    <li>Relative forward, horizontal and vertical velocity to target.</li>
+					    <li>Added: Saving and loading of window positions.</li>
+				 	</ul>
+				</li>
+				<li>
+					0.4.1.1
+					<ul>
+						<li>Fixed a game breaking bug accidentally introduced into the Build Engineer.</li>
+					</ul>
+				</li>
+				<li>
+					0.4.1
+					<ul>
+						<li>New:  Will now work with the LiquidFuelEngineFix mod.</li>
+						<li>Added: cost column into the Build Engineer.</li>
+						<li>Added: the option to view all stages or only the important stages within the Build Engineer.</li>
+						<li>Added: the ability to fold out the sections within the Flight Engineer.</li>
+						<li>Added: altitude from sea level into the Flight Engineer.</li>
+						<li>Moved: some of the Flight Engineer details around.</li>
+						<li>Fixed: Bug where the Flight Engineer would not re-activate properly when switching between nearby vessels.</li>
+					</ul>
+				</li>
+				<li>
+					0.4 (breaks backwards compatibility)
+					<ul>
+						<li>Complete re-code of plugin logic to use only PartModule's.</li>
+						<li>Added: New EngineerChip part as Strut with BuildEngineer and FlightEngineer modules.</li>
+						<li>Fixed: Bug where the Build Engineer does not work after Ctrl+Z (Undo) within the VAB.</li>
+						<li>Fixed: Bug where the Flight Engineer would conflict when other ships also using the Flight Engineer were within 2.5km.</li>
+					</ul>
+				</li>
+				<li>
+					0.3
+					<ul>
+						<li>Re-factored the code to allow Delta-V displays within the Flight Engineer.</li>
+						<li>The Assembly Engineer now only shows useful stages containing Fuel or Isp.</li>
+						<li>Added to the Flight Engineer:
+							<ul>
+								<li>Orbital Period</li>
+							    <li>Semi-major Axis</li>
+							    <li>Delta-V (Stage &amp; Total)</li>
+							    <li>Fuel (Stage/Total)</li>
+							    <li>Mass (Stage/Total)</li>
+							    <li>Thrust to Weight Ratio</li>
+							    <li>Vertical Speed</li>
+							    <li>Horizontal Speed</li>
+							    <li>G-Force</li>
+							    <li>Longitude</li>
+							    <li>Latitude</li>
+							</ul>
+						</li>
+					</ul>
+				</li>
+				<li>
+					0.2.1
+					<ul>
+						<li>Fixed: Bugs caused when multiple Engineer parts are attached to the same ship.</li>
+						<li>Fixed: The interface is now shown when a ship is loaded into the VAB (No need to detach and re-attach part).</li>
+					</ul>
+				 </li>
+				<li>
+					0.2
+					<ul>
+						<li>Complete re-code to make the plugin modular, ready for KSP 0.17.</li>
+						<li>New: EngineerChip and EngineerChipFlight parts by MrPwner. (Including high &amp; low res textures).</li>
+						<li>New: Flight Engineer which will display statistics whilst in flight.</li>
+						<li>New: GUI design to make it more intuitive and look nicer.</li>
+						<li>Added: modularised Thrust to Weight Ratios for easy additions of new planets/moons.</li>
+						<li>Added: delta-v calculations for solid rocket boosters (as accurate as possible).</li>
+						<li>Added: delta-v is now calculated on older engines which do not have Isp values.</li>
+						<li>Fixed: delta-v calculations so they are now correct for each whole stage.</li>
+						<li>Fixed: drag bug which would cause the craft to tilt if launched with part still attached.</li>
+						<li>Fixed: Isp is bound to thrust so calculations with different engines are now correct.</li>
+						<li>Fixed: some GUI bugs related to auto-sizing and staging.</li>
+					</ul>
+				 </li>
+			</ul>
+		</section>
+
+		<section>
+			<h3>Software License</h3>
+			<p>
+				Copyright &copy; 2014 CYBUTEK
+				<br><br>
+				This program is free software: you can redistribute it and/or modify<br>
+				it under the terms of the GNU General Public License as published by<br>
+				the Free Software Foundation, either version 3 of the License, or<br>
+				(at your option) any later version.
+				<br><br>
+				This program is distributed in the hope that it will be useful,<br>
+				but WITHOUT ANY WARRANTY; without even the implied warranty of<br>
+				MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br>
+				GNU General Public License for more details.
+				<br><br>
+				Licensed under <a href='http://www.gnu.org/licenses/gpl-3.0.html' target='_blank'>GNU General Public License v3</a>
+			</p>
+		</section>
+
+		<div id='root_footer'></div>
+	</div>
+
+	<footer id='footer'>
+		ReadMe Design by <a href='http://ksp.cybutek.net' target='_blank'><strong>CYBUTEK</strong></a> (GPLv3)
+	</footer>
+</body>
+</html>

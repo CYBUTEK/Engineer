@@ -78,7 +78,7 @@ namespace Engineer
                     {
                         typeOfTarget = TargetType.Vessel;
                         typeOfVessel = vessel.vesselType;
-                        fe.settings.Changed = true;
+                        FlightEngineer.settings.Changed = true;
                     }
                 }
             }
@@ -86,7 +86,7 @@ namespace Engineer
             if (GUILayout.Button("Celestial Body", fe.buttonStyle) || !displaying)
             {
                 typeOfTarget = TargetType.Celestial;
-                fe.settings.Changed = true;
+                FlightEngineer.settings.Changed = true;
             }
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
@@ -110,7 +110,7 @@ namespace Engineer
                         if (GUILayout.Button(vessel.vesselName, fe.buttonStyle))
                         {
                             targetObject = vessel;
-                            fe.settings.Changed = true;
+                            FlightEngineer.settings.Changed = true;
                         }
                     }
                 }
@@ -123,7 +123,7 @@ namespace Engineer
                 targetObject = null;
                 typeOfTarget = TargetType.None;
                 typeOfVessel = VesselType.Unknown;
-                fe.settings.Changed = true;
+                FlightEngineer.settings.Changed = true;
             }
         }
 
@@ -139,7 +139,7 @@ namespace Engineer
                 if (GUILayout.Button(body.name, fe.buttonStyle))
                 {
                     targetObject = body;
-                    fe.settings.Changed = true;
+                    FlightEngineer.settings.Changed = true;
                     scrollPosition = Vector2.zero;
                     return;
                 }
@@ -155,7 +155,7 @@ namespace Engineer
                 if (GUILayout.Button(body.name, fe.buttonStyle))
                 {
                     targetObject = body;
-                    fe.settings.Changed = true;
+                    FlightEngineer.settings.Changed = true;
                     scrollPosition = Vector2.zero;
                     return;
                 }
@@ -173,7 +173,7 @@ namespace Engineer
                 targetObject = null;
                 typeOfTarget = TargetType.None;
                 typeOfVessel = VesselType.Unknown;
-                fe.settings.Changed = true;
+                FlightEngineer.settings.Changed = true;
             }
         }
 
@@ -191,7 +191,7 @@ namespace Engineer
             if (GUILayout.Button("Back to Targets", fe.buttonStyle))
             {
                 targetObject = null;
-                fe.settings.Changed = true;
+                FlightEngineer.settings.Changed = true;
                 FlightGlobals.fetch.SetVesselTarget(null);
             }
         }
@@ -201,7 +201,7 @@ namespace Engineer
             if (fe.vessel.mainBody == targetBody)
             {
                 targetObject = null;
-                fe.settings.Changed = true;
+                FlightEngineer.settings.Changed = true;
                 return;
             }
 
@@ -270,15 +270,15 @@ namespace Engineer
 
             GUILayout.BeginHorizontal(fe.areaStyle);
             GUILayout.BeginVertical();
-            fe.settings.Set("*SPACER_RENDEZVOUS_CELESTIAL", "");
-            fe.settings.Set("*headingStyle_RENDEZVOUS_CELESTIAL", "RENDEZVOUS DISPLAY - CELESTIAL BODY");
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Current Phase Angle", true)) GUILayout.Label("Current Phase Angle", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Intercept Angle", true)) GUILayout.Label("Intercept Angle", fe.headingStyle);
+            FlightEngineer.settings.Set("*SPACER_RENDEZVOUS_CELESTIAL", "");
+            FlightEngineer.settings.Set("*headingStyle_RENDEZVOUS_CELESTIAL", "RENDEZVOUS DISPLAY - CELESTIAL BODY");
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Current Phase Angle", true)) GUILayout.Label("Current Phase Angle", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Intercept Angle", true)) GUILayout.Label("Intercept Angle", fe.headingStyle);
             
             if (fe.vessel.mainBody != targetBody.referenceBody && fe.vessel.mainBody != Planetarium.fetch.Sun)
             {
-                if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Ejection Angle", true)) GUILayout.Label("Ejection Angle", fe.headingStyle);
-                if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Angle to Prograde/Retrograde", true))
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Ejection Angle", true)) GUILayout.Label("Ejection Angle", fe.headingStyle);
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Angle to Prograde/Retrograde", true))
                 {
                     if (phaseAngle > 0)
                     {
@@ -291,25 +291,25 @@ namespace Engineer
                 }
             }
 
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Relative Inclination", true)) GUILayout.Label("Relative Inclination", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Ascending Node", true)) GUILayout.Label("Ascending Node", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Descending Node", true)) GUILayout.Label("Descending Node", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true)) GUILayout.Label("Time to AN", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true)) GUILayout.Label("Time to DN", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Altitude", true)) GUILayout.Label("Altitude", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Distance", true)) GUILayout.Label("Distance", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Orbital Period", true)) GUILayout.Label("Orbital Period", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Relative Inclination", true)) GUILayout.Label("Relative Inclination", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Ascending Node", true)) GUILayout.Label("Ascending Node", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Descending Node", true)) GUILayout.Label("Descending Node", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true)) GUILayout.Label("Time to AN", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true)) GUILayout.Label("Time to DN", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Altitude", true)) GUILayout.Label("Altitude", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Distance", true)) GUILayout.Label("Distance", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Orbital Period", true)) GUILayout.Label("Orbital Period", fe.headingStyle);
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Current Phase Angle")) GUILayout.Label(Tools.FormatNumber(phaseAngle, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Intercept Angle")) GUILayout.Label(Tools.FormatNumber(interceptAngle, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Current Phase Angle")) GUILayout.Label(Tools.FormatNumber(phaseAngle, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Intercept Angle")) GUILayout.Label(Tools.FormatNumber(interceptAngle, "°", 6), fe.dataStyle);
             
             if (fe.vessel.mainBody != targetBody.referenceBody && fe.vessel.mainBody != Planetarium.fetch.Sun)
             {
-                if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Ejection Angle")) GUILayout.Label(Tools.FormatNumber(ejectionAngle, "°", 6), fe.dataStyle);
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Ejection Angle")) GUILayout.Label(Tools.FormatNumber(ejectionAngle, "°", 6), fe.dataStyle);
 
-                if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Angle to Prograde/Retrograde", true))
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Angle to Prograde/Retrograde", true))
                 {
                     if (phaseAngle > 0)
                     {
@@ -323,14 +323,14 @@ namespace Engineer
                 }
             }
 
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Relative Inclination")) GUILayout.Label(Tools.FormatNumber(relInclination, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Ascending Node", true)) GUILayout.Label(Tools.FormatNumber(ascendingNode, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Descending Node", true)) GUILayout.Label(Tools.FormatNumber(descendingNode, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true)) GUILayout.Label(Tools.FormatTime(timeToAN), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true)) GUILayout.Label(Tools.FormatTime(timeToDN), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Altitude")) GUILayout.Label(Tools.FormatSI(altitude, Tools.SIUnitType.Distance), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Distance")) GUILayout.Label(Tools.FormatSI(distance, Tools.SIUnitType.Distance), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Celestial Body - Orbital Period")) GUILayout.Label(Tools.FormatTime(targetBody.orbit.period), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Relative Inclination")) GUILayout.Label(Tools.FormatNumber(relInclination, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Ascending Node", true)) GUILayout.Label(Tools.FormatNumber(ascendingNode, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Descending Node", true)) GUILayout.Label(Tools.FormatNumber(descendingNode, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true)) GUILayout.Label(Tools.FormatTime(timeToAN), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Time to Ascending Node", true)) GUILayout.Label(Tools.FormatTime(timeToDN), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Altitude")) GUILayout.Label(Tools.FormatSI(altitude, Tools.SIUnitType.Distance), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Distance")) GUILayout.Label(Tools.FormatSI(distance, Tools.SIUnitType.Distance), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Celestial Body - Orbital Period")) GUILayout.Label(Tools.FormatTime(targetBody.orbit.period), fe.dataStyle);
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
         }
@@ -342,7 +342,7 @@ namespace Engineer
                 targetObject = null;
                 typeOfTarget = TargetType.None;
                 typeOfVessel = VesselType.Unknown;
-                fe.settings.Changed = true;
+                FlightEngineer.settings.Changed = true;
             }
 
             if (FlightGlobals.fetch.VesselTarget == null)
@@ -389,60 +389,60 @@ namespace Engineer
 
             GUILayout.BeginHorizontal(fe.areaStyle);
             GUILayout.BeginVertical();
-            fe.settings.Set("*SPACER_RENDEZVOUS_VESSEL", "");
-            fe.settings.Set("*headingStyle_RENDEZVOUS_VESSEL", "RENDEZVOUS DISPLAY - VESSEL");
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Phase Angle", true)) GUILayout.Label("Phase Angle", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Intercept Angle", true)) GUILayout.Label("Intercept Angle", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Intercept Distance", true)) GUILayout.Label("Intercept Distance", fe.headingStyle);
+            FlightEngineer.settings.Set("*SPACER_RENDEZVOUS_VESSEL", "");
+            FlightEngineer.settings.Set("*headingStyle_RENDEZVOUS_VESSEL", "RENDEZVOUS DISPLAY - VESSEL");
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Phase Angle", true)) GUILayout.Label("Phase Angle", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Intercept Angle", true)) GUILayout.Label("Intercept Angle", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Intercept Distance", true)) GUILayout.Label("Intercept Distance", fe.headingStyle);
 
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Inclination", true)) GUILayout.Label("Rel. Inclination", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Latitude", false)) GUILayout.Label("Rel. Latitude", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Ascending Node", true)) GUILayout.Label("Ascending Node", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Descending Node", true)) GUILayout.Label("Descending Node", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Time to Ascending Node", true)) GUILayout.Label("Time to AN", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Time to Ascending Node", true)) GUILayout.Label("Time to DN", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Inclination", true)) GUILayout.Label("Rel. Inclination", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Latitude", false)) GUILayout.Label("Rel. Latitude", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Ascending Node", true)) GUILayout.Label("Ascending Node", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Descending Node", true)) GUILayout.Label("Descending Node", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Time to Ascending Node", true)) GUILayout.Label("Time to AN", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Time to Ascending Node", true)) GUILayout.Label("Time to DN", fe.headingStyle);
 
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Current Altitude", true)) GUILayout.Label("Current Altitude", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Apoapsis Height", true)) GUILayout.Label("Apoapsis Height", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Periapsis Height", true)) GUILayout.Label("Periapsis Height", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Orbital Period", true)) GUILayout.Label("Orbital Period", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Current Altitude", true)) GUILayout.Label("Current Altitude", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Apoapsis Height", true)) GUILayout.Label("Apoapsis Height", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Periapsis Height", true)) GUILayout.Label("Periapsis Height", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Orbital Period", true)) GUILayout.Label("Orbital Period", fe.headingStyle);
 
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Distance", true)) GUILayout.Label("Distance", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Velocity", true)) GUILayout.Label("Velocity", fe.headingStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity", true)) GUILayout.Label("Rel. Velocity", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Distance", true)) GUILayout.Label("Distance", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Velocity", true)) GUILayout.Label("Velocity", fe.headingStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity", true)) GUILayout.Label("Rel. Velocity", fe.headingStyle);
             if (relVelocity != Vector3d.zero)
             {
-                if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Vertical)", true)) GUILayout.Label(" > Vertical", fe.headingStyle);
-                if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Horizontal)", true)) GUILayout.Label(" > Horizontal", fe.headingStyle);
-                if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Forward)", true)) GUILayout.Label(" > Forward", fe.headingStyle);
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Vertical)", true)) GUILayout.Label(" > Vertical", fe.headingStyle);
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Horizontal)", true)) GUILayout.Label(" > Horizontal", fe.headingStyle);
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Forward)", true)) GUILayout.Label(" > Forward", fe.headingStyle);
             }
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical();
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Phase Angle")) GUILayout.Label(Tools.FormatNumber(phaseAngle, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Intercept Angle")) GUILayout.Label(Tools.FormatNumber(interceptAngle, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Intercept Distance")) GUILayout.Label(Tools.FormatSI(distance - interceptDistance, Tools.SIUnitType.Distance), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Phase Angle")) GUILayout.Label(Tools.FormatNumber(phaseAngle, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Intercept Angle")) GUILayout.Label(Tools.FormatNumber(interceptAngle, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Intercept Distance")) GUILayout.Label(Tools.FormatSI(distance - interceptDistance, Tools.SIUnitType.Distance), fe.dataStyle);
 
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Inclination")) GUILayout.Label(Tools.FormatNumber(relInclination, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Latitude")) GUILayout.Label(Tools.FormatNumber(fe.vessel.latitude - targetVessel.latitude, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Ascending Node", true)) GUILayout.Label(Tools.FormatNumber(ascendingNode, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Descending Node", true)) GUILayout.Label(Tools.FormatNumber(descendingNode, "°", 6), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Time to Ascending Node", true)) GUILayout.Label(Tools.FormatTime(timeToAN), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Time to Ascending Node", true)) GUILayout.Label(Tools.FormatTime(timeToDN), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Inclination")) GUILayout.Label(Tools.FormatNumber(relInclination, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Latitude")) GUILayout.Label(Tools.FormatNumber(fe.vessel.latitude - targetVessel.latitude, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Ascending Node", true)) GUILayout.Label(Tools.FormatNumber(ascendingNode, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Descending Node", true)) GUILayout.Label(Tools.FormatNumber(descendingNode, "°", 6), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Time to Ascending Node", true)) GUILayout.Label(Tools.FormatTime(timeToAN), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Time to Ascending Node", true)) GUILayout.Label(Tools.FormatTime(timeToDN), fe.dataStyle);
             
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Current Altitude")) GUILayout.Label(Tools.FormatSI(altitude, Tools.SIUnitType.Distance), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Apoapsis Height")) GUILayout.Label(Tools.FormatSI(targetOrbit.ApA, Tools.SIUnitType.Distance), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Periapsis Height")) GUILayout.Label(Tools.FormatSI(targetOrbit.PeA, Tools.SIUnitType.Distance), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Orbital Period")) GUILayout.Label(Tools.FormatTime(targetOrbit.period), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Current Altitude")) GUILayout.Label(Tools.FormatSI(altitude, Tools.SIUnitType.Distance), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Apoapsis Height")) GUILayout.Label(Tools.FormatSI(targetOrbit.ApA, Tools.SIUnitType.Distance), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Periapsis Height")) GUILayout.Label(Tools.FormatSI(targetOrbit.PeA, Tools.SIUnitType.Distance), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Orbital Period")) GUILayout.Label(Tools.FormatTime(targetOrbit.period), fe.dataStyle);
 
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Distance")) GUILayout.Label(Tools.FormatSI(distance, Tools.SIUnitType.Distance), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Velocity")) GUILayout.Label(Tools.FormatSI(velocity, Tools.SIUnitType.Speed), fe.dataStyle);
-            if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity")) GUILayout.Label(Tools.FormatSI(relVelocityMagnitude, Tools.SIUnitType.Speed), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Distance")) GUILayout.Label(Tools.FormatSI(distance, Tools.SIUnitType.Distance), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Velocity")) GUILayout.Label(Tools.FormatSI(velocity, Tools.SIUnitType.Speed), fe.dataStyle);
+            if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity")) GUILayout.Label(Tools.FormatSI(relVelocityMagnitude, Tools.SIUnitType.Speed), fe.dataStyle);
             if (relVelocity != Vector3d.zero)
             {
-                if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Vertical)")) GUILayout.Label(Tools.FormatSI(relVelocity.x, Tools.SIUnitType.Speed), fe.dataStyle);
-                if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Horizontal)")) GUILayout.Label(Tools.FormatSI(relVelocity.y, Tools.SIUnitType.Speed), fe.dataStyle);
-                if (fe.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Forward)")) GUILayout.Label(Tools.FormatSI(relVelocity.z, Tools.SIUnitType.Speed), fe.dataStyle);
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Vertical)")) GUILayout.Label(Tools.FormatSI(relVelocity.x, Tools.SIUnitType.Speed), fe.dataStyle);
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Horizontal)")) GUILayout.Label(Tools.FormatSI(relVelocity.y, Tools.SIUnitType.Speed), fe.dataStyle);
+                if (FlightEngineer.settings.Get<bool>("Rendezvous: Vessel - Rel. Velocity (Forward)")) GUILayout.Label(Tools.FormatSI(relVelocity.z, Tools.SIUnitType.Speed), fe.dataStyle);
             }
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();

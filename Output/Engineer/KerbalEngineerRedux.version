@@ -1,0 +1,18 @@
+{
+	"NAME":"Kerbal Engineer Redux",
+	"URL":"http://ksp-avc.cybutek.net/version.php?id=1",
+	"DOWNLOAD":"http://kerbal.curseforge.com/ksp-mods/220285-kerbal-engineer-redux",
+	"VERSION":
+	{
+		"MAJOR":0,
+		"MINOR":6,
+		"PATCH":2,
+		"BUILD":9
+	},
+	"KSP_VERSION":
+	{
+		"MAJOR":0,
+		"MINOR":24
+		"PATCH":2
+	}
+}

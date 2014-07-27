@@ -38,25 +38,44 @@ namespace Engineer
             }
         }
 
+        public void Clear()
+        {
+            settings.Clear();
+        }
+
         public void Load(string filename, Vessel vessel = null)
         {
             this.filename = filename;
             this.vessel = vessel;
+            bool loaded = false;
 
             if (File.Exists<Settings>(filename))
             {
-                settings.Clear();
+                //settings.Clear();
 
                 string[] lines = File.ReadAllLines<Settings>(filename, vessel);
 
                 for (int i = 0; i < lines.Length; i++)
                 {
                     string[] line = lines[i].Split('=');
-                    settings.Add(line[0].Trim(), line[1].Trim());
+                    if (line.Length == 2)
+                    {
+                        string key = line[0].Trim();
+                        string val = line[1].Trim();
+                        if (settings.ContainsKey(key))
+                            settings[key] = val;
+                        else
+                            settings.Add(key, val);
+                        loaded = true;
+                    }
+                    else
+                        MonoBehaviour.print("[KER] Ignoring invalid line in settings: '" + lines[i] + "'");
                 }
             }
 
             firstStart = false;
+            if (!loaded)
+                MonoBehaviour.print("[KER] No valid settings in " + filename);
         }
 
         public void Save(string filename, Vessel vessel = null)
@@ -199,7 +218,7 @@ namespace Engineer
             return value;
         }
 
-        Rect windowPosition = new Rect((UnityEngine.Screen.width / 2) - 300, (UnityEngine.Screen.height / 2) - 250, 600, 500);
+        public Rect windowPosition = new Rect((UnityEngine.Screen.width / 2) - 300, (UnityEngine.Screen.height / 2) - 250, 600, 500);
         int windowID = new System.Random().Next();
         Vector2 scrollPosition = Vector2.zero;
         GUIStyle heading, data;

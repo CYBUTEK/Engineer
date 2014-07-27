@@ -73,6 +73,10 @@ namespace Engineer.VesselSimulator
             //MonoBehaviour.print("inverseStage = " + inverseStage);
 
             cost = part.partInfo.cost;
+            foreach (PartResource resource in part.Resources)
+            {
+                cost -= (float)((resource.maxAmount - resource.amount) * resource.info.unitCost);
+            }
 
             // Work out if the part should have no physical significance
             isNoPhysics = part.HasModule<ModuleLandingGear>() ||
@@ -159,6 +163,7 @@ namespace Engineer.VesselSimulator
                                                             atmosphere,
                                                             velocity,
                                                             engine.maxThrust,
+                                                            engine.minThrust, 
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
                                                             thrustvec,
@@ -188,6 +193,7 @@ namespace Engineer.VesselSimulator
                                                             atmosphere,
                                                             velocity,
                                                             engine.maxThrust,
+                                                            engine.minThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
                                                             thrustvec,
@@ -215,6 +221,7 @@ namespace Engineer.VesselSimulator
                                                             atmosphere,
                                                             velocity,
                                                             engine.maxThrust,
+                                                            engine.minThrust,
                                                             engine.thrustPercentage,
                                                             engine.requestedThrust,
                                                             thrustvec,
