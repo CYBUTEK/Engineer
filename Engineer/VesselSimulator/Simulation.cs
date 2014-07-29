@@ -216,6 +216,7 @@ namespace Engineer.VesselSimulator
             // Work out which engines would be active if just doing the staging and if this is different to the 
             // currently active engines then generate an extra stage
             // Loop through all the engines
+            bool anyActive = false;
             foreach (EngineSim engine in allEngines)
             {
                 if (log != null)
@@ -226,6 +227,8 @@ namespace Engineer.VesselSimulator
                     log.buf.AppendLine("bActive = " + bActive + "   bStage = " + bStage);
                 if (HighLogic.LoadedSceneIsFlight)
                 {
+                    if (bActive)
+                        anyActive = true;
                     if (bActive != bStage)
                     {
                         // If the active state is different to the state due to staging
@@ -233,8 +236,6 @@ namespace Engineer.VesselSimulator
                             log.buf.AppendLine("Need to do current active engines first");
 
                         doingCurrent = true;
-                        currentStage++;
-                        break;
                     }
                 }
                 else
@@ -247,6 +248,18 @@ namespace Engineer.VesselSimulator
                         engine.isActive = true;
                     }
                 }
+            }
+
+            // If we need to do current because of difference in engine activation and there actually are active engines
+            // then we do the extra stage otherwise activate the next stage and don't treat it as current
+            if (doingCurrent && anyActive)
+            {
+                currentStage++;
+            }
+            else
+            {
+                ActivateStage();
+                doingCurrent = false;
             }
 
             if (log != null)
