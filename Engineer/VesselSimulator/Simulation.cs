@@ -207,8 +207,6 @@ namespace Engineer.VesselSimulator
             if (SimManager.logOutput)
                 log = new LogMsg();
 
-            dontStageParts = new List<PartSim>();
-
             // Start with the last stage to simulate
             // (this is in a member variable so it can be accessed by AllowedToStage and ActivateStage)
             currentStage = lastStage;
@@ -262,6 +260,9 @@ namespace Engineer.VesselSimulator
                 doingCurrent = false;
             }
 
+            // Create a list of lists of PartSims that prevent decoupling
+            List<List<PartSim>> dontStagePartsLists = BuildDontStageLists(log);
+            
             if (log != null)
                 log.Flush();
 
@@ -279,9 +280,6 @@ namespace Engineer.VesselSimulator
                     _timer.Reset();
                     _timer.Start();
                 }
-
-                // Empty out the list of parts that stop staging
-                dontStageParts.Clear();
 
                 // Update active engines and resource drains
                 UpdateResourceDrains();
@@ -315,11 +313,10 @@ namespace Engineer.VesselSimulator
                     {
                         stage.cost += partSim.cost;
                         stage.mass += partSim.GetStartMass();
-
-                        if (partSim.isEngine || !partSim.Resources.Empty)
-                            dontStageParts.Add(partSim);
                     }
                 }
+
+                dontStageParts = dontStagePartsLists[currentStage];
 
                 if (log != null)
                 {
@@ -479,6 +476,42 @@ namespace Engineer.VesselSimulator
             }
 
             return stages;
+        }
+
+        private List<List<PartSim>> BuildDontStageLists(LogMsg log)
+        {
+            if (log != null)
+                log.buf.AppendLine("Creating list with capacity of " + (currentStage + 1));
+            List<List<PartSim>> lists = new List<List<PartSim>>();
+            for (int i = 0; i <= currentStage; i++)
+                lists.Add(new List<PartSim>());
+
+            foreach (PartSim partSim in allParts)
+            {
+                if (partSim.isEngine || !partSim.Resources.Empty)
+                {
+                    if (log != null)
+                        log.buf.AppendLine(partSim.name + ":" + partSim.partId + " is engine or tank, decoupled = " + partSim.decoupledInStage);
+
+                    if (partSim.decoupledInStage < -1 || partSim.decoupledInStage > currentStage - 1)
+                    {
+                        if (log != null)
+                            log.buf.AppendLine("decoupledInStage out of range");
+                    }
+                    else
+                    {
+                        lists[partSim.decoupledInStage + 1].Add(partSim);
+                    }
+                }
+            }
+
+            for (int i = 1; i <= lastStage; i++ )
+            {
+                if (lists[i].Count == 0)
+                    lists[i] = lists[i - 1];
+            }
+
+            return lists;
         }
 
         // This function simply rebuilds the active engines by testing the isActive flag of all the engines
