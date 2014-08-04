@@ -59,8 +59,8 @@ namespace Engineer
         string windowTitle = "Kerbal Engineer Redux - Build Engineer Version " + Version.VERSION + Version.SUFFIX;
         string windowTitleCompact = "Kerbal Engineer Redux - Compact";
         bool isEditorLocked = false;
-        CelestialBodies referenceBodies = new CelestialBodies();
-        CelestialBodies.Body referenceBody;
+		CelestialBodies referenceBodies = null;
+		CelestialBodies.Body referenceBody = null;
         Stage[] stages = null;
         String failMessage = "";
         int stageCount;
@@ -91,7 +91,14 @@ namespace Engineer
 
         public override void OnStart(StartState state)
         {
-            try
+			// If the celestial body object is available (PSystem is live), create it
+			if (CelestialBodies.Available) 
+			{
+				referenceBodies = new CelestialBodies();
+			}
+
+			// Attempt to start Build Engineer
+			try
             {
                 if (state == StartState.Editor)
                 {
@@ -411,17 +418,25 @@ namespace Engineer
 
         private void DrawRefBodies()
         {
-            GUILayout.BeginHorizontal(areaStyle);
+			GUILayout.BeginHorizontal (areaStyle);
 
-            foreach (CelestialBodies.Body body in referenceBodies.bodies)
-            {
-                if (GUILayout.Toggle(referenceBody == body, body.name, buttonStyle))
-                {
-                    referenceBody = body;
-                }
-            }
+			// If the celestial body list is available (no exceptions please
+			if (CelestialBodies.Available) 
+			{
+				// Make sure our local copy is allocated
+				if (referenceBodies == null)
+					referenceBodies = new CelestialBodies ();
 
-            GUILayout.EndHorizontal();
+				foreach (CelestialBodies.Body body in referenceBodies.bodies) 
+				{
+					if (GUILayout.Toggle (referenceBody == body, body.name, buttonStyle)) 
+					{
+						referenceBody = body;
+					}
+				}
+			}
+
+			GUILayout.EndHorizontal ();
         }
 
         private void DrawStage(Stage[] stages)
