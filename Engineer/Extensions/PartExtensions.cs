@@ -10,9 +10,9 @@ namespace Engineer.Extensions
         /// <summary>
         /// Gets whether the part contains a PartModule.
         /// </summary>
-        public static bool HasModule<T>(this Part part)
+        public static bool HasModule<T>(this Part part) where T : PartModule
         {
-            return part.Modules.OfType<T>().Count() > 0;
+            return part.Modules.OfType<T>().Any();
         }
 
         /// <summary>
