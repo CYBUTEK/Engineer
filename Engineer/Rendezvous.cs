@@ -215,7 +215,7 @@ namespace Engineer
 
             Vector3d activePosition = Vector3d.zero;
             Vector3d targetPosition = targetOrbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
-            double altitude = altitude = targetOrbit.altitude;
+            double altitude = targetOrbit.altitude;
             double phaseAngle = 0.0d;
             double interceptAngle = 0.0d;
 
@@ -518,7 +518,7 @@ namespace Engineer
         private double AngleToPrograde(Vessel vessel)
         {
             Vector3d vesselPosition = vessel.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
-            Vector3d bodyPosition = bodyPosition = vessel.mainBody.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
+            Vector3d bodyPosition = vessel.mainBody.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
 
             double angleToPrograde = NormaliseAngle(vesselPosition, Quaternion.AngleAxis(90, Vector3d.forward) * bodyPosition);
 
@@ -533,7 +533,7 @@ namespace Engineer
         private double AngleToRetrograde(Vessel vessel)
         {
             Vector3d vesselPosition = vessel.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
-            Vector3d bodyPosition = bodyPosition = vessel.mainBody.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
+            Vector3d bodyPosition = vessel.mainBody.orbit.getRelativePositionAtUT(Planetarium.GetUniversalTime());
 
             double angleToPrograde = NormaliseAngle(vesselPosition, Quaternion.AngleAxis(90, Vector3d.back) * bodyPosition);
 
