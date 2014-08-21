@@ -1,9 +1,25 @@
 ﻿using System;
 
+/*
+  This (non-officially) static class groups methods for
+  formatting floating-point values for printing. It relies heavily
+  on the ToString method with custom numeric format strings. In
+  particular, it uses a suffix to truncate the value with the
+  specified number of digits. For more information, refer to
+  http://msdn.microsoft.com/en-us/library/0c899ak8%28v=vs.110%29.aspx
+
+  Additionnally, WeightFormatter and SimpleFormatter exist in two
+  versions: the seconds prints two numbers separated by a slash (/)
+  instead of one. While SimpleFormatter asks for the suffix unit to be
+  used (postfix parameter), WeightFormatter also handles non-SI values
+  from KSP (in tons).
+*/
+
 namespace Engineer
 {
     public class EngineerTools
     {
+        // place-holder for non-zero values
         public const string BLANK = "----";
 
         public static string WeightFormatter(double weight)
@@ -27,6 +43,7 @@ namespace Engineer
             return (force > 0d) ? force.ToString("#,0.#") + "kN" : BLANK;
         }
 
+        // see header comment
         public static string SimpleFormatter(double number, string postfix = "", int decimals = -1, bool alwaysShowDecimals = false)
         {
             string decimalMask = (alwaysShowDecimals) ? "0" : "#";
@@ -45,10 +62,10 @@ namespace Engineer
             return  format + postfix;
         }
 
+        // see header comment
         public static string SimpleFormatter(double number1, double number2, string postfix = "", int decimals = 0, bool alwaysShowDecimals = false)
         {
-            string decimalMaskChar = (alwaysShowDecimals) ? "0" : "#";
-            string decimalMask = "";
+            string decimalMask = (alwaysShowDecimals) ? "0" : "#";
 
             if (decimals > -1)
             {
