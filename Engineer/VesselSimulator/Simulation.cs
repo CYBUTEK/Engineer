@@ -556,7 +556,6 @@ namespace Engineer.VesselSimulator
             }
 
             bool partDecoupled = false;
-            bool engineDecoupled = false;
 
             foreach (PartSim partSim in allParts)
             {
@@ -591,8 +590,6 @@ namespace Engineer.VesselSimulator
                                 return false;
                             }
                         }
-
-                        engineDecoupled = true;
                     }
                 }
             }
