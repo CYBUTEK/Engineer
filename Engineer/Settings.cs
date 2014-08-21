@@ -220,7 +220,7 @@ namespace Engineer
 
         public Rect windowPosition = new Rect((UnityEngine.Screen.width / 2) - 300, (UnityEngine.Screen.height / 2) - 250, 600, 500);
         int windowID = new System.Random().Next();
-        Vector2 scrollPosition = Vector2.zero;
+        public Vector2 scrollPosition = Vector2.zero;
         GUIStyle heading, data;
         bool isDrawing = false;
         bool hasLoaded = false;

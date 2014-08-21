@@ -15,7 +15,6 @@ namespace Engineer
         enum TargetType { None, Vessel, Celestial };
         FlightEngineer fe;
         object targetObject;
-        Vector2 scrollPosition = Vector2.zero;
         TargetType typeOfTarget = TargetType.None;
         VesselType typeOfVessel = VesselType.Unknown;
 
@@ -140,7 +139,7 @@ namespace Engineer
                 {
                     targetObject = body;
                     FlightEngineer.settings.Changed = true;
-                    scrollPosition = Vector2.zero;
+                    FlightEngineer.settings.scrollPosition = Vector2.zero;
                     return;
                 }
             }
@@ -156,7 +155,7 @@ namespace Engineer
                 {
                     targetObject = body;
                     FlightEngineer.settings.Changed = true;
-                    scrollPosition = Vector2.zero;
+                    FlightEngineer.settings.scrollPosition = Vector2.zero;
                     return;
                 }
             }
