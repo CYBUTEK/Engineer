@@ -73,7 +73,6 @@ namespace Engineer
         bool hasCheckedAero = false;
         bool hasInstalledFAR = false;
         bool hasInstalledNEAR = false;
-        bool hasInstalledSDF = false;       // StockDragFix
 
         [KSPEvent(guiActive = true, guiName = "Toggle Flight Engineer", active = false)]
         public void ShowWindow()
