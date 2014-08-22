@@ -1,0 +1,161 @@
+0.6.2.10
+    Added: More verbose licensing to stay within the updated add-on rules.
+    Changed: Separated out the changes from the readme file allowing for future KSP-AVC changelog support.
+    Padishar's Fixes:
+        Various bugs in the simulation logic.
+
+0.6.2.9
+    Updated for KSP v0.24.2.
+    Padishar's Fixes:
+        Added: Tweakable visibility has been integrated into the existing settings system.
+        Changed: Compact mode now shrinks to the right.
+        Fixed: Null Refs caused by Blizzy's toolbar support.
+        Removed: BuildEngineerTweakable & FlightEngineerTweakable are no longer needed.
+
+0.6.2.8
+    Added: BuildEngineerTweakable module including the extra tweakables.
+    Added: FlightEngineerTweakable module including the extra tweakables.
+    Padishar's Fixes:
+        Fixed: Possible inaccuracies in the Slope readout.
+        Fixed: Problems caused with NEAR mod (uses the same fix as with FAR).
+        Fixed: Problems when the settings files were not read/written correctly.
+
+0.6.2.7
+    Fixed: Bug with stock toolbar not being removed on scene change.
+    Fixed: Stock toolbar icon changed to fit official dimensions.
+
+0.6.2.6
+    Added: An updated implementation of Blizzy's toolbar support.
+    Added: Toolbars are optional via the 'toolbar.cfg' config file.
+    Fixed: Blizzy's toolbar icon will only be show when relivant (if KER is usable).
+    Added: Biome & Slope readouts to the Surface display.
+
+0.6.2.5
+    Updated: Merged Padishar's latest simulation code and compiled for KSP 0.24.
+    Added: Stock toolbar support.
+
+0.6.2.4
+    Updated: Completely overhauled vessel simulation code.
+
+0.6.2.3
+    Added: Compatibility with mods using ModuleEnginesFX like the FTmN series.
+    Changed: Disabled update checking as the system has not been used in a while.
+
+0.6.2.2
+    Fixed: Potential bug which could cause KER to stop updating.
+
+0.6.2.1
+    Fixed: Bug in the VAB/SPH with locking + toolbar.
+    Fixed: Bug with how the toolbar button is created and used.
+
+0.6.2.0
+    Fixed: Crash if set to impact any body without a PQS Controller.
+    Added: Integration with Blizzy78's Toolbar Plugin.
+    Added: Compatibility with multi-mode engines (e.g. R.A.P.I.E.R)
+    Changed: Window ID intialisation method.
+
+0.6.1.5
+    Updated for 0.23 compatibility.
+    Fixed: Crash when on impact course into the sun.
+    Added: Adjusts for tweakable thrust settings.
+    Changed: Using modified SI distance formatting from 1.0.
+    Changed: General tidy up of the value formatting.
+
+0.6.1.4
+    Compatibility with FAR.
+
+0.6.1.3
+    Fixed: Crashes caused under Linux.
+    Added: Impact calculations. (thanks to mic_e)
+    Changed: From .NET 4.5 to 3.5.
+
+0.6.1.1
+    Updated for 0.22 compatibility including career mode.
+    Fixed: Bug with the fuel lines not working.
+
+0.6.1.0
+    General fixes for KSP v0.21.1
+    Updated: Interface Styles (smoother look)
+    Fixed: Swapped Atmospheric Density & Pressure labels.
+    Fixed: Solid Rocket Booster bug where deltaV is not displayed.
+    Added: Vessel simulation for deltaV now runs on its own thread.
+
+0.6.0.3
+    Loads'a Stuff! As change log was lost due to forum crash.
+
+0.4.3.2
+    Added: Extra part containing just the Build Engineer without the Flight Engineer.
+    Fixed: A completely different bug in the Build Engineer.
+
+0.4.3.1
+    Fixed: Bug in the build engineer. (Caused by an unfixed bug in KSP, handling the softLock feature of the EditorLogic)
+
+0.4.3
+    Fixed: Bug with Vessel display in the Flight Engineer which caused the GUI to freeze.
+    Fixed: How the phase angle calculations were done so they are now correct.
+    Added: Phase angle calculations for going between planets.
+    Added: Maximum G-Force achieved in the Flight Engineer.
+    Added: Extra T/W ratios in the Build Engineer for most of the new planets/moons. (Only the ones where gravity info is available)
+    Changed: The deltaV in the Flight Engineer now uses the actual Isp of the engine at the time, rather than assuming vacuum Isp.
+    Changed: The relative velocity in the Rendezvous Display only shows the magnitude of velocity difference.
+
+0.4.2
+    New: Rendezvous display in the Flight Engineer.
+    Ability to select through Vessel, Debris and Celestial Body targets.
+    Phase Angle
+    Relative Inclination
+    Altitude of target
+    Distance from target
+    Relative forward, horizontal and vertical velocity to target.
+    Added: Saving and loading of window positions.
+
+0.4.1.1
+    Fixed a game breaking bug accidentally introduced into the Build Engineer.
+
+0.4.1
+    New: Will now work with the LiquidFuelEngineFix mod.
+    Added: cost column into the Build Engineer.
+    Added: the option to view all stages or only the important stages within the Build Engineer.
+    Added: the ability to fold out the sections within the Flight Engineer.
+    Added: altitude from sea level into the Flight Engineer.
+    Moved: some of the Flight Engineer details around.
+    Fixed: Bug where the Flight Engineer would not re-activate properly when switching between nearby vessels.
+
+0.4 (breaks backwards compatibility)
+    Complete re-code of plugin logic to use only PartModule's.
+    Added: New EngineerChip part as Strut with BuildEngineer and FlightEngineer modules.
+    Fixed: Bug where the Build Engineer does not work after Ctrl+Z (Undo) within the VAB.
+    Fixed: Bug where the Flight Engineer would conflict when other ships also using the Flight Engineer were within 2.5km.
+
+0.3
+    Re-factored the code to allow Delta-V displays within the Flight Engineer.
+    The Assembly Engineer now only shows useful stages containing Fuel or Isp.
+    Added to the Flight Engineer:
+        Orbital Period
+        Semi-major Axis
+        Delta-V (Stage & Total)
+        Fuel (Stage/Total)
+        Mass (Stage/Total)
+        Thrust to Weight Ratio
+        Vertical Speed
+        Horizontal Speed
+        G-Force
+        Longitude
+        Latitude
+
+0.2.1
+    Fixed: Bugs caused when multiple Engineer parts are attached to the same ship.
+    Fixed: The interface is now shown when a ship is loaded into the VAB (No need to detach and re-attach part).
+
+0.2
+    Complete re-code to make the plugin modular, ready for KSP 0.17.
+    New: EngineerChip and EngineerChipFlight parts by MrPwner. (Including high & low res textures).
+    New: Flight Engineer which will display statistics whilst in flight.
+    New: GUI design to make it more intuitive and look nicer.
+    Added: modularised Thrust to Weight Ratios for easy additions of new planets/moons.
+    Added: delta-v calculations for solid rocket boosters (as accurate as possible).
+    Added: delta-v is now calculated on older engines which do not have Isp values.
+    Fixed: delta-v calculations so they are now correct for each whole stage.
+    Fixed: drag bug which would cause the craft to tilt if launched with part still attached.
+    Fixed: Isp is bound to thrust so calculations with different engines are now correct.
+    Fixed: some GUI bugs related to auto-sizing and staging.
