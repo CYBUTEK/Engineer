@@ -315,18 +315,21 @@ namespace Engineer.VesselSimulator
 
             foreach (Part p in part.fuelLookupTargets)
             {
-                PartSim targetSim;
-                if (partSimLookup.TryGetValue(p, out targetSim))
+                if (p != null)
                 {
-                    if (log != null)
-                        log.buf.AppendLine("Fuel target: " + targetSim.name + ":" + targetSim.partId);
+                    PartSim targetSim;
+                    if (partSimLookup.TryGetValue(p, out targetSim))
+                    {
+                        if (log != null)
+                            log.buf.AppendLine("Fuel target: " + targetSim.name + ":" + targetSim.partId);
 
-                    fuelTargets.Add(targetSim);
-                }
-                else
-                {
-                    if (log != null)
-                        log.buf.AppendLine("No PartSim for fuel target (" + p.name + ")");
+                        fuelTargets.Add(targetSim);
+                    }
+                    else
+                    {
+                        if (log != null)
+                            log.buf.AppendLine("No PartSim for fuel target (" + p.name + ")");
+                    }
                 }
             }
         }
