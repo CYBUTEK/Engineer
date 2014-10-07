@@ -79,8 +79,7 @@ namespace Engineer.VesselSimulator
             }
 
             // Work out if the part should have no physical significance
-            isNoPhysics = part.HasModule<ModuleLandingGear>() ||
-                            part.HasModule<LaunchClamp>() ||
+            isNoPhysics = part.HasModule<LaunchClamp>() ||
                             part.physicalSignificance == Part.PhysicalSignificance.NONE ||
                             part.PhysicsSignificance == 1;
 

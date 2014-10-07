@@ -1,3 +1,7 @@
+0.6.2.11
+	Updated for KSP v0.25.0
+	Changed: ModuleLandingGear now uses the physical significance flag.
+
 0.6.2.10
     Added: More verbose licensing to stay within the updated add-on rules.
     Changed: Separated out the changes from the readme file allowing for future KSP-AVC changelog support.
