@@ -622,7 +622,7 @@ namespace Engineer.VesselSimulator
                         partSim.DumpPartToBuffer(buffer, "Testing: ");
                     //buffer.AppendFormat("isSepratron = {0}\n", partSim.isSepratron ? "true" : "false");
 
-                    if (!partSim.Resources.EmptyOf(drainingResources))
+                    if (!partSim.isSepratron && !partSim.Resources.EmptyOf(drainingResources))
                     {
                         if (SimManager.logOutput)
                         {
