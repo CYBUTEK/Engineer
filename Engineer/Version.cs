@@ -10,7 +10,7 @@ namespace Engineer
 {
     public class Version
     {
-        public const string VERSION = "0.6.2.11";
+        public const string VERSION = "0.6.2.12";
         public const string SUFFIX = "";
         public const string PRODUCT_NAME = "engineer_redux";
         private string remoteVersion = null;
@@ -28,7 +28,7 @@ namespace Engineer
                 return false;
             }
         }
-
+        
         public bool Older
         {
             get
